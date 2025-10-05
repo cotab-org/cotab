@@ -62,4 +62,4 @@ With this policy, you can use Cotab with complete confidence.
 
 ## License
 Copyright (c) 2025 cotab
-MIT License
+Apache License 2.0
