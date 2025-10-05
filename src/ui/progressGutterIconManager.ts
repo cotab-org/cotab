@@ -1,0 +1,156 @@
+import * as vscode from 'vscode';
+
+export function registerProgressGutterIcon(disposables: vscode.Disposable[]) {
+    progressGutterIconManager = new ProgressGutterIconManager();
+    disposables.push(progressGutterIconManager);
+}
+
+// Singleton instance
+export let progressGutterIconManager: ProgressGutterIconManager;
+
+export type GutterIconPhase = 'analyzing' | 'stream' | 'firstGenerating';
+
+// Spinner icons for gutter (multiple frames) by phase
+const spinnerDecorationTypesMap: { [K in GutterIconPhase]?: vscode.TextEditorDecorationType[] } = {};
+
+class ProgressGutterIconManager implements vscode.Disposable {
+    private state: {
+        editor: vscode.TextEditor;
+        timer?: NodeJS.Timeout;
+        frame: number;
+        range: vscode.Range;
+        phase: GutterIconPhase;
+        dispDecoration?: vscode.TextEditorDecorationType | null;
+    } | null = null;
+
+    dispose(): void {
+        this.disposeProgressDecoration();
+    }
+
+    // Public wrappers --------------------------------------------------------
+    public show(pos: vscode.Position, phase: GutterIconPhase | undefined) {
+        const editor = vscode.window.activeTextEditor;
+        if (!phase || !editor) {
+            this.hide();
+            return;
+        }
+
+        if (this.state?.timer) {
+            this.state.phase = phase;
+            this.startUpdate();
+        }
+        else {
+            const line = pos.line;
+            const col = Math.min(pos.character, editor.document.lineAt(line).text.length);
+            const range = new vscode.Range(line, col, line, col);
+            this.state = { editor, frame: 0, range, phase };
+            this.startUpdate();
+        }
+    }
+
+    private onUpdateTimer() {
+        if (!this.state) return;
+        
+        const editor = this.state.editor;
+
+        // crear prev decorations
+        if (this.state.dispDecoration) {
+            editor.setDecorations(this.state.dispDecoration, []);
+        }
+
+        // set current decorations
+        const spinnerDecorationTypes = this.ensureSpinnerDecorationTypes(this.state.phase);
+        const dispIndex = this.state.frame % spinnerDecorationTypes.length;
+        const dispDecoration = spinnerDecorationTypes[dispIndex];
+        editor.setDecorations(dispDecoration, [this.state.range]);
+        this.state.dispDecoration = dispDecoration;
+        this.state.frame = (this.state.frame + 1) % spinnerDecorationTypes.length;
+    }
+    
+    private startUpdate() {
+        if (!this.state) return;
+
+        this.clearTimer();
+        this.onUpdateTimer();
+        this.state.timer = setInterval(() => { this.onUpdateTimer(); }, 120);
+    }
+
+    private clearTimer(): void {
+        if (this.state?.timer) {
+            clearInterval(this.state.timer);
+            this.state.timer = undefined;
+        }
+    }
+
+    public hide() {
+        if (!this.state) return;
+        
+        this.clearTimer();
+        
+        const currentEditor = this.state?.editor ?? vscode.window.activeTextEditor!;
+        for (const phase of ['analyzing', 'stream', 'firstGenerating'] as GutterIconPhase[]) {
+            const dts = spinnerDecorationTypesMap[phase];
+            if (dts) {
+                for (const dt of dts) {
+                    currentEditor.setDecorations(dt, []);
+                }
+            }
+        }
+        this.state = null;
+    }
+
+    // Internal helpers -------------------------------------------------------
+    private getExtensionUri(): vscode.Uri | null {
+        const ext = vscode.extensions.getExtension('cotab.cotab');
+        return ext?.extensionUri ?? null;
+    }
+
+    private getIconPathes(phase: GutterIconPhase) : string[] {
+        if (phase === 'stream') {
+            return ['spinner-0.svg', 'spinner-1.svg', 'spinner-2.svg', 'spinner-3.svg'];
+        } else if (phase === 'firstGenerating') {
+            return ['spinner-red-0.svg', 'spinner-red-1.svg', 'spinner-red-2.svg'];
+        }
+        return ['dot-spinner-0.svg', 'dot-spinner-1.svg', 'dot-spinner-2.svg', 'dot-spinner-3.svg', 'dot-spinner-4.svg', 'dot-spinner-5.svg', 'dot-spinner-6.svg', 'dot-spinner-7.svg'];
+    }
+
+    private ensureSpinnerDecorationTypes(phase: GutterIconPhase): vscode.TextEditorDecorationType[] {
+        if (spinnerDecorationTypesMap[phase]) {
+            return spinnerDecorationTypesMap[phase];
+        }
+        
+        const extUri = this.getExtensionUri();
+        if (!extUri) {
+            spinnerDecorationTypesMap[phase] = [vscode.window.createTextEditorDecorationType({})];
+            return spinnerDecorationTypesMap[phase];
+        }
+
+        // load icon and create decoration type for each frame
+        const frames = this.getIconPathes(phase);
+        spinnerDecorationTypesMap[phase] = frames.map((fname) => {
+            const iconUri = vscode.Uri.joinPath(extUri, 'media', fname);
+            return vscode.window.createTextEditorDecorationType({
+                gutterIconPath: iconUri,
+                gutterIconSize: '12px',
+                rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed,
+            });
+        });
+
+        return spinnerDecorationTypesMap[phase];
+    }
+
+    private disposeProgressDecoration() {
+        // Stop all active timers
+        if (this.state?.timer) clearInterval(this.state.timer);
+        this.state = null;
+
+        // Dispose decoration types
+        for (const phase of ['analyzing', 'stream', 'firstGenerating'] as GutterIconPhase[]) {
+            const dts = spinnerDecorationTypesMap[phase];
+            if (dts) {
+                for (const dt of dts) dt.dispose();
+                delete spinnerDecorationTypesMap[phase];
+            }
+        }
+    }
+}
