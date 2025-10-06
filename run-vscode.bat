@@ -20,6 +20,7 @@ exit /b 0
 	pause
 exit /b 1
 
+
 :RUN_VSCODE
     for /f "delims=" %%I in ('where code 2^>NUL') do (
         call :RUN_VSCODE_INTERNAL "%%~fI"
