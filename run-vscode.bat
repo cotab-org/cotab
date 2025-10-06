@@ -22,7 +22,7 @@ exit /b 1
 
 :RUN_VSCODE
     for /f "delims=" %%I in ('where code 2^>NUL') do (
-        goto :RUN_VSCODE_INTERNAL "%%~fI"
+        call :RUN_VSCODE_INTERNAL "%%~fI"
         exit /b 0
     )
     echo 'code' command not found on PATH.
@@ -36,4 +36,4 @@ exit /b 1
     ) else (
         start code "%~dp0"
     )
-exit /b 0
+exit /b
