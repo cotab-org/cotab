@@ -6,7 +6,7 @@ import * as path from 'path';
 import * as https from 'https';
 import * as os from 'os';
 import axios from 'axios';
-import { logInfo, logWarning, logError, logServer, showLogWindow } from './logger';
+import { logInfo, logWarning, logError, logServer, logTerminal, showLogWindow } from './logger';
 
 // Register helper (mirrors progressGutterIconManager)
 export function registerTerminalCommand(disposables: vscode.Disposable[]): void {
@@ -136,7 +136,7 @@ class TerminalCommand implements vscode.Disposable {
         try {
             // show log window for installation progress
             try { showLogWindow(true); } catch (_) {}
-            logInfo('[Install] Fetching latest llama.cpp release information...', true);
+            logTerminal('[Install] Fetching latest llama.cpp release information...');
             const release = await this.getLatestLlamaCppRelease();
 
             let mainBinary: any | undefined;
@@ -188,19 +188,19 @@ class TerminalCommand implements vscode.Disposable {
             fs.mkdirSync(installDir, { recursive: true });
 
             // Download llama.cpp binary
-            logInfo(`[Install] Downloading ${mainBinary.name}...`, true);
+            logTerminal(`[Install] Downloading ${mainBinary.name}...`);
             const mainZipPath = path.join(installDir, mainBinary.name);
             await this.downloadFile(mainBinary.browser_download_url, mainZipPath);
 
             // Extract llama.cpp binary
-            logInfo('[Install] Extracting llama.cpp archive...', true);
+            logTerminal('[Install] Extracting llama.cpp archive...');
             await this.extractZip(mainZipPath, installDir);
             
             try { fs.unlinkSync(mainZipPath); } catch (_) {}
 
             // Download CUDA runtime
             if (kind === 'cuda' && cudartBinary) {
-                logInfo(`[Install] Downloading ${cudartBinary.name}...`, true);
+                logTerminal(`[Install] Downloading ${cudartBinary.name}...`);
                 const cudartZipPath = path.join(installDir, cudartBinary.name);
                 await this.downloadFile(cudartBinary.browser_download_url, cudartZipPath);
                 
@@ -209,13 +209,13 @@ class TerminalCommand implements vscode.Disposable {
                 if (!serverExePath) throw new Error('Extracted llama.cpp archive does not contain llama-server executable');
                 const serverDir = path.dirname(serverExePath);
 
-                logInfo('[Install] Extracting CUDA runtime into server directory...', true);
+                logTerminal('[Install] Extracting CUDA runtime into server directory...');
                 await this.extractZip(cudartZipPath, serverDir);
                 
                 try { fs.unlinkSync(cudartZipPath); } catch (_) {}
             }
 
-            logInfo('[Install] llama.cpp installation successfully!', true);
+            logTerminal('[Install] llama.cpp installation successfully!');
             return true;
         } catch (error) {
             logError(`[Install] Failed to install llama.cpp: ${error}`);

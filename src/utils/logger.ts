@@ -8,8 +8,9 @@ export enum LogLevel {
 	ERROR = 0,
 	WARNING = 1,
 	INFO = 2,
-	SERVER = 3,
-	DEBUG = SERVER
+	DEBUG = 3,
+	SERVER = DEBUG,
+	TERMINAL = INFO,
 }
 
 // Get current log level
@@ -21,8 +22,8 @@ function getCurrentLogLevel(): LogLevel {
 		case 'ERROR': return LogLevel.ERROR;
 		case 'WARNING': return LogLevel.WARNING;
 		case 'INFO': return LogLevel.INFO;
-		case 'SERVER': return LogLevel.SERVER;
 		case 'DEBUG': return LogLevel.DEBUG;
+		case 'SERVER': return LogLevel.SERVER;
 		default: return LogLevel.INFO;
 	}
 }
@@ -42,16 +43,20 @@ export function logWarning(message: string) {
 	log(LogLevel.WARNING, '[WARNING]', message);
 }
 
-export function logInfo(message: string, isForce: boolean = false) {
-	log(LogLevel.INFO, '[INFO]', message, isForce);
+export function logInfo(message: string) {
+	log(LogLevel.INFO, '[INFO]', message);
+}
+
+export function logDebug(message: string) {
+	log(LogLevel.DEBUG, '[DEBUG]', message);
 }
 
 export function logServer(message: string) {
 	log(LogLevel.SERVER, '[SERVER]', message);
 }
 
-export function logDebug(message: string) {
-	log(LogLevel.DEBUG, '[DEBUG]', message);
+export function logTerminal(message: string) {
+	log(LogLevel.TERMINAL, '[TERMINAL]', message, true);
 }
 
 export function showLogWindow(preserveFocus: boolean = false) {

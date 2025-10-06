@@ -120,6 +120,7 @@ export function withLineNumberCodeBlock(CodeBlock: string,
 		CodeBlock: string;
 		LastLineNumber: number;
 	} {
+	startLineNumber = Math.max(startLineNumber, 0);
 	let LastLineNumber = startLineNumber;
 	if (getConfig().withLineNumber) {
 		const lines = CodeBlock.split('\n');

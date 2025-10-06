@@ -1043,7 +1043,7 @@ exit /b 0
 			echo failed to fetch "%COTAB_NAME%"
 			exit /b 1
 		)
-        git -C "%COTAB_REPO%" checkout -t origin/main
+        git -C "%COTAB_REPO%" checkout -f -t origin/main
 		if ERRORLEVEL 1 (
 			echo failed to checkout "%COTAB_NAME%"
 			exit /b 1

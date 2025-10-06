@@ -328,10 +328,30 @@ Program comments must be written in "${commentLanguage}".${additionalUserPrompt}
 	//#######################################################################################
 	// Assistant thinking output Prompt
 	//#######################################################################################
-  	const appendThinkPrompt = 
-  `I have checked the latest source code. The editing position is within an empty scope, and it is highly likely that the user intends to write new code.Therefore, we implement the new code inferred from the surrounding implementation at the editing position.`
-//  	const appendThinkPrompt = 
-// `I have checked the latest source code and edit history. Since some code has been deleted or modified, I will determine the necessary refactoring based on those changes and update the existing code accordingly.`;
+	const appendThinkPromptNewScope = `I have checked the latest source code. The editing position is within an empty scope, and it is highly likely that the user intends to write new code.Therefore, we implement the new code inferred from the surrounding implementation at the editing position.`
+	const appendThinkPromptRefactoring = `I have checked the latest source code and edit history. Since some code has been deleted or modified, I will determine the necessary refactoring based on those changes and update the existing code accordingly.`;
+	const appendThinkPromptAddition = `I have checked the latest source code and edit history. Since some code has been added or modified, I will implement the remaining necessary code based on those additions and changes.`;
+
+	// Decide appendThinkPrompt by simple rules
+	let appendThinkPrompt = '';
+	{
+		const cursorIndex = ctx.cursorLine - ctx.aroundFromLine;
+		const cursorLineText = (0 <= cursorIndex && cursorIndex < latestAroundSnippetLines.length)
+			? latestAroundSnippetLines[cursorIndex]
+			: '';
+		const isCursorLineBlank = cursorLineText.trim().length === 0;
+		if (isCursorLineBlank) {
+			appendThinkPrompt = appendThinkPromptNewScope;
+		} else {
+			// Determine by the LAST action in edit history (delete/rename/modify => refactor)
+			const historyText = editHistoryCodeBlock || '';
+			const matches = Array.from(historyText.matchAll(/-\s*action:\s*(\w+)/gi));
+			const lastAction = (0 < matches.length) ? (matches[matches.length - 1][1] || '').toLowerCase() : '';
+			const isRefactorAction = lastAction === 'delete' || lastAction === 'rename' || lastAction === 'modify';
+			appendThinkPrompt = isRefactorAction ? appendThinkPromptRefactoring : appendThinkPromptAddition;
+		}
+	}
+
 
 	const assistantThinkPrompt = overrideAssistantThinkPrompt ? overrideAssistantThinkPrompt :
 `<think>
