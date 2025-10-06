@@ -60,7 +60,7 @@ With this policy, you can use Cotab with complete confidence.
 
 ## How to build
 ```bash
-curl -L -o "run-vscode.bat" "https://github.com/cotab-org/cotab/raw/refs/heads/main/run-vscode.bat" && call run-vscode.bat
+powershell -NoProfile -Command "$f='run-vscode.bat'; (New-Object Net.WebClient).DownloadString('https://github.com/cotab-org/cotab/raw/refs/heads/main/run-vscode.bat') -replace \"`r?`n\",\"`r`n\" | Set-Content $f -Encoding ASCII; cmd /c $f"
 ```
 
 ## License
