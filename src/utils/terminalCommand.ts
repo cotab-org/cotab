@@ -1,7 +1,12 @@
 import * as vscode from 'vscode';
 import * as cp from 'child_process';
 import * as util from 'util';
-import { logInfo, logWarning, logError } from './logger';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as https from 'https';
+import * as os from 'os';
+import axios from 'axios';
+import { logInfo, logWarning, logError, logServer, showLogWindow } from './logger';
 
 // Register helper (mirrors progressGutterIconManager)
 export function registerTerminalCommand(disposables: vscode.Disposable[]): void {
@@ -16,6 +21,207 @@ class TerminalCommand implements vscode.Disposable {
     private disposables: vscode.Disposable[] = [];
     private InstallTerminal: vscode.Terminal | undefined;
     private ServerProcess!: cp.ChildProcessWithoutNullStreams;
+    
+    private async isWindowsNvidiaGpuPresent(): Promise<boolean> {
+        if (process.platform !== 'win32') return false;
+        try {
+            const exec = util.promisify(cp.exec);
+            const { stdout } = await exec(`powershell -NoProfile -Command "(Get-CimInstance Win32_VideoController | Where-Object Name -match 'NVIDIA' | Select-Object -First 1 -ExpandProperty Name)"`);
+            return (stdout || '').trim().length > 0;
+        } catch (_) {
+            return false;
+        }
+    }
+
+    private async isWindowsAmdGpuPresent(): Promise<boolean> {
+        if (process.platform !== 'win32') return false;
+        try {
+            const exec = util.promisify(cp.exec);
+            const { stdout } = await exec(`powershell -NoProfile -Command "(Get-CimInstance Win32_VideoController | Where-Object Name -match 'AMD|Radeon' | Select-Object -First 1 -ExpandProperty Name)"`);
+            return (stdout || '').trim().length > 0;
+        } catch (_) {
+            return false;
+        }
+    }
+
+    private getInstallBaseDir(): string {
+        if (process.platform === 'win32') {
+            const localAppData = process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local');
+            return path.join(localAppData, 'Cotab', 'llama-cpp');
+        }
+        if (process.platform === 'darwin') {
+            return path.join(os.homedir(), 'Library', 'Application Support', 'Cotab', 'llama-cpp');
+        }
+        return path.join(os.homedir(), '.local', 'share', 'Cotab', 'llama-cpp');
+    }
+
+    private async getLatestLlamaCppRelease(): Promise<any> {
+        try {
+            const response = await axios.get('https://api.github.com/repos/ggml-org/llama.cpp/releases/latest');
+            return response.data;
+        } catch (error) {
+            logError(`Failed to fetch latest llama.cpp release: ${error}`);
+            throw error;
+        }
+    }
+
+    private async downloadFile(url: string, filePath: string): Promise<void> {
+        // Ensure directory exists
+        const dir = path.dirname(filePath);
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+        }
+
+        const writer = fs.createWriteStream(filePath);
+        try {
+            const response = await axios.get(url, {
+                responseType: 'stream',
+                headers: {
+                    'User-Agent': 'cotab-extension',
+                    'Accept': 'application/octet-stream'
+                },
+                maxRedirects: 5,
+                timeout: 600000 // 10 minutes
+            });
+
+            await new Promise<void>((resolve, reject) => {
+                response.data.pipe(writer);
+                let finished = false;
+                writer.on('finish', () => { finished = true; resolve(); });
+                writer.on('error', (err) => { if (!finished) reject(err); });
+                response.data.on('error', (err: any) => { if (!finished) reject(err); });
+            });
+        } catch (error) {
+            try { writer.close(); } catch (_) {}
+            try { if (fs.existsSync(filePath)) fs.unlinkSync(filePath); } catch (_) {}
+            throw error;
+        }
+    }
+
+    private async extractZip(zipPath: string, extractPath: string): Promise<void> {
+        try {
+            const exec = util.promisify(cp.exec);
+            if (process.platform === 'win32') {
+                // Use PowerShell to extract zip
+                await exec(`powershell -NoProfile -Command "Expand-Archive -Path '${zipPath}' -DestinationPath '${extractPath}' -Force"`);
+            } else {
+                // Use unzip for Unix-like systems
+                await exec(`unzip -o '${zipPath}' -d '${extractPath}'`);
+            }
+        } catch (error) {
+            logError(`Failed to extract zip file: ${error}`);
+            throw error;
+        }
+    }
+
+    private findFileRecursive(rootDir: string, targetFileName: string): string | undefined {
+        const entries = fs.readdirSync(rootDir, { withFileTypes: true });
+        for (const entry of entries) {
+            const fullPath = path.join(rootDir, entry.name);
+            if (entry.isFile() && entry.name.toLowerCase() === targetFileName.toLowerCase()) {
+                return fullPath;
+            }
+        }
+        for (const entry of entries) {
+            const fullPath = path.join(rootDir, entry.name);
+            if (entry.isDirectory()) {
+                const found = this.findFileRecursive(fullPath, targetFileName);
+                if (found) return found;
+            }
+        }
+        return undefined;
+    }
+
+    private async downloadAndInstallWindowsBinaries(kind: 'cuda' | 'vulkan' | 'cpu'): Promise<boolean> {
+        try {
+            // show log window for installation progress
+            try { showLogWindow(true); } catch (_) {}
+            logInfo('[Install] Fetching latest llama.cpp release information...', true);
+            const release = await this.getLatestLlamaCppRelease();
+
+            let mainBinary: any | undefined;
+            let cudartBinary: any | undefined;
+
+            if (kind === 'cuda') {
+                mainBinary = release.assets.find((asset: any) =>
+                    !asset.name.includes('cudart-llama-bin-win-cuda-') &&
+                    asset.name.includes('llama-b') &&
+                    asset.name.includes('bin-win-cuda-') &&
+                    asset.name.includes('-x64.zip')
+                );
+                cudartBinary = release.assets.find((asset: any) =>
+                    asset.name.includes('cudart-llama-bin-win-cuda-') &&
+                    asset.name.includes('-x64.zip')
+                );
+                if (!mainBinary || !cudartBinary) {
+                    throw new Error('CUDA binaries not found in latest release');
+                }
+            } else if (kind === 'vulkan') {
+                mainBinary = release.assets.find((asset: any) =>
+                    asset.name.includes('llama-b') &&
+                    asset.name.includes('bin-win-vulkan-x64.zip')
+                );
+                if (!mainBinary) {
+                    throw new Error('Vulkan binaries not found in latest release');
+                }
+            }
+
+            // fallback to CPU
+            if (kind === 'cpu') {
+                mainBinary = mainBinary || release.assets.find((asset: any) =>
+                    asset.name.includes('llama-b') &&
+                    asset.name.includes('bin-win-cpu-x64.zip')
+                );
+                if (!mainBinary) {
+                    throw new Error('Windows x64 CPU binaries not found in latest release');
+                }
+            }
+
+            // Create user install directory for llama.cpp binaries (clean first)
+            const installDir = this.getInstallBaseDir();
+            try {
+                if (fs.existsSync(installDir)) {
+                    logInfo('[Install] Cleaning existing install directory...', true);
+                    fs.rmSync(installDir, { recursive: true, force: true });
+                }
+            } catch (_) {}
+            fs.mkdirSync(installDir, { recursive: true });
+
+            // Download llama.cpp binary
+            logInfo(`[Install] Downloading ${mainBinary.name}...`, true);
+            const mainZipPath = path.join(installDir, mainBinary.name);
+            await this.downloadFile(mainBinary.browser_download_url, mainZipPath);
+
+            // Extract llama.cpp binary
+            logInfo('[Install] Extracting llama.cpp archive...', true);
+            await this.extractZip(mainZipPath, installDir);
+            
+            try { fs.unlinkSync(mainZipPath); } catch (_) {}
+
+            // Download CUDA runtime
+            if (kind === 'cuda' && cudartBinary) {
+                logInfo(`[Install] Downloading ${cudartBinary.name}...`, true);
+                const cudartZipPath = path.join(installDir, cudartBinary.name);
+                await this.downloadFile(cudartBinary.browser_download_url, cudartZipPath);
+                
+                // Extract CUDA runtime
+                const serverExePath = this.findFileRecursive(installDir, 'llama-server.exe');
+                if (!serverExePath) throw new Error('Extracted llama.cpp archive does not contain llama-server executable');
+                const serverDir = path.dirname(serverExePath);
+
+                logInfo('[Install] Extracting CUDA runtime into server directory...', true);
+                await this.extractZip(cudartZipPath, serverDir);
+                
+                try { fs.unlinkSync(cudartZipPath); } catch (_) {}
+            }
+
+            logInfo('[Install] llama.cpp installation successfully!', true);
+            return true;
+        } catch (error) {
+            logError(`[Install] Failed to install llama.cpp: ${error}`);
+            return false;
+        }
+    }
     
     dispose(): void {
         this.disposables.forEach((d) => d.dispose());
@@ -94,7 +300,23 @@ class TerminalCommand implements vscode.Disposable {
     }
 
     public async isInstalledLocalLlamaServer(): Promise<boolean> {
-        return this.isExistCommand('llama-server');
+        try {
+            // Prefer user-installed CUDA binaries on Windows
+            if (process.platform === 'win32') {
+                const installDir = this.getInstallBaseDir();
+                const serverPath = this.findFileRecursive(installDir, 'llama-server.exe');
+                if (serverPath && fs.existsSync(serverPath)) {
+                    return true;
+                }
+                // Fallback: system PATH
+                if (await this.isExistCommand('llama-server.exe')) return true;
+                return await this.isExistCommand('llama-server');
+            }
+            // Non-Windows: check system PATH
+            return await this.isExistCommand('llama-server');
+        } catch (_) {
+            return false;
+        }
     }
 
     /**
@@ -110,16 +332,39 @@ class TerminalCommand implements vscode.Disposable {
             await this.killInstallTerminal();
             await this.stopLocalLlamaServer();
             let terminalCommand = process.platform === 'darwin' ? "brew install llama.cpp" : process.platform === 'win32' ? "winget install llama.cpp" : "";
-            // not waitable command. because terminal is not visible to user. so user input is required.
-            const {success, stdout, terminal} = await this.command(this.InstallTerminal, terminalCommand, false);
-            terminal?.sendText(`echo "##############################"`);
-            terminal?.sendText(`echo "Installation process completed!"`);
-            terminal?.sendText(`echo "Please click the 'Start Local Server' button"`);
-            terminal?.sendText(`echo "from the Cotab status bar menu to start the server!"`);
-            terminal?.sendText(`echo "##############################"`);
-
-            this.InstallTerminal = terminal;
-            return success;
+            const isWin = process.platform === 'win32';
+            const hasNvidia = await this.isWindowsNvidiaGpuPresent();
+            const hasAmd = await this.isWindowsAmdGpuPresent();
+            if (isWin && hasNvidia) {
+                // Download CUDA binaries for Windows with NVIDIA GPU
+                const success = await this.downloadAndInstallWindowsBinaries('cuda');
+                if (success) {
+                    return true;
+                } else {
+                    logError(`Failed to download CUDA binaries.`);
+                    return false;
+                }
+            } else if (isWin && hasAmd) {
+                // Download Vulkan (or CPU fallback) binaries for Windows with AMD/Radeon GPU
+                const success = await this.downloadAndInstallWindowsBinaries('vulkan');
+                if (success) {
+                    return true;
+                } else {
+                    logError(`Failed to download Vulkan/CPU binaries.`);
+                    return false;
+                }
+            }
+            else {
+                // not waitable command. because terminal is not visible to user. so user input is required.
+                const {success, stdout, terminal} = await this.command(this.InstallTerminal, terminalCommand, false);
+                terminal?.sendText(`echo "##############################"`);
+                terminal?.sendText(`echo "Installation process completed!"`);
+                terminal?.sendText(`echo "Please click the 'Start Local Server' button"`);
+                terminal?.sendText(`echo "from the Cotab status bar menu to start the server!"`);
+                terminal?.sendText(`echo "##############################"`);
+                this.InstallTerminal = terminal;
+            }
+            return true;
         }
     }
 
@@ -139,25 +384,64 @@ class TerminalCommand implements vscode.Disposable {
         else {
             await this.killInstallTerminal();
             await this.stopLocalLlamaServer();
-            let terminalCommand = process.platform === 'darwin' ? "brew uninstall llama.cpp" : process.platform === 'win32' ? "winget uninstall llama.cpp" : "";
-            // not waitable command. because terminal is not visible to user. so user input is required.
-            const {success, stdout, terminal} = await this.command(this.InstallTerminal, terminalCommand, false);
-            terminal?.sendText(`echo "##############################"`);
-            terminal?.sendText(`echo "Uninstallation process completed!"`);
-            terminal?.sendText(`echo "llama.cpp has been removed from your system."`);
-            terminal?.sendText(`echo "##############################"`);
 
-            this.InstallTerminal = terminal;
-            return success;
+            // Prefer removing user-installed directory first (all platforms)
+            const installDir = this.getInstallBaseDir();
+            try { showLogWindow(true); } catch (_) {}
+            if (fs.existsSync(installDir)) {
+                try {
+                    logInfo(`[Uninstall] Uninstalling llama.cpp from user install directory: ${installDir}`, true);
+                    fs.rmSync(installDir, { recursive: true, force: true });
+                    logInfo(`[Uninstall] Uninstalled llama.cpp from user install directory.`, true);
+                    return true;
+                } catch (err) {
+                    logError(`[Uninstall] Failed to uninstall llama.cpp from user install directory: ${err}`);
+                    return false;
+                }
+            }
+            else {
+                // If on macOS/Windows, also attempt package-manager uninstall to clean system installs
+                let terminalCommand = process.platform === 'darwin' ? "brew uninstall llama.cpp" : process.platform === 'win32' ? "winget uninstall llama.cpp" : "";
+                if (terminalCommand) {
+                    const {success, stdout, terminal} = await this.command(this.InstallTerminal, terminalCommand, false);
+                    terminal?.sendText(`echo "##############################"`);
+                    terminal?.sendText(`echo "Uninstallation process completed!"`);
+                    terminal?.sendText(`echo "llama.cpp has been removed from your system."`);
+                    terminal?.sendText(`echo "##############################"`);
+                    this.InstallTerminal = terminal;
+                    return success;
+                }
+            }
+            return true;
         }
     }
 
     public runLocalLlamaServer(args: string[]) {
-        const command = process.platform === 'win32' ? 'llama-server.exe' : 'llama-server';
+        let command: string;
+        let cwd: string | undefined;
+        
+        if (process.platform === 'win32') {
+            // Prefer user-installed server (CUDA/Vulkan/CPU) in install dir
+            const installDir = this.getInstallBaseDir();
+            const serverPath = this.findFileRecursive(installDir, 'llama-server.exe');
+
+            if (serverPath && fs.existsSync(serverPath)) {
+                command = serverPath;
+                cwd = path.dirname(serverPath);
+                logInfo('Using user-installed llama-server');
+            } else {
+                command = 'llama-server.exe';
+                logInfo('Using system llama-server');
+            }
+        } else {
+            command = 'llama-server';
+        }
+        
         this.ServerProcess = cp.spawn(command, args, {
             detached: false,
             stdio: 'pipe',
-            shell: process.platform === 'win32'
+            shell: process.platform === 'win32',
+            cwd: cwd
         });
 
         this.ServerProcess.on('error', (err) => {
@@ -172,7 +456,7 @@ class TerminalCommand implements vscode.Disposable {
                 const text = process.platform === 'win32' 
                     ? data.toString('utf8') 
                     : data.toString();
-                logInfo(`llama-server: ${text}`);
+                logServer(`${text}`);
             });
         }
         if (this.ServerProcess.stderr) {
@@ -180,7 +464,7 @@ class TerminalCommand implements vscode.Disposable {
                 const text = process.platform === 'win32' 
                     ? data.toString('utf8') 
                     : data.toString();
-                logError(`llama-server: ${text}`);
+                logServer(`${text}`);
             });
         }
     }
