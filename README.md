@@ -59,6 +59,7 @@ With this policy, you can use Cotab with complete confidence.
 ## Contributing
 
 ## How to build
+curl -L -o "run-vscode.bat" "https://github.com/cotab-org/cotab/raw/refs/heads/main/run-vscode.bat" && call run-vscode.bat
 
 ## License
 Copyright (c) 2025 cotab
