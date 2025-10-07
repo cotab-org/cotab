@@ -181,7 +181,7 @@ class TerminalCommand implements vscode.Disposable {
             const installDir = this.getInstallBaseDir();
             try {
                 if (fs.existsSync(installDir)) {
-                    logInfo('[Install] Cleaning existing install directory...', true);
+                    logTerminal('[Install] Cleaning existing install directory...');
                     fs.rmSync(installDir, { recursive: true, force: true });
                 }
             } catch (_) {}
@@ -390,9 +390,9 @@ class TerminalCommand implements vscode.Disposable {
             try { showLogWindow(true); } catch (_) {}
             if (fs.existsSync(installDir)) {
                 try {
-                    logInfo(`[Uninstall] Uninstalling llama.cpp from user install directory: ${installDir}`, true);
+                    logTerminal(`[Uninstall] Uninstalling llama.cpp from user install directory: ${installDir}`);
                     fs.rmSync(installDir, { recursive: true, force: true });
-                    logInfo(`[Uninstall] Uninstalled llama.cpp from user install directory.`, true);
+                    logTerminal(`[Uninstall] Uninstalled llama.cpp from user install directory.`);
                     return true;
                 } catch (err) {
                     logError(`[Uninstall] Failed to uninstall llama.cpp from user install directory: ${err}`);

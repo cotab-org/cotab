@@ -11,7 +11,7 @@ if not exist "%~dp0potable-cmd.bat" (
     curl -L -o "%~dp0potable-cmd.bat" "https://github.com/cotab-org/cotab/raw/refs/heads/main/potable-cmd.bat"
     if ERRORLEVEL 1 goto :ERROR
     
-    powershell -Command "Get-Content '%~dp0potable-cmd.bat' -Raw | Set-Content '%~dp0potable-cmd.bat' -Encoding ASCII"
+    powershell -Command "(Get-Content '%~dp0potable-cmd.bat' -Raw) -replace '`r?`n', \"`r`n\" | Set-Content '%~dp0potable-cmd.bat' -Encoding ASCII"
 )
 
 :: activate environment

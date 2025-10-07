@@ -35,14 +35,15 @@ class ProgressGutterIconManager implements vscode.Disposable {
             return;
         }
 
+        const line = pos.line;
+        const col = Math.min(pos.character, editor.document.lineAt(line).text.length);
+        const range = new vscode.Range(line, col, line, col);
         if (this.state?.timer) {
+            this.state.range = range;
             this.state.phase = phase;
             this.startUpdate();
         }
         else {
-            const line = pos.line;
-            const col = Math.min(pos.character, editor.document.lineAt(line).text.length);
-            const range = new vscode.Range(line, col, line, col);
             this.state = { editor, frame: 0, range, phase };
             this.startUpdate();
         }
@@ -108,10 +109,13 @@ class ProgressGutterIconManager implements vscode.Disposable {
     private getIconPathes(phase: GutterIconPhase) : string[] {
         if (phase === 'stream') {
             return ['spinner-0.svg', 'spinner-1.svg', 'spinner-2.svg', 'spinner-3.svg'];
-        } else if (phase === 'firstGenerating') {
-            return ['spinner-red-0.svg', 'spinner-red-1.svg', 'spinner-red-2.svg'];
         }
-        return ['dot-spinner-0.svg', 'dot-spinner-1.svg', 'dot-spinner-2.svg', 'dot-spinner-3.svg', 'dot-spinner-4.svg', 'dot-spinner-5.svg', 'dot-spinner-6.svg', 'dot-spinner-7.svg'];
+        else if (phase === 'firstGenerating') {
+            return ['spinner-red-0.svg', 'spinner-red-1.svg', 'spinner-red-2.svg', 'spinner-red-3.svg'];
+        }
+        else {
+            return ['dot-spinner-0.svg', 'dot-spinner-1.svg', 'dot-spinner-2.svg', 'dot-spinner-3.svg', 'dot-spinner-4.svg', 'dot-spinner-5.svg', 'dot-spinner-6.svg', 'dot-spinner-7.svg'];
+        }
     }
 
     private ensureSpinnerDecorationTypes(phase: GutterIconPhase): vscode.TextEditorDecorationType[] {

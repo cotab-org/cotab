@@ -18,25 +18,28 @@ This is a VS Code extension that provides AI-powered multi-line edit suggestions
 
 
 ## Important Notes
-- Prompts exceeding 10,000 tokens are always requested
-- Optimized for llama-server, strongly recommend using llama-server
-- **Please be especially careful when using pay-per-use API servers as they will consume tokens rapidly**
-- When using a local server, **strongly recommend using it by only one person**
-A single local server is optimized for **single-user use only** for high performance.
-Simultaneous use by multiple people will cause significant penalties in inference processing, resulting in severely degraded response speed
+- Requests may include prompts that exceed 10,000 tokens
+- Optimized for llama-server; we strongly recommend using llama-server
+- **Be especially careful when using pay-per-use API servers, as token consumption can be rapid**
+- When using a local server, **we strongly recommend single-user usage**
+A local server is optimized for **single-user performance**.
+Concurrent use by multiple users will significantly penalize inference and severely degrade response speed
 
 ## Performance
-Cotab is optimized for llama-server and Qwen3-4b-2507, designed to operate at high speed. Even with source code exceeding 1000 lines, it understands the entire content and displays completions in about 0.6 seconds on RTX3070, even with prompts exceeding 15,000 tokens including hundreds of reference symbols. For the first time, it analyzes source code to improve accuracy. After that, as long as the cursor position doesn't move significantly, it sends completion requests with each keystroke even if exceeding 10,000 tokens, maintaining that response speed.
+Cotab is optimized for llama-server and Qwen3-4b-2507 and is designed for high-speed operation. From the second request onward, even for source files over 1,000 lines, it understands the entire context and shows completions in about 0.6 seconds on an RTX 3070, even when the prompt exceeds 15,000 tokens and includes hundreds of reference symbols. After that, as long as the cursor position does not change significantly, it continues sending per-keystroke completion requests while maintaining that response time.
+
+### Prompt
+While model quality matters, completion accuracy varies greatly depending on the prompt content. By customizing the prompt, you may be able to further improve accuracy.
 
 ## Details
 ### llama-server
 You can also use OpenAI compatible APIs, but strongly recommend using llama-server. llama-server has low overhead and operates at the fastest speed among servers using llama.cpp as backend.
-Code completion requests frequently repeat requests and cancellations, so that overhead directly affects user experience.
+Code completion frequently repeat requests and cancellations, so that overhead directly affects user experience.
 
 ### Prompt Optimization
 llama-server has a mechanism enabled by default that caches prompts from previous requests. Prompt cache is effective up to the part that matches the previous prompt, allowing prompt processing to be skipped up to that part.
 
-In other words, placing changes from the previous request at the end of the prompt enables fast response. To maximize the use of this mechanism, even when users type characters, the full source code remains unchanged, and instead, the latest source code reflecting the input is appended only to the bottom of the prompt as surrounding code.
+To make the most of this mechanism, the original source code  in prompt remains unchanged as users type. Instead, a minimal block of modified surrounding code is appended to the bottom of the prompt.
 
 ### Edit History
 Remembers the user's immediate previous edits and utilizes them in suggestions. Edits are categorized into add, delete, edit, rename, and copy to improve prediction accuracy.
@@ -46,8 +49,11 @@ This makes functions created immediately before more likely to be suggested, mor
 ### Symbols from Other Files
 Uses symbols obtainable from VSCode's language providers and utilizes them in suggestions. These symbols allow LLM to understand class structures and improve the accuracy of member function suggestions.
 
+### Analysis source code
+By analyzing the source code in advance and incorporating the results into the prompt, we enable a deeper level of understanding.
+
 ## Privacy and Telemetry
-All communication performed by Cotab is strictly limited to requests to the default endpoint `"http://localhost:8080/v1"` or to the LLM API specified by the user. No other external services or servers are contacted. This ensures maximum privacy and security.
+Cotab only communicates with the default endpoint `"http://localhost:8080/v1"` or the LLM API specified by the user. No other external services or servers are contacted. This ensures maximum privacy and security.
 - Communication is only made with the configured API
 - No telemetry or usage data is ever sent
 - User code or input is never shared with third parties
@@ -56,11 +62,39 @@ All communication performed by Cotab is strictly limited to requests to the defa
 
 With this policy, you can use Cotab with complete confidence.
 
-## Contributing
+## Development / Contributions
+
+- Contributions (issues, PRs, improvement proposals) are welcome.
+- Bug fixes, optimizations, and sharing benchmark results are also welcome.
 
 ## How to build
+
+Please install VS Code in advance.
+
+### Quick Start (Windows)
+
+Run this single command to automatically download and execute the setup script. Nothing is required including Git or Node.js - all portable versions are automatically downloaded and set up in ./workspace, and the project will be cloned and VS Code will launch:
+
 ```bash
 powershell -NoProfile -Command "$f='run-vscode.bat'; (New-Object Net.WebClient).DownloadString('https://github.com/cotab-org/cotab/raw/refs/heads/main/run-vscode.bat') -replace \"`r?`n\",\"`r`n\" | Set-Content $f -Encoding ASCII; cmd /c $f"
+```
+
+Press F5 in vscode to start debugging the plugin.
+
+### Other Platforms
+
+Requires VsCode, Node.js(v22) and Git.
+```bash
+git clone https://github.com/cotab-org/cotab.git
+cd cotab
+npm install
+code .\
+```
+
+### Create Package
+
+```bash
+npx vsce package
 ```
 
 ## License

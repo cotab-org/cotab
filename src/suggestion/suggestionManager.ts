@@ -10,8 +10,7 @@ import { processDiffAndApplyEdits } from '../diff/lineDiff';
 import { updateSuggestionsAndDecorations } from './suggestionUtils';
 import { getConfig, CotabConfig } from '../utils/config';
 import { logInfo, logError, logDebug } from '../utils/logger';
-import { progressGutterIconManager, GutterIconPhase } from '../ui/progressGutterIconManager';
-import { statusBarManager, StatusBarPhase } from '../ui/statusBarManager';
+import { showProgress, hideProgress, moveProgress } from '../utils/cotabUtil';
 
 export function registerSuggestionManager(disposables: vscode.Disposable[]) {
     suggestionManager = new SuggestionManager();
@@ -141,6 +140,8 @@ export class SuggestionManager implements vscode.Disposable {
         this.requestTimestamps.push(currentTime);
         const isTooManyRequests = maxRequestsPerSecond <= this.requestTimestamps.length;
 
+        moveProgress(position);
+
         // wait execution for cancel prev execution
         await this.waitExecution();
         
@@ -210,7 +211,7 @@ export class SuggestionManager implements vscode.Disposable {
         };
 
         // Progress display (spinner next to cursor + status bar)
-        showProgress('analyzing', position);
+        //showProgress('analyzing', position);
 
         const editorContext = getEditorContext(document, position);
         if (!editorContext) return [];
@@ -218,7 +219,7 @@ export class SuggestionManager implements vscode.Disposable {
         // Early exit if already canceled
         if (checkAborted()) {
             logDebug(`provideInlineCompletionItemsInternal early exit due to cancellation (before buildCodeBlocks)`);
-            progressGutterIconManager?.hide();
+            hideProgress();
             return [];
         }
 
@@ -376,27 +377,4 @@ export class SuggestionManager implements vscode.Disposable {
         }
         hideProgress();
     }
-}
-
-function StatusBarPhaseToGutterIconPhase(phase: StatusBarPhase): GutterIconPhase | undefined {
-    let gutterIconPhase: GutterIconPhase | undefined = undefined;
-    switch (phase) {
-        case 'analyzing': gutterIconPhase = 'analyzing'; break;
-        case 'prompting': gutterIconPhase = 'firstGenerating'; break;
-        case 'firstGenerating': gutterIconPhase = 'firstGenerating'; break;
-        case 'secondGenerating': gutterIconPhase = 'stream'; break;
-        default: break;
-    }
-    return gutterIconPhase;
-}
-
-function showProgress(phase: StatusBarPhase, pos: vscode.Position) {
-    const gutterIconPhase = StatusBarPhaseToGutterIconPhase(phase);
-    progressGutterIconManager?.show(pos, gutterIconPhase);
-    statusBarManager?.setPhase(phase);
-}
-
-function hideProgress() {
-    progressGutterIconManager?.hide();
-    statusBarManager?.reset();
 }

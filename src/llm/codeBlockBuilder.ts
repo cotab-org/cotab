@@ -6,6 +6,7 @@ import { AiClient } from './llmProvider';
 import { getSymbolYaml, symbolManager } from '../managers/symbolManager';
 import { EditorContext } from '../utils/editorContext';
 import { getConfig } from '../utils/config';
+import { showProgress, hideProgress, lockProgress } from '../utils/cotabUtil';
 
 const ANALYSIS_MIN_LINE_COUNT = 10;
 const CACHE_EXPIRE_TIME = 1000 * 60 * 5;
@@ -41,7 +42,7 @@ class CodeBlockBuilder {
 	): Promise<CodeBlocks> {
 
 		// Build source analysis
-		const sourceAnalysis = await this.buildSourceAnalysis(client, editorContext, token, checkAborted);
+		const sourceAnalysis = await this.buildSourceAnalysis(client, editorContext, currentCursorLine, token, checkAborted);
 
 		// Build symbol code block
 		const symbolCodeBlock = this.buildSymbolCodeBlock(editorContext);
@@ -59,6 +60,7 @@ class CodeBlockBuilder {
 	private async buildSourceAnalysis(
 		client: AiClient,
 		editorContext: EditorContext,
+		currentCursorLine: number,
 		token: vscode.CancellationToken,
 		checkAborted?: () => boolean
 	): Promise<string> {
@@ -85,6 +87,8 @@ class CodeBlockBuilder {
 																editorContext.relativePath, fullSourceCode);
 	
 				try {
+					showProgress('analyzing', new vscode.Position(currentCursorLine, 0));
+					lockProgress(true);
 					logInfo(`Source analysis started ${editorContext.documentUri}`);
 					let sourceAnalysis = await client.chatCompletions({
 						systemPrompt,
@@ -103,8 +107,13 @@ class CodeBlockBuilder {
 					};
 					this.sourceAnalysisCache.set(editorContext.documentUri, cacheData);
 					logInfo(`Source analysis completed ${editorContext.documentUri} Result:\n${sourceAnalysis}`);
-				} catch (error) {
+				}
+				catch (error) {
 					logError(`Error occurred during source analysis: ${error}`);
+				}
+				finally {
+					lockProgress(false);
+					hideProgress();
 				}
 			}
 		}
