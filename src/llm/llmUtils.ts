@@ -139,10 +139,11 @@ export function withLineNumberCodeBlock(CodeBlock: string,
 	}
 }
 
-export function withoutLineNumber(CodeBlock: string): string {
+export function withoutLineNumber(CodeBlock: string, removeNotHaveLineNumber: boolean = false): string {
 	if (getConfig().withLineNumber) {
 		const lines = CodeBlock.split('\n');
-		const withoutLine = lines.map((line, idx) => line.replace(/^\d+\|/, ''));
+		const filterdLines = (removeNotHaveLineNumber) ? lines.filter((line) => line.match(/^\d+\|/)) : lines;
+		const withoutLine = filterdLines.map((line, idx) => line.replace(/^\d+\|/, ''));
 		return withoutLine.join('\n');
 	} else {
 		return CodeBlock;

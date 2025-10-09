@@ -215,7 +215,10 @@ class TerminalCommand implements vscode.Disposable {
                 try { fs.unlinkSync(cudartZipPath); } catch (_) {}
             }
 
-            logTerminal('[Install] llama.cpp installation successfully!');
+            logTerminal('[Install] ########################################');
+            logTerminal('[Install] # llama.cpp installation successfully! #');
+            logTerminal('[Install] ########################################');
+            logTerminal('[Install] Starting server...');
             return true;
         } catch (error) {
             logError(`[Install] Failed to install llama.cpp: ${error}`);
@@ -323,7 +326,7 @@ class TerminalCommand implements vscode.Disposable {
      * Install llama.cpp via integrated terminal
      * not waitable command. because terminal is not visible to user. so user input is required.
      */
-    public async installLocalLlamaCpp() {
+    public async installLocalLlamaCpp(): Promise<boolean> {
         if (process.platform != 'darwin' && process.platform != 'win32') {
             vscode.window.showInformationMessage("Automatic install/upgrade is supported only for Mac and Windows for now. Download llama.cpp package manually and add the folder to the path. Visit github.com/ggml-org/llama.vscode/wiki for details.");
             return false;
@@ -364,7 +367,7 @@ class TerminalCommand implements vscode.Disposable {
                 terminal?.sendText(`echo "##############################"`);
                 this.InstallTerminal = terminal;
             }
-            return true;
+            return false;
         }
     }
 

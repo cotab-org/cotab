@@ -272,7 +272,7 @@ Follow the instructions and write the code the user intends to write.
 Think step by step when writing the code.
 You must add code at the "${placeholder}" location.
 If you fail to add it, a significant penalty will be applied.
-It is important to follow SYMBOL_RULES and IMPORTANT.
+It is important to follow "SYMBOL_RULES" and "IMPORTANT".
 The completed code must be exact and error-free.
 A single typo or formatting change can cause compilation or runtime errors.
 Unless explicitly instructed to modify other parts, output the input code exactly as provided.
@@ -284,7 +284,7 @@ Unless explicitly instructed to modify other parts, output the input code exactl
 4. Re-check whether your output contradicts the user’s intention, whether the program will be complete, and whether it introduces errors.
 5. Output the flawless and complete code you verified, continuing from "${placeholder}".
 6. Finally, confirm that the output code does not cause errors and does not contradict the user’s intent. If there are no issues, finalize it.
-7. You must always output ${stopEditingHere} exactly as is.
+7. You must always output "${stopEditingHere}" exactly as is.
 8. If necessary, you may also complete sections outside of "${placeholder}".
 </INSTRUCTIONS>
 
@@ -292,6 +292,7 @@ Unless explicitly instructed to modify other parts, output the input code exactl
 - Variable names, function names, etc. must always be treated as valid identifiers.
 - If a symbol name seems unnatural, carefully check the surrounding code and provide an appropriate name.
 - If a proper symbol name cannot be provided, the code quality will significantly degrade. Half-baked naming is not allowed.
+- Refer to "SYMBOL_CONTEXT" for symbols defined in external files.
 </SYMBOL_RULES>
 
 <IMPORTANT>
@@ -300,9 +301,13 @@ Unless explicitly instructed to modify other parts, output the input code exactl
 - Do not output comments with explanations or examples. Output only the implementation code.
 </IMPORTANT>
 
-<SYMBOL_CONTEXT>
+<SYMBOL_CONTEXTS>
+- The "<SYMBOL_CONTEXT>" section encodes a structural summary of a file in YAML format.
+- Each top-level item corresponds to a declared symbol (e.g., interface, class, function, or variable).
+- Indented items represent that symbol’s members, such as properties, methods, constructors, and local variables.
+- This structure provides a high-level map of the file’s API surface and internal relationships, not the full source code.
 ${symbolCodeBlock}
-</SYMBOL_CONTEXT>
+</SYMBOL_CONTEXTS>
 
 <CODE_SUMMARY>
 ${sourceAnalysis}
@@ -356,7 +361,7 @@ Program comments must be written in "${commentLanguage}".${additionalUserPrompt}
 	const assistantThinkPrompt = overrideAssistantThinkPrompt ? overrideAssistantThinkPrompt :
 `<think>
 Okey, I will carefully review the code and provide a minimal inline edit to improve it. I will only modify the code within the "${startEditingHere}" ... "${stopEditingHere}" block provided in the code snippet and I will not output anything outside that block. After finishing edits within the allowed range I will always output "${stopEditingHere}" to indicate the end, and I will exercise maximum care to ensure I do not output outside the editable range. I will ensure the output is valid "${ctx.languageId}" code and free of compilation or runtime errors, and I will preserve all whitespace and formatting exactly as in the original source. That means I will not change any spaces, tabs, or line breaks when outputting the original code. I will keep indentation consistent and pay the utmost attention to the spaces, tabs, and line breaks I output. I MUST replace code with "${placeholder}" exactly where required.
-I will complete partially written symbol names with the names you are likely to write and I will predict and write the implementation or definition that you are likely to write in the case of a blank line. I will never modify existing characters and no matter how incomplete the code below is I will not treat characters as deleted. I will only output characters that can be inferred from the existing characters. I will actively infer and complete the remaining characters on the cursor line because it is likely the user is in the middle of typing a word, and I will perform autocomplete treating the cursor position as being within a partially typed word so I complete that incomplete word and ensure extremely high output quality. I will avoid redefining or redeclaring the same symbol name to prevent compilation errors.
+I will complete partially written symbol names with the names you are likely to write and I will predict and write the implementation or definition that you are likely to write in the case of a blank line. I will never modify existing characters and no matter how incomplete the code below is I will not treat characters as deleted. I will only output characters that can be inferred from the existing characters. I will actively infer and complete the remaining characters on the cursor line because it is likely the user is in the middle of typing a word, and I will perform autocomplete treating the cursor position as being within a partially typed word so I complete that incomplete word and ensure extremely high output quality. I will avoid redefining or redeclaring the same symbol name to prevent compilation errors. I will proactively reference external symbols defined in "SYMBOL_CONTEXT".
 I will improve output quality by using context-aware completions. For example, where "${placeholder}" appears in a scope with several classes, structs, or functions already declared, I will output an appropriate declaration such as "class Child" if the surrounding code implies a Parent/Child relationship. The same context-driven reasoning applies to variable names, control structures like if and for, and language keywords. I will treat a blank line as an intention to write new code and use the surrounding or immediately preceding code as the primary signal. For example, if an undefined variable appears nearby, I will output code that defines that variable to improve the result.
 Because "${stopEditingHere}" is a critical merging marker, I will take the utmost care to never output code that comes after "${stopEditingHere}" before emitting this marker itself. I will also prefer to use unused variables from surrounding or previous code where doing so improves quality, and even if no unused variables exist I will prioritize using variables or symbols defined immediately prior or recently used, since surrounding code is always informative. The same principle governs functions, classes, and structs. I will always check the entire source code when defining function, variable, class, or struct symbol names to ensure there are no duplicates and to avoid accidentally copying an existing definition.
 As the provided edit history and source code may be outdated, we will obtain the latest information before making any edits.

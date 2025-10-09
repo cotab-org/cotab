@@ -26,7 +26,7 @@ A local server is optimized for **single-user performance**.
 Concurrent use by multiple users will significantly penalize inference and severely degrade response speed
 
 ## Performance
-Cotab is optimized for llama-server and Qwen3-4b-2507 and is designed for high-speed operation. From the second request onward, even for source files over 1,000 lines, it understands the entire context and shows completions in about 0.6 seconds on an RTX 3070, even when the prompt exceeds 15,000 tokens and includes hundreds of reference symbols. After that, as long as the cursor position does not change significantly, it continues sending per-keystroke completion requests while maintaining that response time.
+Cotab is optimized for llama-server and Qwen3-4b-2507 and is designed for high-speed operation. From the second request onward, even for source files over 1,000 lines, it understands the entire context and shows completions in about 0.6 seconds on an RTX 3070, even when the prompt exceeds 15,000 tokens and includes hundreds of reference symbols. After that, it continues to send completion requests on every keystroke and maintains that response time unless the cursor position changes significantly.
 
 ### Prompt
 While model quality matters, completion accuracy varies greatly depending on the prompt content. By customizing the prompt, you may be able to further improve accuracy.
@@ -76,6 +76,8 @@ Please install VS Code in advance.
 Run this single command to automatically download and execute the setup script. Nothing is required including Git or Node.js - all portable versions are automatically downloaded and set up in ./workspace, and the project will be cloned and VS Code will launch:
 
 ```bash
+mkdir cotab
+cd cotab
 powershell -NoProfile -Command "$f='run-vscode.bat'; (New-Object Net.WebClient).DownloadString('https://github.com/cotab-org/cotab/raw/refs/heads/main/run-vscode.bat') -replace \"`r?`n\",\"`r`n\" | Set-Content $f -Encoding ASCII; cmd /c $f"
 ```
 

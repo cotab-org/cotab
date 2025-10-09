@@ -244,7 +244,7 @@ function formatMetaInfoAsString(metaInfo: SymbolMetaInfo[], indent: string = '')
 		
 		if (info.children && 0 < info.children.length) {
 			const { yaml: result, count: n } = formatMetaInfoAsString(info.children, indent + '  ');
-			yaml += result;
+			yaml += result + '\n';
 			count += n;
 		}
 	}

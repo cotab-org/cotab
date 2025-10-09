@@ -9,7 +9,8 @@ export enum LogLevel {
 	WARNING = 1,
 	INFO = 2,
 	DEBUG = 3,
-	SERVER = DEBUG,
+	
+	SERVER = INFO,
 	TERMINAL = INFO,
 }
 

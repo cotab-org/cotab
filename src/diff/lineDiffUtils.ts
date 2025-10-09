@@ -242,7 +242,8 @@ export function processMaxLinesDiffOperations(diffOperations: LineDiff[], origLi
  */
 export function preprocessLLMOutput(text: string): {
     cleaned: string;
-    is_stoped: boolean;
+    isStopedSymbol: boolean;
+    isStopedExistingComment: boolean;
 } {
     const config = getConfig();
     const startEditingHereSymbol = config.startEditingHereSymbol;
@@ -260,7 +261,7 @@ export function preprocessLLMOutput(text: string): {
     // Remove everything before ###START_EDITING_HERE###
     cleaned = cleaned.replace(new RegExp(`^[\s\S]*${startEditingHereSymbol}`, 'g'), '');
 
-    const is_stoped = cleaned.includes(stopEditingHereSymbol);
+    const isStopedSymbol = cleaned.includes(stopEditingHereSymbol);
 
     // Remove ###STOP_EDITING_HERE### lines (don't remove subsequent content)
     cleaned = cleaned.replace(new RegExp(`\n${stopEditingHereSymbol}`, 'g'), '');
@@ -269,15 +270,21 @@ export function preprocessLLMOutput(text: string): {
     cleaned = cleaned.replace(new RegExp(`\n.*?\.\.\. existing code \.\.\.[\s\S]*`, 'g'), '');
 
     // Remove __COMPLETE_HERE__
-    cleaned = cleaned.replace(new RegExp(completeHereSymbol, 'g'), '');
+    cleaned = cleaned.replace(completeHereSymbol, '');
 
     // Convert lines with only whitespace at the beginning to empty lines
     cleaned = cleaned.replace(/^\s+?\n/g, '\n');
+
+    // last output is "... existing code ..."
+    const isStopedExistingComment = cleaned.endsWith('... existing code ...');
+
+    // Remove "// ... existing code"
+    cleaned = cleaned.replace(new RegExp(`\n// \.\.\. existing code \.\.\.[\s\S]*`, 'g'), '');
 
     // Remove trailing newline
     if (cleaned.endsWith('\n')) {
         cleaned = cleaned.slice(0, -1);
     }
 
-    return { cleaned: cleaned.trim() === '' ? '' : cleaned, is_stoped };
+    return { cleaned: cleaned.trim() === '' ? '' : cleaned, isStopedSymbol, isStopedExistingComment };
 }

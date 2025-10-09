@@ -57,10 +57,12 @@ class MenuIndicator implements vscode.Disposable {
             await uninstallLlamaServer();
         }));
 
+        /*
         // update llama.cpp
         this.disposables.push(vscode.commands.registerCommand('cotab.server.update', async () => {
             await updateLlamaServer();
         }));
+        */
 
         // Server commands (used by markdown links)
         this.disposables.push(vscode.commands.registerCommand('cotab.server.start', async () => {
@@ -320,7 +322,7 @@ async function installLlamaServer(): Promise<void> {
         const isInstalled = await checkLlamaCppInstalled();
         if (isInstalled) {
             const choice = await vscode.window.showInformationMessage(
-                'Server (llama.cpp) is already installed. Do you want to reinstall?',
+                'Server (llama.cpp) is already installed. Do you want to update?',
                 'Yes', 'No'
             );
             if (choice !== 'Yes') {
@@ -329,7 +331,10 @@ async function installLlamaServer(): Promise<void> {
         }
 
         // Download and install llama.cpp
-        await terminalCommand.installLocalLlamaCpp();
+        const result = await terminalCommand.installLocalLlamaCpp();
+        if (result) {
+            await startLlamaServer();
+        }
 
         // Update menu until changed
         requestUpdateCotabMenuUntilChanged();
@@ -358,6 +363,7 @@ async function uninstallLlamaServer(): Promise<void> {
     }
 }
 
+/*
 async function updateLlamaServer(): Promise<void> {
     // Hide immediately for best click response
     await CloseCotabMenu();
@@ -387,6 +393,7 @@ async function updateLlamaServer(): Promise<void> {
         vscode.window.showErrorMessage(`Server (llama.cpp) install failed: ${error}`);
     }
 }
+*/
 
 async function checkLlamaCppInstalled(): Promise<boolean> {
     try {

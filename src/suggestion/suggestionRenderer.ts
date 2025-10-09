@@ -257,18 +257,23 @@ export function renderSuggestions(editor: vscode.TextEditor): {
 		// If editing location is single line and single process, use inline decoration display
 		// Once overlay is determined, always use overlay display thereafter
 		if (!isOverlay && suggestion.line === suggestion.editedLine) {
-			const origLine = editor.document.lineAt(suggestion.line).text;
-			const segs = computeCharDiff(origLine, suggestion.newText);
 			let prevType = '';
-			for (const seg of segs)
-			{
-				if (seg.type === 'keep') continue;
-				if (prevType === '') {
-					prevType = seg.type;
-				}
-				else if (seg.type !== prevType) {
-					isOverlay = true;
-					break;
+			if (suggestion.type === 'add') {
+				prevType = 'add'
+			}
+			else {
+				const origLine = editor.document.lineAt(suggestion.line).text;
+				const segs = computeCharDiff(origLine, suggestion.newText);
+				for (const seg of segs)
+				{
+					if (seg.type === 'keep') continue;
+					if (prevType === '') {
+						prevType = seg.type;
+					}
+					else if (seg.type !== prevType) {
+						isOverlay = true;
+						break;
+					}
 				}
 			}
 

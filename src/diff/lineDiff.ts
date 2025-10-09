@@ -53,7 +53,7 @@ export function processDiffAndApplyEdits(
 ): DiffProcessResult {
     //test();
     const withPrefix = beforePlaceholderWithLF + llmOutputText;
-    const { cleaned, is_stoped } = preprocessLLMOutput(withPrefix);
+    const { cleaned, isStopedSymbol, isStopedExistingComment } = preprocessLLMOutput(withPrefix);
     if (!cleaned.trim()) return { originalDiffOperations: [], edits: [], trimed: false, finalLineNumber: 0 };
 
     let baseLine = editorContext.aroundFromLine;
@@ -101,6 +101,7 @@ export function processDiffAndApplyEdits(
             const minLen = Math.min(origHead.length, newHead.length, 5);
             if (origHead.slice(0, minLen) === newHead.slice(0, minLen) && 0 < origTrimIdx) {
                 origLines = origLines.slice(origTrimIdx);
+                newLines = newLines.slice(newTrimIdx);
                 baseLine += origTrimIdx;
             }
         }
@@ -138,26 +139,66 @@ export function processDiffAndApplyEdits(
     // Execute diff
     const diffOps = computeLineDiff(origLines, newLinesNonLast);
 
+    // If the pattern is only consecutive keeps followed by consecutive deletes, it means no changes were made and the output was simply insufficient
+    let diffOpsNoChecked = diffOps;
+    {
+        let foundKeep = false;
+        let foundDelete = false;
+        for (const op of diffOps) {
+            if (op.type === 'keep') {
+                foundKeep = true;
+                if (foundDelete) {
+                    // reset
+                    foundKeep = false;
+                    foundDelete = false;
+                    break;
+                }
+            }
+            else if (op.type === 'delete') {
+                foundDelete = true;
+                if (! foundKeep) {
+                    // reset
+                    foundKeep = false;
+                    foundDelete = false;
+                    break;
+                }
+            }
+            else {
+                break;
+            }
+        }
+        if (foundKeep && foundDelete) {
+            diffOpsNoChecked = [];
+        }
+    }
+
     // Fluctuation suppression: discard everything after 'keep' appears following changes
     const filteredOps: LineDiff[] = [];
     let foundChange = false;
     let foundKeepAfterChange = false;
-    for (const op of diffOps) {
+    for (const op of diffOpsNoChecked) {
         if (op.type === 'keep') {
             if (foundChange) {
                 foundKeepAfterChange = true;
                 break;
             }
-        } else {
+        }
+        else {
             foundChange = true;
             filteredOps.push(op);
         }
     }
 
-    const trimmedOps = (foundKeepAfterChange) ? filteredOps : processMaxLinesDiffOperations(filteredOps, origLines);
+    let trimmedOps = (foundKeepAfterChange && !isStopedExistingComment) ? filteredOps : processMaxLinesDiffOperations(filteredOps, origLines);
+
+    // If the first line only and only contains whitespace, do nothing
+    if (trimmedOps.length === 1 && trimmedOps[0].originalText?.trim() === '' && trimmedOps[0].newText?.trim() === '') {
+        trimmedOps = [];
+    }
+
     const edits = diffOperationsToLineEdits(trimmedOps, baseLine);
 
-    const originalIndexedOps = diffOps.map(op => ({
+    const originalIndexedOps = diffOpsNoChecked.map(op => ({
         ...op,
         originalIndex: op.originalIndex !== undefined ? op.originalIndex + baseLine : undefined,
         newIndex: op.newIndex !== undefined ? op.newIndex + baseLine : undefined,
@@ -166,5 +207,5 @@ export function processDiffAndApplyEdits(
     // Calculate final line number (baseLine + processed lines)
     const finalLineNumber = baseLine + newLinesNonLast.length - 1;
     
-    return { originalDiffOperations: originalIndexedOps, edits, trimed: !is_stoped, finalLineNumber };
+    return { originalDiffOperations: originalIndexedOps, edits, trimed: !isStopedSymbol, finalLineNumber };
 }

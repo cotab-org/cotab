@@ -216,8 +216,20 @@ export class SymbolCacheManager {
 		// Sort using TabHistoryManager
 		const tabHistory = tabHistoryManager.getHistory();
 		result.sort((a, b) => {
-			const aIndex = tabHistory.findIndex((h) => h.uri.toString() === a.documentUri);
-			const bIndex = tabHistory.findIndex((h) => h.uri.toString() === b.documentUri);
+			let aIndex = tabHistory.findIndex((h) => h.uri.toString() === a.documentUri);
+			if (aIndex < 0) {
+				aIndex = this.accessOrder.findIndex((s) => s === a.documentUri);
+				if (aIndex < 0) {
+					aIndex = 9999;
+				}
+			}
+			let bIndex = tabHistory.findIndex((h) => h.uri.toString() === b.documentUri);
+			if (bIndex < 0) {
+				bIndex = this.accessOrder.findIndex((s) => s === b.documentUri);
+				if (bIndex < 0) {
+					bIndex = 9999;
+				}
+			}
 			return aIndex - bIndex;
 		});
 		

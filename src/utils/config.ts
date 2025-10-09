@@ -147,7 +147,7 @@ function getConfigRaw(): CotabConfig {
         // promptDetail
         startEditingHereSymbol: cfg.get<string>('cotab.startEditingHereSymbol', '###START_EDITING_HERE###'),
         stopEditingHereSymbol: cfg.get<string>('cotab.stopEditingHereSymbol', '###STOP_EDITING_HERE###'),
-        completeHereSymbol: cfg.get<string>('cotab.completeHereSymbol', '__EDIT_HERE__'),
+        completeHereSymbol: cfg.get<string>('cotab.completeHereSymbol', '<|__EDITING_HERE__|>'),
         aroundBeforeLines: cfg.get<number>('cotab.aroundBeforeLines', 0),
         aroundAfterLines: cfg.get<number>('cotab.aroundAfterLines', 5),
         aroundMergeAfterLines: cfg.get<number>('cotab.aroundMergeAfterLines', 20),

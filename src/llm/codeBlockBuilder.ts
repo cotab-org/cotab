@@ -140,20 +140,23 @@ class CodeBlockBuilder {
 				continue;
 			}
 			const { codeBlock, count: symbolCount } = getSymbolYaml(cachedSymbol);
-			symbolCodeBlocks.push(codeBlock);
-			symbolTotalCount += symbolCount;
 
-			if (getConfig().maxSymbolCount < symbolTotalCount) {
+			if (getConfig().maxSymbolCount < symbolTotalCount + symbolCount) {
 				break;
 			}
+			symbolCodeBlocks.push(codeBlock);
+			symbolTotalCount += symbolCount;
 		}
 		
 		logInfo(`Symbols: ${cachedSymbols.length} files, ${symbolTotalCount} symbols`);
 
-		const totalCodeBlock =
-`\`\`\`yaml
-${symbolCodeBlocks.join('\n\n')}
-\`\`\``;
+		const totalCodeBlock = symbolCodeBlocks
+			.map(block =>
+`<SYMBOL_CONTEXT>
+\`\`\`yaml
+${block}
+\`\`\`
+</SYMBOL_CONTEXT>`).join('\n');
 		const cacheData: CacheData = {
 			data: totalCodeBlock,
 			cachedTime: Date.now(),

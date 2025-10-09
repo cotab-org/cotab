@@ -80,15 +80,11 @@
       },
       {
         "command": "cotab.server.install",
-        "title": "Cotab: [Server] Install - Easily install llama.cpp on the system via the web."
+        "title": "Cotab: [Server] Install or update - Easily install/update llama.cpp on the system via the web."
       },
       {
         "command": "cotab.server.uninstall",
         "title": "Cotab: [Server] Uninstall - Uninstall llama.cpp installed on the system"
-      },
-      {
-        "command": "cotab.server.update",
-        "title": "Cotab: [Server] Update - Easily update llama.cpp on the system via the web."
       },
       {
         "command": "cotab.server.start",
@@ -285,7 +281,7 @@
         },
         "cotab.maxSymbolCount": {
           "type": "number",
-          "default": 200,
+          "default": 1000,
           "description": "Maximum number of symbols to include in symbol code blocks",
           "order": 409
         },
