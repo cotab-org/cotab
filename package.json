@@ -319,9 +319,9 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "webpack --mode production",
-    "watch": "webpack --mode development --watch",
-    "build": "webpack --mode production"
+    "compile": "npx webpack --mode production",
+    "watch": "npx webpack --mode development --watch",
+    "build": "npx webpack --mode production"
   },
   "devDependencies": {
     "@shikijs/transformers": "^3.11.0",
