@@ -124,7 +124,7 @@ function getConfigRaw(): CotabConfig {
         // llm
         provider: cfg.get<'OpenAICompatible'>('cotab.provider', 'OpenAICompatible'),
         apiBaseURL: cfg.get<string>('cotab.apiBaseURL', 'http://localhost:8080/v1'),
-        localServerArg: cfg.get<string>('cotab.localServerArg', '-hf unsloth/Qwen3-4B-Instruct-2507-GGUF -ngl 999 --jinja --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 -fa on -c 8192 -ctk q8_0 -ctv q8_0'),
+        localServerArg: cfg.get<string>('cotab.localServerArg', '-hf unsloth/Qwen3-4B-Instruct-2507-GGUF --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -c 32768 -ctk q8_0 -ctv q8_0'),
         model: cfg.get<string>('cotab.model', 'qwen3-4b-2507'),
         temperature: cfg.get<number>('cotab.temperature', 0.1),
         top_p: cfg.get<number>('cotab.top_p', -1),
