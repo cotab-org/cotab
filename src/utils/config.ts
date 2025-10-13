@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { BundledTheme } from "shiki";
+import { extensions } from 'vscode';
 
 let configCache: CotabConfig | null = null;
 
@@ -17,6 +18,7 @@ export interface CotabConfig {
     
     // basic
     enabled: boolean;
+    disableForExtensions: string;
     autoTriggerOnCursorMove: boolean;
 
     // llm
@@ -63,6 +65,9 @@ export interface CotabConfig {
     // server management
     serverAutoStart: boolean;
     serverAutoStopOnIdleTime: number;
+
+    isCurrentEnabled(): boolean;
+    isExtensionEnabled(extensionId: string): boolean;
 }
 
 // Clear cache when configuration changes
@@ -122,58 +127,84 @@ function getConfigRaw(): CotabConfig {
         shikiTheme: toShikiThemeName(themeName),
         
         // basic
-        enabled: cfg.get<boolean>('cotab.enabled', true),
-        autoTriggerOnCursorMove: cfg.get<boolean>('cotab.autoTriggerOnCursorMove', true),
+        enabled: cfg.get<boolean>('cotab.basic.enabled', true),
+        disableForExtensions: cfg.get<string>('cotab.basic.disableForExtensions', ''),
+        autoTriggerOnCursorMove: cfg.get<boolean>('cotab.basic.autoTriggerOnCursorMove', true),
 
         // llm
-        provider: cfg.get<'OpenAICompatible'>('cotab.provider', 'OpenAICompatible'),
-        apiBaseURL: cfg.get<string>('cotab.apiBaseURL', 'http://localhost:8080/v1'),
-        localServerArg: cfg.get<string>('cotab.localServerArg', '-hf unsloth/Qwen3-4B-Instruct-2507-GGUF --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -c 32768 -ctk q8_0 -ctv q8_0'),
-        model: cfg.get<string>('cotab.model', 'qwen3-4b-2507'),
-        temperature: cfg.get<number>('cotab.temperature', 0.1),
-        top_p: cfg.get<number>('cotab.top_p', -1),
-        top_k: cfg.get<number>('cotab.top_k', -1),
-        maxTokens: cfg.get<number>('cotab.maxTokens', 256),
-        maxOutputLines: cfg.get<number>('cotab.maxOutputLines', 15),
-        timeoutMs: cfg.get<number>('cotab.timeoutMs', 30000),
+        provider: cfg.get<'OpenAICompatible'>('cotab.llm.provider', 'OpenAICompatible'),
+        apiBaseURL: cfg.get<string>('cotab.llm.apiBaseURL', 'http://localhost:8080/v1'),
+        localServerArg: cfg.get<string>('cotab.llm.localServerArg', '-hf unsloth/Qwen3-4B-Instruct-2507-GGUF --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -c 32768 -ctk q8_0 -ctv q8_0'),
+        model: cfg.get<string>('cotab.llm.model', 'qwen3-4b-2507'),
+        temperature: cfg.get<number>('cotab.llm.temperature', 0.1),
+        top_p: cfg.get<number>('cotab.llm.top_p', -1),
+        top_k: cfg.get<number>('cotab.llm.top_k', -1),
+        maxTokens: cfg.get<number>('cotab.llm.maxTokens', 256),
+        maxOutputLines: cfg.get<number>('cotab.llm.maxOutputLines', 15),
+        timeoutMs: cfg.get<number>('cotab.llm.timeoutMs', 30000),
 
         // prompt
         commentLanguage: editorLanguage,
-        overrideSystemPrompt: cfg.get<string>('cotab.overrideSystemPrompt', ''),
-        additionalSystemPrompt: cfg.get<string>('cotab.additionalSystemPrompt', ''),
-        overrideUserPrompt: cfg.get<string>('cotab.overrideUserPrompt', ''),
-        additionalUserPrompt: cfg.get<string>('cotab.additionalUserPrompt', ''),
-        overrideAssistantThinkPrompt: cfg.get<string>('cotab.overrideAssistantThinkPrompt', ''),
-        additionalAssistantThinkPrompt: cfg.get<string>('cotab.additionalAssistantThinkPrompt', ''),
-        overrideAssistantOutputPrompt: cfg.get<string>('cotab.overrideAssistantOutputPrompt', ''),
-        additionalAssistantOutputPrompt: cfg.get<string>('cotab.additionalAssistantOutputPrompt', ''),
+        overrideSystemPrompt: cfg.get<string>('cotab.prompt.overrideSystemPrompt', ''),
+        additionalSystemPrompt: cfg.get<string>('cotab.prompt.additionalSystemPrompt', ''),
+        overrideUserPrompt: cfg.get<string>('cotab.prompt.overrideUserPrompt', ''),
+        additionalUserPrompt: cfg.get<string>('cotab.prompt.additionalUserPrompt', ''),
+        overrideAssistantThinkPrompt: cfg.get<string>('cotab.prompt.overrideAssistantThinkPrompt', ''),
+        additionalAssistantThinkPrompt: cfg.get<string>('cotab.prompt.additionalAssistantThinkPrompt', ''),
+        overrideAssistantOutputPrompt: cfg.get<string>('cotab.prompt.overrideAssistantOutputPrompt', ''),
+        additionalAssistantOutputPrompt: cfg.get<string>('cotab.prompt.additionalAssistantOutputPrompt', ''),
 
         // promptDetail
-        startEditingHereSymbol: cfg.get<string>('cotab.startEditingHereSymbol', '###START_EDITING_HERE###'),
-        stopEditingHereSymbol: cfg.get<string>('cotab.stopEditingHereSymbol', '###STOP_EDITING_HERE###'),
-        completeHereSymbol: cfg.get<string>('cotab.completeHereSymbol', '<|__EDITING_HERE__|>'),
-        aroundBeforeLines: cfg.get<number>('cotab.aroundBeforeLines', 0),
-        aroundAfterLines: cfg.get<number>('cotab.aroundAfterLines', 5),
-        aroundMergeAfterLines: cfg.get<number>('cotab.aroundMergeAfterLines', 20),
-        aroundCacheBeforeLines: cfg.get<number>('cotab.aroundCacheBeforeLines', 5),
-        aroundCacheAfterLines: cfg.get<number>('cotab.aroundCacheAfterLines', 15),
-
-        // code block
-        maxSymbolCount: cfg.get<number>('cotab.maxSymbolCount', 200),
-        withLineNumber: true,
+        startEditingHereSymbol: cfg.get<string>('cotab.promptDetail.startEditingHereSymbol', '###START_EDITING_HERE###'),
+        stopEditingHereSymbol: cfg.get<string>('cotab.promptDetail.stopEditingHereSymbol', '###STOP_EDITING_HERE###'),
+        completeHereSymbol: cfg.get<string>('cotab.promptDetail.completeHereSymbol', '<|__EDITING_HERE__|>'),
+        aroundBeforeLines: cfg.get<number>('cotab.promptDetail.aroundBeforeLines', 0),
+        aroundAfterLines: cfg.get<number>('cotab.promptDetail.aroundAfterLines', 5),
+        aroundMergeAfterLines: cfg.get<number>('cotab.promptDetail.aroundMergeAfterLines', 20),
+        aroundCacheBeforeLines: cfg.get<number>('cotab.promptDetail.aroundCacheBeforeLines', 5),
+        aroundCacheAfterLines: cfg.get<number>('cotab.promptDetail.aroundCacheAfterLines', 15),
+        maxSymbolCount: cfg.get<number>('cotab.promptDetail.maxSymbolCount', 300),
+        withLineNumber: true,   // line number for code block
 
         // detail
-        logLevel: cfg.get<string>('cotab.logLevel', 'INFO'),
+        logLevel: cfg.get<string>('cotab.detail.logLevel', 'INFO'),
 
         // server management
         serverAutoStart: cfg.get<boolean>('cotab.server.autoStart', true),
         serverAutoStopOnIdleTime: cfg.get<number>('cotab.server.autoStopOnIdleTime', 300),
+        
+        isCurrentEnabled(): boolean {
+            const languageId: string = vscode.window.activeTextEditor?.document.languageId || '';
+            return getConfig().enabled && this.isExtensionEnabled(languageId);
+        },
+        isExtensionEnabled(extensionId: string): boolean {
+            const extensions = this.disableForExtensions.split(',');
+            return !extensions.includes(extensionId);
+        },
     };
 }
 
-export async function setConfigEnabled(enabled: boolean): Promise<void> {
+export async function setConfigGlobalEnabled(enabled: boolean): Promise<void> {
     await vscode.workspace.getConfiguration()
-        .update('cotab.enabled', enabled, vscode.ConfigurationTarget.Global);
+        .update('cotab.basic.enabled', enabled, vscode.ConfigurationTarget.Global);
+}
+
+export async function setConfigExtensionEnabled(extensionId: string, enabled: boolean) {
+    const disable = !enabled;
+    const disables = getConfig().disableForExtensions.split(',');
+    if (disable) {
+        if (! disables.includes(extensionId)) {
+            disables.push(extensionId);
+        }
+    }
+    else {
+        if (disables.includes(extensionId)) {
+            disables.splice(disables.indexOf(extensionId), 1);
+        }
+    }
+
+    await vscode.workspace.getConfiguration()
+        .update('cotab.basic.disableForExtensions', disables.join(','), vscode.ConfigurationTarget.Global);
 }
 
 

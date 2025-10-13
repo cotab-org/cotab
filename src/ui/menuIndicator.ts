@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { onChangedEnableExtension } from '../extension';
-import { getConfig, setConfigEnabled } from '../utils/config';
+import { getConfig, setConfigGlobalEnabled, setConfigExtensionEnabled } from '../utils/config';
 import { statusBarManager } from './statusBarManager';
 import { terminalCommand } from '../utils/terminalCommand';
 import { getAiClient } from '../llm/llmProvider';
@@ -15,10 +15,46 @@ export let menuIndicator: MenuIndicator;
 export function registerMenuIndicator(disposables: vscode.Disposable[]): void {
     menuIndicator = new MenuIndicator();
     disposables.push(menuIndicator);
+    
+    disposables.push(
+        vscode.window.onDidChangeActiveTextEditor(editor => {
+            setTimeout(() => {
+                requestUpdateCotabMenu();
+            }, 200);
+        })
+    );
+
+    // refreash cotab menu
+	const refreashTimer = setInterval(async () => {
+        requestUpdateCotabMenu();
+	}, 10000);
+    disposables.push({
+        dispose: () => {
+			clearInterval(refreashTimer);
+        }
+    });
 }
 
 export function requestUpdateCotabMenu() {
     UpdateCotabMenu();
+}
+
+// Periodically check and update until menu tooltip changes (max 30 seconds)
+export function requestUpdateCotabMenuUntilChanged(maxMillis: number = 30000, intervalMs: number = 100): void {
+	const startedAt = Date.now();
+	const baseline = prevTooltip ?? '';
+
+	const timer = setInterval(async () => {
+		if (Date.now() - startedAt >= maxMillis) {
+			clearInterval(timer);
+			return;
+		}
+
+		const current = await UpdateCotabMenu();
+		if (current !== baseline) {
+			clearInterval(timer);
+		}
+	}, intervalMs);
 }
 
 class MenuIndicator implements vscode.Disposable {
@@ -47,8 +83,13 @@ class MenuIndicator implements vscode.Disposable {
         */
 
         // enable/disable
-        this.disposables.push(vscode.commands.registerCommand('cotab.toggleEnabled', async () =>{
-            await toggleEnabledCmd();
+        this.disposables.push(vscode.commands.registerCommand('cotab.toggleGlobalEnabled', async () =>{
+            await toggleGlobalEnabledCmd();
+        }));
+
+        // disable for extension
+        this.disposables.push(vscode.commands.registerCommand('cotab.toggleExtensionEnabled', async () => {
+            await toggleExtensionEnabledCmd();
         }));
         
         // install llama.cpp
@@ -113,27 +154,6 @@ async function UpdateCotabMenu(isReset: boolean = false): Promise<string> {
     }
 }
 
-
-
-// Periodically check and update until menu tooltip changes (max 30 seconds)
-export function requestUpdateCotabMenuUntilChanged(maxMillis: number = 30000, intervalMs: number = 100): void {
-	const startedAt = Date.now();
-	const baseline = prevTooltip ?? '';
-
-	const timer = setInterval(async () => {
-		if (Date.now() - startedAt >= maxMillis) {
-			clearInterval(timer);
-			return;
-		}
-
-		const current = await UpdateCotabMenu();
-		if (current !== baseline) {
-			clearInterval(timer);
-		}
-	}, intervalMs);
-}
-
-
 async function buildMainMenuMarkdown(): Promise<vscode.MarkdownString> {
     const config = getConfig();
     const isEnabled = config.enabled;
@@ -145,9 +165,17 @@ async function buildMainMenuMarkdown(): Promise<vscode.MarkdownString> {
     md.appendMarkdown(`Code Completions\n`);
 
     // Enable/disable toggle with checkbox style
-    const enableCheckbox = checkboxControl('Enable autocomplete', isEnabled, 'command:cotab.toggleEnabled');
     md.appendMarkdown(`\n\n---\n\n`);
-    md.appendMarkdown(`${enableCheckbox}\n`);
+    const globalEnabledCheckbox = checkboxControl('Enable globally', isEnabled, 'command:cotab.toggleGlobalEnabled');
+    md.appendMarkdown(`${globalEnabledCheckbox}\n\n`);
+
+    const languageId: string = vscode.window.activeTextEditor?.document.languageId || '';
+    if (languageId) {
+        const extensionEnabledCheckbox = checkboxControl(`Enable for ${languageId}`,
+                                            getConfig().isExtensionEnabled(languageId),
+                                            'command:cotab.toggleExtensionEnabled');
+        md.appendMarkdown(`${extensionEnabledCheckbox}\n\n`);
+    }
 
     // Server
     let serverStatus;
@@ -293,9 +321,9 @@ function createNetworkServerLabel(): string {
     return `![](${uri})`;
 }
 
-async function setEnabledCmd(enabled: boolean) {
+async function setGlobalEnabledCmd(enabled: boolean) {
     // Set config enabled
-	await setConfigEnabled(enabled);
+	await setConfigGlobalEnabled(enabled);
     
     // Notify extension that enable changed
     onChangedEnableExtension(enabled);
@@ -308,11 +336,34 @@ async function setEnabledCmd(enabled: boolean) {
     //vscode.window.showInformationMessage(message);
 }
 
-async function toggleEnabledCmd() {
+async function toggleGlobalEnabledCmd() {
     // Hide immediately for best click response
     await CloseCotabMenu();
     
-	await setEnabledCmd(!getConfig().enabled);
+	await setGlobalEnabledCmd(!getConfig().enabled);
+}
+
+async function setExtensionEnabledCmd(extensionId: string, enabled: boolean) {
+    // Set config enabled
+	await setConfigExtensionEnabled(extensionId, enabled);
+
+    statusBarManager.reset();
+
+    requestUpdateCotabMenu();
+
+    //const message = newValue ? 'Cotab has been enabled' : 'Cotab has been disabled';
+    //vscode.window.showInformationMessage(message);
+}
+
+async function toggleExtensionEnabledCmd() {
+    // Hide immediately for best click response
+    await CloseCotabMenu();
+    
+    const languageId: string = vscode.window.activeTextEditor?.document.languageId || '';
+    if (languageId) {
+        const enabled = getConfig().isExtensionEnabled(languageId);
+        await setExtensionEnabledCmd(languageId, !enabled);
+    }
 }
 
 async function installLlamaServer(): Promise<void> {

@@ -13,8 +13,7 @@ export function registerAutoSuggestionTrigger(disposables: vscode.Disposable[]) 
     // Initialization after startup - Trigger cursor line suggestions with slight delay
     const startupTimeout = setTimeout(() => {
         const activeEditor = vscode.window.activeTextEditor;
-		const cfg = getConfig();
-        if (activeEditor && cfg.enabled && cfg.autoTriggerOnCursorMove) {
+        if (activeEditor && getConfig().isCurrentEnabled()) {
             vscode.commands.executeCommand('editor.action.inlineSuggest.trigger');
         }
     }, 2000); // Initialize after 2 seconds
@@ -30,8 +29,7 @@ export function registerAutoSuggestionTrigger(disposables: vscode.Disposable[]) 
 			if (scheme !== 'file' && scheme !== 'untitled') return;
 
 			logInfo('Active text editor changed, initializing cotab');
-			const cfg = getConfig();
-			if (cfg.enabled && cfg.autoTriggerOnCursorMove) {
+			if (getConfig().isCurrentEnabled()) {
 				setTimeout(() => {
 					vscode.commands.executeCommand('editor.action.inlineSuggest.trigger');
 				}, 200);
@@ -93,8 +91,7 @@ export function registerAutoSuggestionTrigger(disposables: vscode.Disposable[]) 
 				clearAllDecorations(editor);
 				
 				// Execute completion if auto trigger is enabled
-				const cfg = getConfig();
-				if (cfg.enabled && cfg.autoTriggerOnCursorMove) {
+				if (getConfig().isCurrentEnabled()) {
 					setTimeout(() => {
 						vscode.commands.executeCommand('editor.action.inlineSuggest.trigger');
 					}, 0);

@@ -118,7 +118,7 @@ export class SuggestionManager implements vscode.Disposable {
         }
 
         const cfg = getConfig();
-        if (!cfg.enabled) {
+        if (!cfg.isCurrentEnabled()) {
             return [];
         }
 

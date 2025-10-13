@@ -93,7 +93,7 @@ class StatusBarManager implements vscode.Disposable {
      * Stops spinner and shows idle menu.
      */
     public reset(): void {
-        const phase = getConfig().enabled ? 'idle' : 'disable';
+        const phase = getConfig().isCurrentEnabled() ? 'idle' : 'disable';
         this.setPhase(phase);
     }
 
