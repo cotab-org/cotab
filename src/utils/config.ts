@@ -59,6 +59,10 @@ export interface CotabConfig {
 
     // detail
     logLevel: string;
+
+    // server management
+    serverAutoStart: boolean;
+    serverAutoStopOnIdleTime: number;
 }
 
 // Clear cache when configuration changes
@@ -160,6 +164,10 @@ function getConfigRaw(): CotabConfig {
 
         // detail
         logLevel: cfg.get<string>('cotab.logLevel', 'INFO'),
+
+        // server management
+        serverAutoStart: cfg.get<boolean>('cotab.server.autoStart', true),
+        serverAutoStopOnIdleTime: cfg.get<number>('cotab.server.autoStopOnIdleTime', 300),
     };
 }
 

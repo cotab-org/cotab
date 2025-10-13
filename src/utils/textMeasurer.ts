@@ -195,7 +195,7 @@ async function getCharData(fontFamily: string, fontSize: number, fontWeight: str
 				});
 				kickIdleTimer();
 
-				// calcate width in webview
+				// Calculate width in webview
 				panel?.webview.postMessage({ type: 'measure', id: idChar, fontFamily, fontSize, fontWeight, fontStyle, texts: ['A', 'あ'], isCharWidthMeasurement: true });
 				const [singleByteWidth, doubleByteWidth] = await promise.then(ws => [ws[0] ?? 0, ws[1] ?? 0]);
 				const data: { singleByteWidth: number, doubleByteWidth: number } = {

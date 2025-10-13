@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import { getConfig } from '../utils/config';
 import { logInfo, logDebug, logWarning, logError } from '../utils/logger';
 import { convertURLToIP } from './llmUtils';
+import { serverManager } from '../managers/serverManager';
 
 export interface CompletionParams {
 	systemPrompt?: string;
@@ -224,6 +225,8 @@ abstract class BaseAiClient implements AiClient {
 		}
 
 		const http = await this.createHttp();
+
+		serverManager.keepalive(); // Start heartbeat to keep server alive
 		
 		try {
 			// Normal chat
@@ -255,6 +258,11 @@ abstract class BaseAiClient implements AiClient {
 			});
 			logDebug(`Chat response reception started ${params.streamCount}th time`);
 			return await processStreamingResponse(res, signal, params);
+		} catch (error) {
+			logError(`Error in chatCompletions: ${error}`);
+			// auto-start on completion.
+			await serverManager.autoStartOnCompletion();
+			return "";
 		} finally {
 			dispose();
 		}

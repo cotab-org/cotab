@@ -1,9 +1,13 @@
 import * as vscode from 'vscode';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import { onChangedEnableExtension } from '../extension';
 import { getConfig, setConfigEnabled } from '../utils/config';
 import { statusBarManager } from './statusBarManager';
 import { terminalCommand } from '../utils/terminalCommand';
 import { getAiClient } from '../llm/llmProvider';
-import { onChangedEnableExtension } from '../extension';
+import { serverManager } from '../managers/serverManager';
+const execAsync = promisify(exec);
 
 // Singleton instance ------------------------------------------------------
 export let menuIndicator: MenuIndicator;
@@ -111,7 +115,7 @@ async function UpdateCotabMenu(isReset: boolean = false): Promise<string> {
 
 
 
-// メニューのツールチップが変化するまで定期的にチェックして更新する（最大30秒）
+// Periodically check and update until menu tooltip changes (max 30 seconds)
 export function requestUpdateCotabMenuUntilChanged(maxMillis: number = 30000, intervalMs: number = 100): void {
 	const startedAt = Date.now();
 	const baseline = prevTooltip ?? '';
@@ -335,9 +339,6 @@ async function installLlamaServer(): Promise<void> {
         if (result) {
             await startLlamaServer();
         }
-
-        // Update menu until changed
-        requestUpdateCotabMenuUntilChanged();
         
     }
     catch (error) {
@@ -354,9 +355,6 @@ async function uninstallLlamaServer(): Promise<void> {
         
         // Uninstall llama.cpp
         await terminalCommand.uninstallLocalLlamaCpp();
-
-        // Update menu until changed
-        requestUpdateCotabMenuUntilChanged();
     }
     catch (error) {
         vscode.window.showErrorMessage(`Server (llama.cpp) uninstall failed: ${error}`);
@@ -397,10 +395,6 @@ async function updateLlamaServer(): Promise<void> {
 
 async function checkLlamaCppInstalled(): Promise<boolean> {
     try {
-        const { exec } = require('child_process');
-        const { promisify } = require('util');
-        const execAsync = promisify(exec);
-        
         await execAsync('llama-server --version');
         return true;
     }
@@ -432,31 +426,19 @@ async function startLlamaServer(): Promise<void> {
     }
     
     // no await
-    const args = config.localServerArg.split(' ');
-    terminalCommand.runLocalLlamaServer(args)
+    serverManager.startServer();
 
-    // Update menu until changed
-    requestUpdateCotabMenuUntilChanged();
-    
-    vscode.window.showInformationMessage(`Starting llama-server with command: ${args}`);
+    vscode.window.showInformationMessage(`Start llama-server`);
 }
 
 async function stopLlamaServer(): Promise<void> {
     // Hide immediately for best click response
     await CloseCotabMenu();
     
-    try {
-        // no await
-        terminalCommand.stopLocalLlamaServer();
-
-        // Update menu until changed
-        requestUpdateCotabMenuUntilChanged();
-
-        vscode.window.showInformationMessage('Llama server stopped');
-    }
-    catch (error) {
-        vscode.window.showErrorMessage(`Failed to stop llama-server: ${error}`);
-    }
+    // no await
+    serverManager.stopServer(true);
+    
+    vscode.window.showInformationMessage('Stop llama-server');
 }
 
 async function isServerRunning(): Promise<boolean> {

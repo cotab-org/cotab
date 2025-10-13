@@ -296,6 +296,18 @@
           "default": "INFO",
           "description": "Log output level (ERROR: errors only, WARNING: warnings and above, INFO: info and above, DEBUG: everything)",
           "order": 501
+        },
+        "cotab.server.autoStart": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically start server when extension activates",
+          "order": 601
+        },
+        "cotab.server.autoStopOnIdleTime": {
+          "type": "number",
+          "default": 300,
+          "description": "Idle timeout in minutes before auto-stopping server",
+          "order": 604
         }
       }
     },

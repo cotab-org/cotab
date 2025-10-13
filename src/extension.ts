@@ -12,6 +12,7 @@ import { registerStatusBarManager, statusBarManager } from './ui/statusBarManage
 import { registerProgressGutterIcon } from './ui/progressGutterIconManager';
 import { registerMenuIndicator } from './ui/menuIndicator';
 import { registerTerminalCommand } from './utils/terminalCommand';
+import { registerServerManager, autoStopServerOnExit } from './managers/serverManager';
 
 const cotabDisposables: vscode.Disposable[] = [];
 let cotabContext: vscode.ExtensionContext;
@@ -46,9 +47,14 @@ export function activate(context: vscode.ExtensionContext) {
 	cotabContext = context;
 
 	onChangedEnableExtension(getConfig().enabled);
+	
+    // Register server manager
+    registerServerManager(context.subscriptions, context);
 }
 
 export function deactivate() {
+	autoStopServerOnExit();
+
 	cotabDeactive();
 }
 

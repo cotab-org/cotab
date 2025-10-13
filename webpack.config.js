@@ -40,7 +40,7 @@ module.exports = {
     runtimeChunk: false
   },
   plugins: [
-    // 単一バンドル化を強制
+    // Force single bundle
     new webpack.optimize.LimitChunkCountPlugin({ maxChunks: 1 })
   ]
 };
