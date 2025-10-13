@@ -332,30 +332,30 @@ class OllamaClient extends BaseAiClient {
 }
 
 export function getAiClient(): AiClient {
-	const cfg = getConfig();
+	const config = getConfig();
 	let baseURL: string;
 	
-	if (cfg.provider === 'OpenAICompatible') {
-		baseURL = (vscode.workspace.getConfiguration().get('cotab.apiBaseURL') || 'http://localhost:8080/v1');
+	if (config.provider === 'OpenAICompatible') {
+		baseURL = config.apiBaseURL;
 	} else {
-		baseURL = (vscode.workspace.getConfiguration().get('cotab.apiBaseURL') || 'http://localhost:8080/v1');
+		baseURL = config.apiBaseURL;
 	}
 	
 	// Convert URL to IP address (async processing, actual conversion done in each client)
 	logDebug(`Configured baseURL: ${baseURL}`);
 	
-	if (cfg.provider === 'OpenAICompatible') {
-		return new OpenAICompatibleClient(baseURL, cfg.model, cfg.maxTokens,
-											cfg.temperature,
-											cfg.top_p,
-											cfg.top_k,
-											cfg.timeoutMs);
+	if (config.provider === 'OpenAICompatible') {
+		return new OpenAICompatibleClient(baseURL, config.model, config.maxTokens,
+											config.temperature,
+											config.top_p,
+											config.top_k,
+											config.timeoutMs);
 	} else {
-		return new OpenAICompatibleClient(baseURL, cfg.model, cfg.maxTokens,
-											cfg.temperature,
-											cfg.top_p,
-											cfg.top_k,
-											cfg.timeoutMs);
+		return new OpenAICompatibleClient(baseURL, config.model, config.maxTokens,
+											config.temperature,
+											config.top_p,
+											config.top_k,
+											config.timeoutMs);
 	}
 }
 

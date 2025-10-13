@@ -23,13 +23,7 @@ export function registerSuggestionCommands(disposables: vscode.Disposable[]) {
 		vscode.commands.registerCommand('cotab.acceptOneLineSuggestion', acceptOneLineSuggestionCmd),
 		vscode.commands.registerCommand('cotab.clearSuggestions', clearAllSuggestionsCmd),
 		vscode.commands.registerCommand('cotab.cancelSuggestions', () => suggestionManager.cancelCurrentRequest()),
-		vscode.commands.registerCommand('cotab.openSettingsEnable', () => openSettingsEnable()),
 	);
-}
-
-function openSettingsEnable() {
-	// Open extension's Enable setting specifically in VS Code settings UI
-	vscode.commands.executeCommand('workbench.action.openSettings', 'cotab.enabled');
 }
 
 // export async function nextSuggestionCmd() {
