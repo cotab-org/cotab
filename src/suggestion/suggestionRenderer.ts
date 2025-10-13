@@ -293,7 +293,7 @@ export function renderSuggestions(editor: vscode.TextEditor): {
 		if (!isOverlay && suggestion.line === suggestion.editedLine &&
 			suggestion.line !== activeLine &&
 			suggestion.type === 'add') {
-			//isOverlay = true;
+			isOverlay = true;
 		}
 		if (!isOverlay && suggestion.line === suggestion.editedLine) {
 			const origLine = editor.document.lineAt(suggestion.line).text;
@@ -302,23 +302,36 @@ export function renderSuggestions(editor: vscode.TextEditor): {
 			let isInlineCompletionItem = false;
 			if (suggestion.line === activeLine) {
 				isInlineCompletionItem = true;
+
+				// VS Code inline completion only works when there is a single add at one location
+				let hasAdd = false;
 				for (const seg of segs) {
 					if (seg.type === 'keep') continue;
-					if (seg.type !== 'add') {
-						// Only for additions
+					if (seg.type === 'add') {
+						if (hasAdd) {
+							isInlineCompletionItem = false;
+							break;
+						}
+						else {
+							hasAdd = true;
+						}
+					}
+					else {
 						isInlineCompletionItem = false;
 						break;
 					}
 				}
+				/*
 				if (isInlineCompletionItem) {
 					// Size after removing trailing whitespace
 					const origLength = origLine.replace(/\s*$/, '').length;
 					// Not a line with only whitespace,
 					// Disable if cursor is to the right of it because inline completion won't display.
-					if (origLength != 0 && activeCharacter <= origLength) {
+					if (origLength != 0 && activeCharacter < origLength) {
 						isInlineCompletionItem = false;
 					}
 				}
+				*/
 			}
 			if (isInlineCompletionItem) {
 				renderData.inlineCompletionItems.push(new vscode.InlineCompletionItem(suggestion.newText,
@@ -428,7 +441,11 @@ function renderSuggestionsInternal(editor: vscode.TextEditor,
 		}
 		
 		//logDebug('cotab.dispSuggestions true');
-		vscode.commands.executeCommand('setContext', 'cotab.dispSuggestions', (renderData.inlineOptions.length + renderData.deleteOptions.length + renderData.invisibleOptions.length) > 0);
+		const hasSuggestions =
+			(renderData.inlineOptions.length + renderData.deleteOptions.length + renderData.invisibleOptions.length) > 0
+			|| renderData.overlaySegments.length > 0
+			|| renderData.inlineCompletionItems.length > 0;
+		vscode.commands.executeCommand('setContext', 'cotab.dispSuggestions', hasSuggestions);
 	}, 0);
 }
 

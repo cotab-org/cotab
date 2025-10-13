@@ -98,8 +98,9 @@ export function processDiffAndApplyEdits(
             const newHead = newLines[newTrimIdx].replace(/^\s+/, '');
             
             // Simple correction for leading empty line misalignment etc.
-            const minLen = Math.min(origHead.length, newHead.length, 5);
-            if (origHead.slice(0, minLen) === newHead.slice(0, minLen) && 0 < origTrimIdx) {
+            //const minLen = Math.min(origHead.length, newHead.length, 5);
+            //if (origHead.slice(0, minLen) === newHead.slice(0, minLen) && 0 < origTrimIdx) {
+            if (origHead === newHead && 0 < origTrimIdx) {
                 origLines = origLines.slice(origTrimIdx);
                 newLines = newLines.slice(newTrimIdx);
                 baseLine += origTrimIdx;
