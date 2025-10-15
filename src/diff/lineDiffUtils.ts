@@ -269,8 +269,8 @@ export function preprocessLLMOutput(text: string): {
     // Remove "... existing code ..." line and everything after it
     cleaned = cleaned.replace(new RegExp(`\n.*?\.\.\. existing code \.\.\.[\s\S]*`, 'g'), '');
 
-    // Remove __COMPLETE_HERE__
-    cleaned = cleaned.replace(completeHereSymbol, '');
+    // Remove <|__EDITING_HERE__|> (all occurrences, treat as plain text)
+    cleaned = cleaned.split(completeHereSymbol).join('');
 
     // Convert lines with only whitespace at the beginning to empty lines
     cleaned = cleaned.replace(/^\s+?\n/g, '\n');

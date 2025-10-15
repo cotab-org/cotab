@@ -221,7 +221,6 @@ class TerminalCommand implements vscode.Disposable {
             logTerminal('[Install] ########################################');
             logTerminal('[Install] # llama.cpp installation successfully! #');
             logTerminal('[Install] ########################################');
-            logTerminal('[Install] Starting server...');
             return true;
         } catch (error) {
             logError(`[Install] Failed to install llama.cpp: ${error}`);

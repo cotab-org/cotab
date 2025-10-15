@@ -40,7 +40,7 @@ export function requestUpdateCotabMenu() {
 }
 
 // Periodically check and update until menu tooltip changes (max 30 seconds)
-export function requestUpdateCotabMenuUntilChanged(maxMillis: number = 30000, intervalMs: number = 100): void {
+export function requestUpdateCotabMenuUntilChanged(maxMillis: number = 30000, intervalMs: number = 1000): void {
 	const startedAt = Date.now();
 	const baseline = prevTooltip ?? '';
 
@@ -374,7 +374,7 @@ async function installLlamaServer(): Promise<void> {
         vscode.window.showInformationMessage('Installing Server (llama.cpp) ...');
         
         // Check if llama.cpp is already installed
-        const isInstalled = await checkLlamaCppInstalled();
+        const isInstalled = await terminalCommand.isInstalledLocalLlamaServer();
         if (isInstalled) {
             const choice = await vscode.window.showInformationMessage(
                 'Server (llama.cpp) is already installed. Do you want to update?',
@@ -409,48 +409,6 @@ async function uninstallLlamaServer(): Promise<void> {
     }
     catch (error) {
         vscode.window.showErrorMessage(`Server (llama.cpp) uninstall failed: ${error}`);
-    }
-}
-
-/*
-async function updateLlamaServer(): Promise<void> {
-    // Hide immediately for best click response
-    await CloseCotabMenu();
-    
-    try {
-        vscode.window.showInformationMessage('Updating Server (llama.cpp) ...');
-        
-        // Check if llama.cpp is already installed
-        const isInstalled = await checkLlamaCppInstalled();
-        if (isInstalled) {
-            const choice = await vscode.window.showInformationMessage(
-                'Do you want to update Server (llama.cpp)?',
-                'Yes', 'No'
-            );
-            if (choice !== 'Yes') {
-                return;
-            }
-        }
-
-        // Download and install llama.cpp
-        await terminalCommand.installLocalLlamaCpp();
-        
-        // Update menu until changed
-        requestUpdateCotabMenuUntilChanged();
-    }
-    catch (error) {
-        vscode.window.showErrorMessage(`Server (llama.cpp) install failed: ${error}`);
-    }
-}
-*/
-
-async function checkLlamaCppInstalled(): Promise<boolean> {
-    try {
-        await execAsync('llama-server --version');
-        return true;
-    }
-    catch {
-        return false;
     }
 }
 
