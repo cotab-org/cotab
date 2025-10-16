@@ -257,7 +257,7 @@
         },
         "cotab.promptDetail.completeHereSymbol": {
           "type": "string",
-          "default": "__EDIT_HERE__",
+          "default": "<|__EDITING_HERE__|>",
           "description": "Symbol string inserted during code completion",
           "order": 403
         },
