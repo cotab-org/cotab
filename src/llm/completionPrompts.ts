@@ -2,6 +2,7 @@ import { EditorContext } from '../utils/editorContext';
 import { getConfig } from '../utils/config';
 import { logDebug, logError } from '../utils/logger';
 import { withLineNumberCodeBlock } from './llmUtils';
+import { loadYamlPromptConfig, YamlConfig } from '../utils/yamlConfig';
 import * as vscode from 'vscode';
 import * as Handlebars from 'handlebars';
 
@@ -20,6 +21,20 @@ interface PromptCache {
 const promptCache = new Map<string, PromptCache>();
 const CACHE_DURATION = 5 * 60 * 1000; // Cache for 5 minutes
 
+// YAML configuration cache
+let yamlConfigCache: YamlConfig | null = null;
+
+/**
+ * Read YAML configuration (with caching)
+ * @returns YamlPromptConfig | null
+ */
+function getYamlPromptConfig(): YamlConfig | null {
+	if (yamlConfigCache === null) {
+		yamlConfigCache = loadYamlPromptConfig();
+	}
+	return yamlConfigCache;
+}
+
 /**
  * Parse Handlebars template and generate string
  * @param template Handlebars template string
@@ -28,7 +43,9 @@ const CACHE_DURATION = 5 * 60 * 1000; // Cache for 5 minutes
  */
 function parseHandlebarsTemplate(template: string, context: any): string {
 	try {
-		const compiledTemplate = Handlebars.compile(template);
+		const compiledTemplate = Handlebars.compile(template, {
+			noEscape: true
+		});
 		const result = compiledTemplate(context);
 		return result;
 	} catch (error) {
@@ -213,29 +230,51 @@ ${cachedSourceCodeWithLine}
 	const aroundSnippetWithPlaceholderWithLine = withLineNumberCodeBlock(aroundSnippetWithPlaceholder, ctx.aroundFromLine).CodeBlock;
 	
 	// Whether to make code up to cursor position column already output to Assistant
-	// ※Can guarantee characters before cursor but can't complete at positions before cursor.
+	// Note: Can guarantee characters before cursor but can't complete at positions before cursor.
 	const outputedCursorLineBefore = false;
 	if (!outputedCursorLineBefore) {
 		cursorLineBefore = '';
 	}
 
 	// addend LineNumber Text
-	if (getConfig().withLineNumber) {
+	if (config.withLineNumber) {
 		cursorLineBefore = `${latestBeforeOutsideLastWithLineNumber+1}|${cursorLineBefore}`;
 	}
 
 	// Comment language
-	const commentLanguage = getConfig().commentLanguage;
+	const commentLanguage = config.commentLanguage;
 
-	// Customize prompt
-	const overrideSystemPrompt = getConfig().overrideSystemPrompt;
-	const overrideUserPrompt = getConfig().overrideUserPrompt;
-	const overrideAssistantThinkPrompt = getConfig().overrideAssistantThinkPrompt;
-	const overrideAssistantOutputPrompt = getConfig().overrideAssistantOutputPrompt;
-	const additionalSystemPrompt = getConfig().additionalSystemPrompt ? '\n' + getConfig().additionalSystemPrompt : '';
-	const additionalUserPrompt = getConfig().additionalUserPrompt ? '\n' + getConfig().additionalUserPrompt : '';
-	const additionalAssistantThinkPrompt = getConfig().additionalAssistantThinkPrompt ? '\n' + getConfig().additionalAssistantThinkPrompt : '';
-	const additionalAssistantOutputPrompt = getConfig().additionalAssistantOutputPrompt ? '\n' + getConfig().additionalAssistantOutputPrompt : '';
+	// Get YAML configuration
+	const yamlConfig = getYamlPromptConfig();
+	let yamlSystemPrompt: string | undefined;
+	let yamlUserPrompt: string | undefined;
+	let yamlAssistantThinkPrompt: string | undefined;
+	let yamlAssistantOutputPrompt: string | undefined;
+
+	// Find matching prompt configuration from YAML based on file extension
+	if (yamlConfig && yamlConfig.prompts) {
+		const fileExtension = ctx.relativePath.split('.').pop()?.toLowerCase();
+		const matchingPrompt = yamlConfig.prompts.find(prompt => 
+			prompt.extensions.some(ext => ext.toLowerCase() === fileExtension)
+		);
+		
+		if (matchingPrompt) {
+			yamlSystemPrompt = matchingPrompt.systemPrompt;
+			yamlUserPrompt = matchingPrompt.userPrompt;
+			yamlAssistantThinkPrompt = matchingPrompt.assistantThinkPrompt;
+			yamlAssistantOutputPrompt = matchingPrompt.assistantOutputPrompt;
+		}
+	}
+
+	// Customize prompt using YAML config first, then VSCode settings
+	const overrideSystemPrompt = yamlSystemPrompt || config.overrideSystemPrompt;
+	const overrideUserPrompt = yamlUserPrompt || config.overrideUserPrompt;
+	const overrideAssistantThinkPrompt = yamlAssistantThinkPrompt || config.overrideAssistantThinkPrompt;
+	const overrideAssistantOutputPrompt = yamlAssistantOutputPrompt || config.overrideAssistantOutputPrompt;
+	const additionalSystemPrompt = config.additionalSystemPrompt ? '\n' + config.additionalSystemPrompt : '';
+	const additionalUserPrompt = config.additionalUserPrompt ? '\n' + config.additionalUserPrompt : '';
+	const additionalAssistantThinkPrompt = config.additionalAssistantThinkPrompt ? '\n' + config.additionalAssistantThinkPrompt : '';
+	const additionalAssistantOutputPrompt = config.additionalAssistantOutputPrompt ? '\n' + config.additionalAssistantOutputPrompt : '';
 	//logDebug(`commentLanguage: ${commentLanguage}`);
 
 	const latestSourceCode =
@@ -424,20 +463,20 @@ Here is the complete edited code block:
 		"assistantSourceCodeBlockBforeCursor": assistantSourceCodeBlockBforeCursor,
 		
 		// Additional prompts
-		"additionalSystemPrompt": config.additionalSystemPrompt,
-		"additionalUserPrompt": config.additionalUserPrompt,
-		"additionalAssistantThinkPrompt": config.additionalAssistantThinkPrompt,
-		"additionalAssistantOutputPrompt": config.additionalAssistantOutputPrompt,
+		"additionalSystemPrompt": additionalSystemPrompt,
+		"additionalUserPrompt": additionalUserPrompt,
+		"additionalAssistantThinkPrompt": additionalAssistantThinkPrompt,
+		"additionalAssistantOutputPrompt": additionalAssistantOutputPrompt,
 		
 		// Thinking prompt
 		"appendThinkPrompt": appendThinkPrompt
 	};
 
-	// Parse Handlebars templates
-	const parsedSystemPrompt = parseHandlebarsTemplate(systemPrompt, handlebarsContext);
-	const parsedUserPrompt = parseHandlebarsTemplate(userPrompt, handlebarsContext);
-	const parsedAssistantThinkPrompt = parseHandlebarsTemplate(assistantThinkPrompt, handlebarsContext);
-	const parsedAssistantOutputPrompt = parseHandlebarsTemplate(assistantOutputPrompt, handlebarsContext);
+	// Parse Handlebars templates with YAML configuration override
+	const parsedSystemPrompt = parseHandlebarsTemplate(overrideSystemPrompt || systemPrompt, handlebarsContext);
+	const parsedUserPrompt = parseHandlebarsTemplate(overrideUserPrompt || userPrompt, handlebarsContext);
+	const parsedAssistantThinkPrompt = parseHandlebarsTemplate(overrideAssistantThinkPrompt || assistantThinkPrompt, handlebarsContext);
+	const parsedAssistantOutputPrompt = parseHandlebarsTemplate(overrideAssistantOutputPrompt || assistantOutputPrompt, handlebarsContext);
 
 	return {
 		systemPrompt: parsedSystemPrompt,
