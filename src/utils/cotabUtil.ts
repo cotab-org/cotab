@@ -2,6 +2,8 @@
 import * as vscode from 'vscode';
 import { statusBarManager, StatusBarPhase } from '../ui/statusBarManager';
 import { progressGutterIconManager, GutterIconPhase } from '../ui/progressGutterIconManager';
+import * as Handlebars from 'handlebars';
+import { logError } from './logger';
 
 export class SimpleLocker {
     private locked = false;
@@ -59,4 +61,23 @@ function StatusBarPhaseToGutterIconPhase(phase: StatusBarPhase): GutterIconPhase
         default: break;
     }
     return gutterIconPhase;
+}
+
+/**
+ * Parse Handlebars template and generate string
+ * @param template Handlebars template string
+ * @param context Context to pass to template
+ * @returns Parsed string
+ */
+export function parseHandlebarsTemplate(template: string, context: any): string {
+	try {
+		const compiledTemplate = Handlebars.compile(template, {
+			noEscape: true
+		});
+		const result = compiledTemplate(context);
+		return result;
+	} catch (error) {
+		logError(`Handlebars template parsing failed: ${error}`);
+		return template;
+	}
 }
