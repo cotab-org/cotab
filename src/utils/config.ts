@@ -108,7 +108,7 @@ function getConfigRaw(): CotabConfig {
     const editorCfg = vscode.workspace.getConfiguration('editor', uri);
     const cfg = vscode.workspace.getConfiguration();
     
-    const commentLanguage = cfg.get<string>('cotab.commentLanguage', '').trim();
+    const commentLanguage = cfg.get<string>('cotab.prompt.commentLanguage', '').trim();
     const editorLanguage = commentLanguage || getDisplayLanguageName(getUiLocale());
     const configuredLineHeight = Number(cfg.get<number>('lineHeight') || 0);
     const fontSize = Number(cfg.get<number>('fontSize') || 14);
