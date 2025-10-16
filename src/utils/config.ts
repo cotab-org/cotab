@@ -19,7 +19,6 @@ export interface CotabConfig {
     // basic
     enabled: boolean;
     disableForExtensions: string;
-    autoTriggerOnCursorMove: boolean;
 
     // llm
     provider: 'OpenAICompatible';
@@ -129,7 +128,6 @@ function getConfigRaw(): CotabConfig {
         // basic
         enabled: cfg.get<boolean>('cotab.basic.enabled', true),
         disableForExtensions: cfg.get<string>('cotab.basic.disableForExtensions', ''),
-        autoTriggerOnCursorMove: cfg.get<boolean>('cotab.basic.autoTriggerOnCursorMove', true),
 
         // llm
         provider: cfg.get<'OpenAICompatible'>('cotab.llm.provider', 'OpenAICompatible'),
