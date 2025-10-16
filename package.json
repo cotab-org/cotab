@@ -192,7 +192,7 @@
         "cotab.prompt.commentLanguage": {
           "type": "string",
           "default": "",
-          "description": "Comment language. If empty, uses editor language (e.g. 'English', 'Japanese', 'Chinese', 'Français')",
+          "description": "Comment language. If empty, uses editor language (e.g. 'English', '日本語', '简体中文', 'Français')",
           "order": 301
         },
         "cotab.prompt.overrideSystemPrompt": {

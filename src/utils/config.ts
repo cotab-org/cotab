@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { BundledTheme } from "shiki";
 import { extensions } from 'vscode';
+import { execSync } from 'child_process';
 
 let configCache: CotabConfig | null = null;
 
@@ -108,7 +109,8 @@ function getConfigRaw(): CotabConfig {
     const cfg = vscode.workspace.getConfiguration();
     
     const commentLanguage = cfg.get<string>('cotab.prompt.commentLanguage', '').trim();
-    const editorLanguage = commentLanguage || getDisplayLanguageName(getUiLocale());
+    //const editorLanguage = commentLanguage || getDisplayLanguageName(getUiLocale());
+    const osLanguage = commentLanguage || getDisplayLanguageName(getOsLocale());
     const configuredLineHeight = Number(cfg.get<number>('lineHeight') || 0);
     const fontSize = Number(cfg.get<number>('fontSize') || 14);
     const lineHeight = configuredLineHeight > 0 ? configuredLineHeight : Math.round(fontSize * LINE_HEIGHT_RATIO);
@@ -142,7 +144,7 @@ function getConfigRaw(): CotabConfig {
         timeoutMs: cfg.get<number>('cotab.llm.timeoutMs', 30000),
 
         // prompt
-        commentLanguage: editorLanguage,
+        commentLanguage: osLanguage,
         overrideSystemPrompt: cfg.get<string>('cotab.prompt.overrideSystemPrompt', ''),
         additionalSystemPrompt: cfg.get<string>('cotab.prompt.additionalSystemPrompt', ''),
         overrideUserPrompt: cfg.get<string>('cotab.prompt.overrideUserPrompt', ''),
@@ -210,6 +212,54 @@ export async function setConfigExtensionEnabled(extensionId: string, enabled: bo
 function getUiLocale(): string {
 	const locale = vscode.env.language || 'en';
 	return locale.toLowerCase();
+}
+
+// Get OS locale
+function getOsLocale(): string {
+	// 1) Try to get locale from Unix environment variables first
+	const envLocale =
+		process.env.LC_ALL ||
+		process.env.LC_MESSAGES ||
+		process.env.LANG ||
+		process.env.LANGUAGE ||
+		process.env.LC_CTYPE;
+
+	let candidate = envLocale;
+
+		// 2) Fallback to OS locale detection for Windows/macOS/Electron
+		if (!candidate) {
+			try {
+				// For Windows, try to get OS locale from system
+				if (process.platform === 'win32') {
+					// Get Windows locale from registry
+					const locale = execSync('powershell -Command "Get-Culture | Select-Object -ExpandProperty Name"', { encoding: 'utf8' }).trim();
+					if (locale) {
+						candidate = locale;
+					}
+				} else {
+					// For macOS/Linux, try Intl API as fallback
+					candidate = new Intl.DateTimeFormat().resolvedOptions().locale;
+				}
+			} catch {}
+		}
+
+	// 3) Final fallback to VS Code UI language
+	if (!candidate) return getUiLocale();
+
+	// Normalize to BCP47 and extract language subtag only
+	try {
+		const normalized = Intl.getCanonicalLocales(
+			candidate.replace('_', '-').split('.')[0] // ja_JP.UTF-8 -> ja-JP
+		)[0] || '';
+		const primary = normalized.split('-')[0].toLowerCase();
+
+		// Handle C/POSIX locale fallback
+		if (primary === 'c' || primary === 'posix' || primary === '') return 'en';
+
+		return primary;
+	} catch {
+		return getUiLocale();
+	}
 }
 
 // Get language name (autonym) from UI locale
