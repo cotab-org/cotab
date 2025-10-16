@@ -157,6 +157,76 @@ async function processStreamingResponse(
 	});
 }
 
+/*
+class ContextCheckpoints {
+	public messages: any[] = [];
+
+	async createCheckpoints(
+		http: AxiosInstance,
+		endpoint: string,
+		arg: any,
+		params: CompletionParams,
+		signal: AbortSignal | undefined) {
+			
+		// paramsを複製
+		const checkpointParams = { ...params };
+		checkpointParams.onUpdate = (partial) => {
+			logDebug(`Context checkpoint update received: ${partial}`);
+			return true;
+		};
+		checkpointParams.onComplete = (reason, finalResult) => {
+			logDebug(`Completion reason: ${reason}, result: ${finalResult}`);
+		};
+
+		// argsを複製
+		const checkpointArgs = { ...arg };
+		checkpointArgs.max_tokens = 1;
+		
+		const orgMessages = arg.messages;
+		checkpointArgs.messages = [];
+		for (const orgMessage of orgMessages) {
+			const checkpointMessage = { ...orgMessage };
+			checkpointMessage.content = "";
+			checkpointArgs.messages.push(checkpointMessage);
+
+			const orgContentParts = orgMessage.content.split('<|CONTEXT_CHECKPOINT|>');
+			for (const part of orgContentParts) {
+				checkpointMessage.content += part;
+				
+				let isCached = true;
+				const len = Math.min(this.messages.length, checkpointArgs.messages.length);
+				if (this.messages.length < checkpointArgs.messages.length) {
+					isCached = false;
+				}
+				else {
+					for (let i = 0; i < len; i++) {
+						if (this.messages[i].content !== checkpointArgs.messages[i].content) {
+							isCached = false;
+							break;
+						}
+					}
+				}
+				
+				if (! isCached)
+				{
+					this.messages = checkpointArgs.messages;
+					const res = await http.post(endpoint, checkpointArgs, { 
+						// If cancel signal is sent too early and communication ends, llama-server may miss task cancellation,
+						// so don't pass signal directly
+			//				signal,
+						responseType: 'stream'
+					});
+					logDebug(`Chat response reception started ${params.streamCount}th time`);
+					await processStreamingResponse(res, signal, checkpointParams);
+				}
+			}
+		}
+	}
+}
+
+const contextCheckpoints: ContextCheckpoints = new ContextCheckpoints();
+*/
+
 // Base class - provides common functionality
 abstract class BaseAiClient implements AiClient {
 	protected readonly model: string;
@@ -262,6 +332,22 @@ abstract class BaseAiClient implements AiClient {
 			if (0 <= temperature) arg.temperature = temperature;
 			if (0 <= top_p) arg.top_p = top_p;
 			if (0 <= top_k) arg.top_k = top_k;
+			
+			/*
+			{
+				await contextCheckpoints.createCheckpoints(
+					http,
+					this.getChatEndpoint(),
+					arg,
+					params,
+					signal);
+			}
+			// messageのチェックポイントを消去
+			for (let message of arg.messages) {
+				message.content = message.content.split('<|CONTEXT_CHECKPOINT|>').join('');
+			}
+			*/
+
 			const res = await http.post(this.getChatEndpoint(), arg, { 
 				// If cancel signal is sent too early and communication ends, llama-server may miss task cancellation,
 				// so don't pass signal directly
