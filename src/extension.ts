@@ -13,6 +13,7 @@ import { registerProgressGutterIcon } from './ui/progressGutterIconManager';
 import { registerMenuIndicator } from './ui/menuIndicator';
 import { registerTerminalCommand } from './utils/terminalCommand';
 import { registerServerManager, autoStopServerOnExit } from './managers/serverManager';
+import { registerYamlConfig } from './utils/yamlConfig';
 
 const cotabDisposables: vscode.Disposable[] = [];
 let cotabContext: vscode.ExtensionContext;
@@ -35,6 +36,8 @@ export function activate(context: vscode.ExtensionContext) {
 	registerConfigWatcher(context.subscriptions, () => {
 		onChangedEnableExtension(getConfig().enabled)
 	});
+
+	registerYamlConfig(cotabDisposables);
 
 	registerTerminalCommand(cotabDisposables);
 

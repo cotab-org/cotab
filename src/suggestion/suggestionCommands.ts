@@ -178,7 +178,8 @@ async function acceptSuggestionInternal(isFullAccept: boolean) {
                 const newlastLineText = groupLines[groupLines.length - 1];
                 const diffSegments = computeCharDiff(orgLastLineText.text, newlastLineText);
                 if (0 < diffSegments.length) {
-                    lastEditedPosition = diffSegments[diffSegments.length - 1].newIdx;
+                    const lastSegment = diffSegments[diffSegments.length - 1];
+                    lastEditedPosition = lastSegment.newIdx + lastSegment.text.length;
                 }
             }
         }

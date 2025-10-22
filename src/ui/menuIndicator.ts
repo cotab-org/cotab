@@ -2,11 +2,12 @@ import * as vscode from 'vscode';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { onChangedEnableExtension } from '../extension';
-import { getConfig, setConfigGlobalEnabled, setConfigExtensionEnabled } from '../utils/config';
+import { getConfig, setConfigGlobalEnabled, setConfigExtensionEnabled, setConfigSelectedPromptMode } from '../utils/config';
 import { statusBarManager } from './statusBarManager';
 import { terminalCommand } from '../utils/terminalCommand';
 import { getAiClient } from '../llm/llmProvider';
 import { serverManager } from '../managers/serverManager';
+import { getYamlConfig, onDidChangeYamlConfig, getYamlConfigPromptModes, openYamlConfig } from '../utils/yamlConfig';
 const execAsync = promisify(exec);
 
 // Singleton instance ------------------------------------------------------
@@ -59,6 +60,7 @@ export function requestUpdateCotabMenuUntilChanged(maxMillis: number = 30000, in
 
 class MenuIndicator implements vscode.Disposable {
     private disposables: vscode.Disposable[] = [];
+    private promptModeDisposables: vscode.Disposable[] = [];
 
     constructor() {
         this.registerCommands();
@@ -117,10 +119,40 @@ class MenuIndicator implements vscode.Disposable {
             await stopLlamaServer();
         }));
 
+        this.disposables.push(vscode.commands.registerCommand('cotab.openYamlConfig', async () => {
+            await openYamlConfig();
+        }));
+
         // Toggle enable
         this.disposables.push(vscode.commands.registerCommand('cotab.openCommand', async () => {
             await vscode.commands.executeCommand('workbench.action.quickOpen', '>cotab: [Server] ');
         }));
+
+        this.disposables.push(onDidChangeYamlConfig(() => {
+            this.refreshRegisterSelectPromptModeCommands();
+            requestUpdateCotabMenu();
+        }));
+        
+        this.refreshRegisterSelectPromptModeCommands();
+    }
+
+    private refreshRegisterSelectPromptModeCommands() {
+        // dispose commands
+        this.promptModeDisposables.forEach(d => {
+            this.disposables.splice(this.disposables.indexOf(d), 1);
+            d.dispose()
+        });
+        this.promptModeDisposables.length = 0;
+        
+        // register commands
+        for (const mode of getYamlConfigPromptModes()) {
+            const disposable = vscode.commands.registerCommand(`cotab.selectedPromptMode${mode}`, async () => {
+                await setConfigSelectedPromptMode(mode);
+                requestUpdateCotabMenu();
+            });
+            this.disposables.push(disposable);
+            this.promptModeDisposables.push(disposable);
+        }
     }
 }
 
@@ -161,10 +193,14 @@ async function buildMainMenuMarkdown(): Promise<vscode.MarkdownString> {
     const md = new vscode.MarkdownString(undefined, true);
     md.isTrusted = true;
 
+    //###########################################################
     // Header
+    //###########################################################
     md.appendMarkdown(`Code Completions\n`);
 
+    //###########################################################
     // Enable/disable toggle with checkbox style
+    //###########################################################
     md.appendMarkdown(`\n\n---\n\n`);
     const globalEnabledCheckbox = checkboxControl('Enable globally', isEnabled, 'command:cotab.toggleGlobalEnabled');
     md.appendMarkdown(`${globalEnabledCheckbox}\n\n`);
@@ -177,7 +213,21 @@ async function buildMainMenuMarkdown(): Promise<vscode.MarkdownString> {
         md.appendMarkdown(`${extensionEnabledCheckbox}\n\n`);
     }
 
-    // Server
+    //###########################################################
+    // Completion type section
+    //###########################################################
+    md.appendMarkdown(`\n\n---\n\n`);
+    const selectedPromptMode = getConfig().selectedPromptMode || 'Coding';
+    for (const mode of getYamlConfigPromptModes()) {
+        const isEnabled = (mode === selectedPromptMode);
+        const promptCheckbox = checkboxControl(`${mode}`, isEnabled, `command:cotab.selectedPromptMode${mode}`);
+        md.appendMarkdown(`${promptCheckbox}\n\n`);
+    }
+
+    //###########################################################
+    // Server section
+    //###########################################################
+    md.appendMarkdown(`\n\n---\n\n`);
     let serverStatus;
     if (await terminalCommand.isRunningLocalLlamaServer()) {
         serverStatus = linkButton('Stop Server', 'command:cotab.server.stop', '#d83b01', '#ffffff');
@@ -192,15 +242,17 @@ async function buildMainMenuMarkdown(): Promise<vscode.MarkdownString> {
         serverStatus = linkButton('Install Server', 'command:cotab.server.install', '#2ea043', '#ffffff');
     }
     
-    md.appendMarkdown(`\n\n---\n\n`);
     md.appendMarkdown(`${serverStatus}`);
     
     
+    //###########################################################
     // Add command palette and settings icons
-    const terminalIcon = `[$(terminal)](command:cotab.openCommand)`;
-    const gearIcon = `[$(gear)](command:workbench.action.openSettings?%5B%22>cotab%22%5D)`;
+    //###########################################################
     md.appendMarkdown(`\n\n---\n\n`);
-    md.appendMarkdown(`${terminalIcon} | ${gearIcon}`);
+    const openYamlConfig = `[$(comment)](command:cotab.openYamlConfig)`;
+    const openCommand = `[$(terminal)](command:cotab.openCommand)`;
+    const openSettings = `[$(gear)](command:workbench.action.openSettings?%5B%22>cotab%22%5D)`;
+    md.appendMarkdown(`${openYamlConfig} | ${openCommand} | ${openSettings}`);
     
     return md;
 }
@@ -251,7 +303,7 @@ function checkboxControl(label: string, checked: boolean, commandLink: string): 
     const icon = checkboxSvg(checked);
     const img = `![](${icon})`;
     // Use markdown with proper spacing to align icon and text
-    return `[${img}](${commandLink}) ${label}`;
+    return `[${img} ${label}](${commandLink})`;
 }
 
 function checkboxSvg(checked: boolean): string {

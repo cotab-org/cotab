@@ -111,7 +111,7 @@
         "cotab.basic.disableForExtensions": {
           "type": "string",
           "default": "",
-          "description": "Disable the extension for extensions",
+          "description": "Disable the extension for extensions (comma separated list of file extensions. e.g. 'txt,json')",
           "order": 102
         },
         "cotab.basic.autoStart": {
@@ -123,8 +123,20 @@
         "cotab.basic.autoStopOnIdleTime": {
           "type": "number",
           "default": 300,
-          "description": "Idle timeout in minutes before auto-stopping server",
+          "description": "Idle timeout in seconds before auto-stopping server",
           "order": 104
+        },
+        "cotab.basic.commentLanguage": {
+          "type": "string",
+          "default": "",
+          "description": "Comment language. If empty, uses OS language (e.g. 'English', '日本語', '简体中文', 'Français')",
+          "order": 105
+        },
+        "cotab.basic.selectedPromptMode": {
+          "type": "string",
+          "default": "",
+          "description": "Used prompt settings mode. If empty, uses default coding prompt",
+          "order": 106
         },
         "cotab.llm.provider": {
           "type": "string",
@@ -189,59 +201,29 @@
           "description": "LLM call timeout (ms)",
           "order": 210
         },
-        "cotab.prompt.commentLanguage": {
-          "type": "string",
-          "default": "",
-          "description": "Comment language. If empty, uses editor language (e.g. 'English', '日本語', '简体中文', 'Français')",
-          "order": 301
-        },
-        "cotab.prompt.overrideSystemPrompt": {
-          "type": "string",
-          "default": "",
-          "markdownDescription": "Completely replaces the default system prompt",
-          "order": 302
-        },
         "cotab.prompt.additionalSystemPrompt": {
           "type": "string",
           "default": "",
           "markdownDescription": "Additional prompt to add to the default system prompt",
-          "order": 303
-        },
-        "cotab.prompt.overrideUserPrompt": {
-          "type": "string",
-          "default": "",
-          "markdownDescription": "Completely replaces the default user prompt",
-          "order": 304
+          "order": 301
         },
         "cotab.prompt.additionalUserPrompt": {
           "type": "string",
           "default": "",
           "markdownDescription": "Additional prompt to add to the default user prompt",
-          "order": 305
-        },
-        "cotab.prompt.overrideAssistantThinkPrompt": {
-          "type": "string",
-          "default": "",
-          "markdownDescription": "Completely replaces the default assistant thinking prompt",
-          "order": 306
+          "order": 302
         },
         "cotab.prompt.additionalAssistantThinkPrompt": {
           "type": "string",
           "default": "",
           "markdownDescription": "Additional prompt to add to the default assistant thinking prompt",
-          "order": 307
-        },
-        "cotab.prompt.overrideAssistantOutputPrompt": {
-          "type": "string",
-          "default": "",
-          "markdownDescription": "Completely replaces the default assistant output prompt",
-          "order": 308
+          "order": 303
         },
         "cotab.prompt.additionalAssistantOutputPrompt": {
           "type": "string",
           "default": "",
           "markdownDescription": "Additional prompt to add to the default assistant output prompt",
-          "order": 309
+          "order": 304
         },
         "cotab.promptDetail.startEditingHereSymbol": {
           "type": "string",

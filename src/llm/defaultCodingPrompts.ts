@@ -89,7 +89,7 @@ Follow typical coding style conventions for "{{languageId}}".
 Program comments must be written in "{{commentLanguage}}".{{additionalUserPrompt}}`;
 
 // Assistant thinking output Prompt for completion
-const defaultAssistantThinkPrompt =
+const defaultAssistantPrompt =
 `<think>
 Okey, I will carefully review the code and provide a minimal inline edit to improve it. I will only modify the code within the "{{startEditingHere}}" ... "{{stopEditingHere}}" block provided in the code snippet and I will not output anything outside that block. After finishing edits within the allowed range I will always output "{{stopEditingHere}}" to indicate the end, and I will exercise maximum care to ensure I do not output outside the editable range. I will ensure the output is valid "{{languageId}}" code and free of compilation or runtime errors, and I will preserve all whitespace and formatting exactly as in the original source. That means I will not change any spaces, tabs, or line breaks when outputting the original code. I will keep indentation consistent and pay the utmost attention to the spaces, tabs, and line breaks I output. I MUST replace code with "{{placeholder}}" exactly where required.
 I will complete partially written symbol names with the names you are likely to write and I will predict and write the implementation or definition that you are likely to write in the case of a blank line. I will never modify existing characters and no matter how incomplete the code below is I will not treat characters as deleted. I will only output characters that can be inferred from the existing characters. I will actively infer and complete the remaining characters on the cursor line because it is likely the user is in the middle of typing a word, and I will perform autocomplete treating the cursor position as being within a partially typed word so I complete that incomplete word and ensure extremely high output quality. I will avoid redefining or redeclaring the same symbol name to prevent compilation errors. I will proactively reference external symbols defined in "SYMBOL_CONTEXT".
@@ -108,13 +108,13 @@ The provided source code may also be outdated, so I must retrieve the latest ver
 I will write program comments in "{{commentLanguage}}".
 </think>
 
-`;
-
-// Assistant output Prompt for completion
-const defaultAssistantOutputPrompt =
-`Sure! I will output only the code block. and I will not forget to also output "{{stopEditingHere}}".{{additionalAssistantOutputPrompt}}
+Sure! I will output only the code block. and I will not forget to also output "{{stopEditingHere}}".{{additionalAssistantOutputPrompt}}
 Here is the complete edited code block:
 {{assistantSourceCodeBlockBforeCursor}}`;
+
+const defaultAppendThinkPromptNewScope = `I have checked the latest source code. The editing position is within an empty scope, and it is highly likely that the user intends to write new code.Therefore, I implement the new code inferred from the surrounding implementation at the editing position.`;
+const defaultAppendThinkPromptRefactoring = `I have checked the latest source code and edit history. Since some code has been deleted or modified, I will determine the necessary refactoring based on those changes and update the existing code accordingly.`;
+const defaultAppendThinkPromptAddition = `I have checked the latest source code and edit history. Since some code has been added or modified, I will implement the remaining necessary code after \`\`\`{{cursorLineBefore}}\`\`\`.`;
 
 //#######################################################################################
 // Analysis Prompts
@@ -163,14 +163,17 @@ Output the result in "English".`;
 /**
  * Creates default YAML configuration prompt
  */
-export function getDefaultYamlConfigPrompt(): YamlPrompt {
+export function getYamlDefaultCodingPrompt(): YamlPrompt {
 	return {
-		name: 'default',
+		name: 'DefaultCoding',
+		mode: 'Coding',
 		extensions: ['*'],
 		systemPrompt: defaultSystemPrompt,
 		userPrompt: defaultUserPrompt,
-		assistantThinkPrompt: defaultAssistantThinkPrompt,
-		assistantOutputPrompt: defaultAssistantOutputPrompt,
+		assistantPrompt: defaultAssistantPrompt,
+		appendThinkPromptNewScope: defaultAppendThinkPromptNewScope,
+		appendThinkPromptRefactoring: defaultAppendThinkPromptRefactoring,
+		appendThinkPromptAddition: defaultAppendThinkPromptAddition,
 		analyzeSystemPrompt: defaultAnalyzeSystemPrompt,
 		analyzeUserPrompt: defaultAnalyzeUserPrompt
 	};

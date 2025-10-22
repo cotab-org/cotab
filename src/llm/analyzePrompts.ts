@@ -1,6 +1,5 @@
 import { getYamlConfigPrompt } from '../utils/yamlConfig';
 import { parseHandlebarsTemplate } from '../utils/cotabUtil';
-import { getDefaultYamlConfigPrompt } from './defaultPrompts';
 
 /**
  * Generates prompts for source code analysis.
@@ -18,9 +17,8 @@ export function buildAnalyzePrompts(languageId: string, filename: string, source
 
 	// Get YAML prompt
 	const yamlPrompt = getYamlConfigPrompt(filename);
-	const defaultPrompt = getDefaultYamlConfigPrompt();
-	const systemPrompt = yamlPrompt?.analyzeSystemPrompt || defaultPrompt.analyzeSystemPrompt || '';
-	const userPrompt = yamlPrompt?.analyzeUserPrompt || defaultPrompt.analyzeUserPrompt || '';
+	const systemPrompt = yamlPrompt.analyzeSystemPrompt || '';
+	const userPrompt = yamlPrompt.analyzeUserPrompt || '';
 
 	// Parse Handlebars templates
 	const parsedSystemPrompt = parseHandlebarsTemplate(systemPrompt, handlebarsContext);

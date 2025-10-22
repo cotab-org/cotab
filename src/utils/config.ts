@@ -20,6 +20,10 @@ export interface CotabConfig {
     // basic
     enabled: boolean;
     disableForExtensions: string;
+    serverAutoStart: boolean;
+    serverAutoStopOnIdleTime: number;
+    commentLanguage: string;
+    selectedPromptMode: string;
 
     // llm
     provider: 'OpenAICompatible';
@@ -34,16 +38,10 @@ export interface CotabConfig {
     timeoutMs: number;
 
     // prompt
-    overrideSystemPrompt: string;
     additionalSystemPrompt: string;
-    overrideUserPrompt: string;
     additionalUserPrompt: string;
-    overrideAssistantThinkPrompt: string;
     additionalAssistantThinkPrompt: string;
-    overrideAssistantOutputPrompt: string;
     additionalAssistantOutputPrompt: string;
-    // When empty, uses vscode.env.language. Settings take priority if specified
-    commentLanguage: string;
 
     // promptDetail
     startEditingHereSymbol: string;
@@ -62,10 +60,6 @@ export interface CotabConfig {
     // detail
     logLevel: string;
 
-    // server management
-    serverAutoStart: boolean;
-    serverAutoStopOnIdleTime: number;
-
     isCurrentEnabled(): boolean;
     isExtensionEnabled(extensionId: string): boolean;
 }
@@ -73,8 +67,8 @@ export interface CotabConfig {
 // Clear cache when configuration changes
 export function registerConfigWatcher(disposables: vscode.Disposable[],
                                         onEnabledChange: () => void): void {
-    let prevEnable = getConfig().enabled;
-    const disposable = vscode.workspace.onDidChangeConfiguration((event) => {
+    let prevEnable = getConfig().enabled;    
+    disposables.push(vscode.workspace.onDidChangeConfiguration((event) => {
         if (event.affectsConfiguration('cotab')) {
             configCache = null;
 
@@ -84,10 +78,7 @@ export function registerConfigWatcher(disposables: vscode.Disposable[],
                 onEnabledChange();
             }
         }
-    });
-    
-    // Add to disposables to manage with extension lifecycle
-    disposables.push(disposable);
+    }));
 }
 
 export function getConfig(): CotabConfig {
@@ -108,7 +99,7 @@ function getConfigRaw(): CotabConfig {
     const editorCfg = vscode.workspace.getConfiguration('editor', uri);
     const cfg = vscode.workspace.getConfiguration();
     
-    const commentLanguage = cfg.get<string>('cotab.prompt.commentLanguage', '').trim();
+    const commentLanguage = cfg.get<string>('cotab.basic.commentLanguage', '').trim();
     //const editorLanguage = commentLanguage || getDisplayLanguageName(getUiLocale());
     const osLanguage = commentLanguage || getDisplayLanguageName(getOsLocale());
     const configuredLineHeight = Number(cfg.get<number>('lineHeight') || 0);
@@ -130,6 +121,9 @@ function getConfigRaw(): CotabConfig {
         // basic
         enabled: cfg.get<boolean>('cotab.basic.enabled', true),
         disableForExtensions: cfg.get<string>('cotab.basic.disableForExtensions', ''),
+        serverAutoStart: cfg.get<boolean>('cotab.server.autoStart', true),
+        serverAutoStopOnIdleTime: cfg.get<number>('cotab.server.autoStopOnIdleTime', 300),
+        selectedPromptMode: cfg.get<string>('cotab.basic.selectedPromptMode', 'auto'),
 
         // llm
         provider: cfg.get<'OpenAICompatible'>('cotab.llm.provider', 'OpenAICompatible'),
@@ -145,13 +139,9 @@ function getConfigRaw(): CotabConfig {
 
         // prompt
         commentLanguage: osLanguage,
-        overrideSystemPrompt: cfg.get<string>('cotab.prompt.overrideSystemPrompt', ''),
         additionalSystemPrompt: cfg.get<string>('cotab.prompt.additionalSystemPrompt', ''),
-        overrideUserPrompt: cfg.get<string>('cotab.prompt.overrideUserPrompt', ''),
         additionalUserPrompt: cfg.get<string>('cotab.prompt.additionalUserPrompt', ''),
-        overrideAssistantThinkPrompt: cfg.get<string>('cotab.prompt.overrideAssistantThinkPrompt', ''),
         additionalAssistantThinkPrompt: cfg.get<string>('cotab.prompt.additionalAssistantThinkPrompt', ''),
-        overrideAssistantOutputPrompt: cfg.get<string>('cotab.prompt.overrideAssistantOutputPrompt', ''),
         additionalAssistantOutputPrompt: cfg.get<string>('cotab.prompt.additionalAssistantOutputPrompt', ''),
 
         // promptDetail
@@ -168,10 +158,6 @@ function getConfigRaw(): CotabConfig {
 
         // detail
         logLevel: cfg.get<string>('cotab.detail.logLevel', 'INFO'),
-
-        // server management
-        serverAutoStart: cfg.get<boolean>('cotab.server.autoStart', true),
-        serverAutoStopOnIdleTime: cfg.get<number>('cotab.server.autoStopOnIdleTime', 300),
         
         isCurrentEnabled(): boolean {
             const languageId: string = vscode.window.activeTextEditor?.document.languageId || '';
@@ -205,6 +191,11 @@ export async function setConfigExtensionEnabled(extensionId: string, enabled: bo
 
     await vscode.workspace.getConfiguration()
         .update('cotab.basic.disableForExtensions', disables.join(','), vscode.ConfigurationTarget.Global);
+}
+
+export async function setConfigSelectedPromptMode(mode: string): Promise<void> {
+    await vscode.workspace.getConfiguration()
+        .update('cotab.basic.selectedPromptMode', mode, vscode.ConfigurationTarget.Global);
 }
 
 

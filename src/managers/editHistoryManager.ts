@@ -49,14 +49,12 @@ class EditHistoryManager implements vscode.Disposable {
 
     constructor() {
         // Update edit history
-        const disposable = vscode.workspace.onDidChangeTextDocument((evt: vscode.TextDocumentChangeEvent) => {
+        this.disposables.push(vscode.workspace.onDidChangeTextDocument((evt: vscode.TextDocumentChangeEvent) => {
             const ops = inferEditOperation(evt);
             for (const op of ops) {
                 this.addEdit(op);
             }
-        });
-
-        this.disposables.push(disposable);
+        }));
     }
 
     dispose() {

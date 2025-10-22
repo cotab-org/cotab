@@ -4,7 +4,6 @@ import { logDebug } from '../utils/logger';
 import { withLineNumberCodeBlock } from './llmUtils';
 import { getYamlConfigPrompt } from '../utils/yamlConfig';
 import { parseHandlebarsTemplate } from '../utils/cotabUtil';
-import { getDefaultYamlConfigPrompt } from './defaultPrompts';
 
 // Surrounding code line count
 const LATEST_AROUND_CODE_LINES = 15;
@@ -199,6 +198,7 @@ ${cachedSourceCodeWithLine}
 	
 	// Whether to make code up to cursor position column already output to Assistant
 	// Note: Can guarantee characters before cursor but can't complete at positions before cursor.
+	const orgCursorLineBefore = cursorLineBefore;
 	const outputedCursorLineBefore = false;
 	if (!outputedCursorLineBefore) {
 		cursorLineBefore = '';
@@ -238,35 +238,18 @@ ${latestBeforeOutsideLastWithLine}
 ${startEditingHere}
 ${cursorLineBefore}`;
 
-	//###########################
-	// append think prompt
-	//###########################
-	const appendThinkPromptNewScope = `I have checked the latest source code. The editing position is within an empty scope, and it is highly likely that the user intends to write new code.Therefore, we implement the new code inferred from the surrounding implementation at the editing position.`
-	const appendThinkPromptRefactoring = `I have checked the latest source code and edit history. Since some code has been deleted or modified, I will determine the necessary refactoring based on those changes and update the existing code accordingly.`;
-	const appendThinkPromptAddition = `I have checked the latest source code and edit history. Since some code has been added or modified, I will implement the remaining necessary code based on those additions and changes.`;
 
-	// Decide appendThinkPrompt by simple rules
-	let appendThinkPrompt = '';
-	{
-		const cursorIndex = ctx.cursorLine - ctx.aroundFromLine;
-		const cursorLineText = (0 <= cursorIndex && cursorIndex < latestAroundSnippetLines.length)
-			? latestAroundSnippetLines[cursorIndex]
-			: '';
-		const isCursorLineBlank = cursorLineText.trim().length === 0;
-		if (isCursorLineBlank) {
-			appendThinkPrompt = appendThinkPromptNewScope;
-		} else {
-			// Determine by the LAST action in edit history (delete/rename/modify => refactor)
-			const historyText = editHistoryCodeBlock || '';
-			const matches = Array.from(historyText.matchAll(/-\s*action:\s*(\w+)/gi));
-			const lastAction = (0 < matches.length) ? (matches[matches.length - 1][1] || '').toLowerCase() : '';
-			const isRefactorAction = lastAction === 'delete' || lastAction === 'rename' || lastAction === 'modify';
-			appendThinkPrompt = isRefactorAction ? appendThinkPromptRefactoring : appendThinkPromptAddition;
-		}
-	}
+	// Get YAML configuration
+	const yamlPrompt = getYamlConfigPrompt(ctx.relativePath);
+	const systemPrompt = yamlPrompt.systemPrompt || '';
+	const userPrompt = yamlPrompt.userPrompt || '';
+	const assistantPrompt = yamlPrompt.assistantPrompt || '';
+	const appendThinkPromptNewScope = yamlPrompt.appendThinkPromptNewScope || '';
+	const appendThinkPromptRefactoring = yamlPrompt.appendThinkPromptRefactoring || '';
+	const appendThinkPromptAddition = yamlPrompt.appendThinkPromptAddition || '';
 	
 	// Create Handlebars context
-	const handlebarsContext = {
+	let handlebarsContext = {
 		// Basic information
 		"languageId": ctx.languageId,
 		"relativePath": ctx.relativePath,
@@ -282,6 +265,7 @@ ${cursorLineBefore}`;
 		"sourceAnalysis": sourceAnalysis,
 		"latestSourceCodeBlock": latestSourceCodeBlock,
 		"assistantSourceCodeBlockBforeCursor": assistantSourceCodeBlockBforeCursor,
+		"cursorLineBefore": orgCursorLineBefore,
 		
 		// Additional prompts
 		"additionalSystemPrompt": config.additionalSystemPrompt ? '\n' + config.additionalSystemPrompt : '',
@@ -290,27 +274,43 @@ ${cursorLineBefore}`;
 		"additionalAssistantOutputPrompt": config.additionalAssistantOutputPrompt ? '\n' + config.additionalAssistantOutputPrompt : '',
 		
 		// Thinking prompt
-		"appendThinkPrompt": appendThinkPrompt
+		"appendThinkPrompt": ""
 	};
+	
+	// Decide appendThinkPrompt by simple rules
+	let parsedAppendThinkPrompt = '';
+	{
+		let appendThinkPrompt = '';
+		const cursorIndex = ctx.cursorLine - ctx.aroundFromLine;
+		const cursorLineText = (0 <= cursorIndex && cursorIndex < latestAroundSnippetLines.length)
+			? latestAroundSnippetLines[cursorIndex]
+			: '';
+		const isCursorLineBlank = cursorLineText.trim().length === 0;
+		if (isCursorLineBlank) {
+			appendThinkPrompt = appendThinkPromptNewScope;
+		} else {
+			// Determine by the LAST action in edit history (delete/rename/modify => refactor)
+			const historyText = editHistoryCodeBlock || '';
+			const matches = Array.from(historyText.matchAll(/-\s*action:\s*(\w+)/gi));
+			const lastAction = (0 < matches.length) ? (matches[matches.length - 1][1] || '').toLowerCase() : '';
+			const isRefactorAction = lastAction === 'delete' || lastAction === 'rename' || lastAction === 'modify';
+			appendThinkPrompt = isRefactorAction ? appendThinkPromptRefactoring : appendThinkPromptAddition;
+		}
+		parsedAppendThinkPrompt = parseHandlebarsTemplate(appendThinkPrompt, handlebarsContext);
+	}
 
-	// Get YAML configuration
-	const yamlPrompt = getYamlConfigPrompt(ctx.relativePath);
-	const defaultPrompt = getDefaultYamlConfigPrompt();
-	const systemPrompt = yamlPrompt?.systemPrompt || config.overrideSystemPrompt || defaultPrompt.systemPrompt || '';
-	const userPrompt = yamlPrompt?.userPrompt || config.overrideUserPrompt || defaultPrompt.userPrompt || '';
-	const assistantThinkPrompt = yamlPrompt?.assistantThinkPrompt || config.overrideAssistantThinkPrompt || defaultPrompt.assistantThinkPrompt || '';
-	const assistantOutputPrompt = yamlPrompt?.assistantOutputPrompt || config.overrideAssistantOutputPrompt || defaultPrompt.assistantOutputPrompt || '';
+	// Thinking prompt
+	handlebarsContext.appendThinkPrompt = parsedAppendThinkPrompt;
 	
 	// Parse Handlebars templates
 	const parsedSystemPrompt = parseHandlebarsTemplate(systemPrompt, handlebarsContext);
 	const parsedUserPrompt = parseHandlebarsTemplate(userPrompt, handlebarsContext);
-	const parsedAssistantThinkPrompt = parseHandlebarsTemplate(assistantThinkPrompt, handlebarsContext);
-	const parsedAssistantOutputPrompt = parseHandlebarsTemplate(assistantOutputPrompt, handlebarsContext);
+	const parsedAssistantPrompt = parseHandlebarsTemplate(assistantPrompt, handlebarsContext);
 
 	return {
 		systemPrompt: parsedSystemPrompt,
 		userPrompt: parsedUserPrompt,
-		assistantPrompt: parsedAssistantThinkPrompt + parsedAssistantOutputPrompt,
+		assistantPrompt: parsedAssistantPrompt,
 		beforePlaceholderWithLF: cursorLineBefore
 	};
 }
