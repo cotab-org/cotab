@@ -165,7 +165,6 @@ Output the result in "English".`;
  */
 export function getYamlDefaultCodingPrompt(): YamlPrompt {
 	return {
-		name: 'DefaultCoding',
 		mode: 'Coding',
 		extensions: ['*'],
 		systemPrompt: defaultSystemPrompt,

@@ -8,7 +8,7 @@ import { getConfig } from './config';
 import { getYamlDefaultCodingPrompt } from '../llm/defaultCodingPrompts';
 import { getYamlDefaultCommentPrompt } from '../llm/defaultCommentPrompts';
 import { getYamlDefaultProofreadingPrompt } from '../llm/defaultProofreadingPrompts';
-import { getYaml}
+import { getYamlDefaultBusinessChatPrompt } from '../llm/defaultBusinessChatPrompts';
 
 export function registerYamlConfig(disposables: vscode.Disposable[]) {
     // Update edit history
@@ -28,9 +28,10 @@ interface YamlConfigCache {
 }
 
 export interface YamlPrompt {
-    name: string;
     mode: string;
     extensions: string[];
+    cursorAlwaysHead?: boolean;
+    placeholderSymbol?: string;
     systemPrompt?: string;
     userPrompt?: string;
     assistantPrompt?: string;
@@ -113,6 +114,17 @@ export function getYamlConfig(): YamlConfig {
             configChanged = true;
         }
 
+        for (const prompt of fullConfig.prompts) {
+            prompt.systemPrompt = prompt.systemPrompt?.replace(/\n+$/, '');
+            prompt.userPrompt = prompt.userPrompt?.replace(/\n+$/, '');
+            prompt.assistantPrompt = prompt.assistantPrompt?.replace(/\n+$/, '');
+            prompt.appendThinkPromptNewScope = prompt.appendThinkPromptNewScope?.replace(/\n+$/, '');
+            prompt.appendThinkPromptRefactoring = prompt.appendThinkPromptRefactoring?.replace(/\n+$/, '');
+            prompt.appendThinkPromptAddition = prompt.appendThinkPromptAddition?.replace(/\n+$/, '');
+            prompt.analyzeSystemPrompt = prompt.analyzeSystemPrompt?.replace(/\n+$/, '');
+            prompt.analyzeUserPrompt = prompt.analyzeUserPrompt?.replace(/\n+$/, '');
+        }
+
         // Update cache with new data
         yamlConfigCache = {
             config: fullConfig,
@@ -142,6 +154,7 @@ function getDefaultYamlConfig(): YamlConfig {
             getYamlDefaultCodingPrompt(),
             getYamlDefaultCommentPrompt(),
             getYamlDefaultProofreadingPrompt(),
+            getYamlDefaultBusinessChatPrompt(),
         ]
     };
 }
@@ -308,9 +321,12 @@ prompts:
 
     for (let i = 0; i < config.prompts.length; i++) {
         const prompt = config.prompts[i];
-        yamlContent += `#  - name: "${prompt.name}"\n`;
         yamlContent += `#    mode: "${prompt.mode}"\n`;
         yamlContent += `#    extensions: [${prompt.extensions.map(ext => `"${ext}"`).join(', ')}]\n`;
+        yamlContent += `#    cursorAlwaysHead: ${prompt.cursorAlwaysHead !== undefined ? prompt.cursorAlwaysHead : false}\n`;
+        if (prompt.placeholderSymbol !== undefined) {
+            yamlContent += `#    placeholderSymbol: "${prompt.placeholderSymbol}"\n`;
+        }
         
         if (prompt.systemPrompt) {
             yamlContent += `#    systemPrompt: |\n`;

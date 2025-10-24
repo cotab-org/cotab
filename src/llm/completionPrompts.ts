@@ -156,19 +156,30 @@ export function buildCompletionPrompts(ctx: EditorContext,
 		assistantPrompt: string;
 		beforePlaceholderWithLF: string } {
 	const config = getConfig();
-	const placeholder = config.completeHereSymbol;
-	const startEditingHere = config.startEditingHereSymbol;
-	const stopEditingHere = config.stopEditingHereSymbol;
+	let placeholder = config.completeHereSymbol;
+	const startEditingHereSymbol = config.startEditingHereSymbol;
+	const stopEditingHereSymbol = config.stopEditingHereSymbol;
 	sourceAnalysis = sourceAnalysis ?? '';
 	symbolCodeBlock = symbolCodeBlock ?? '';
 	editHistoryCodeBlock = editHistoryCodeBlock ?? '';
+
+	// Get YAML configuration
+	const yamlPrompt = getYamlConfigPrompt(ctx.relativePath);
+	const cursorAlwaysHead = yamlPrompt.cursorAlwaysHead !== undefined ? yamlPrompt.cursorAlwaysHead : false;
+	placeholder = (yamlPrompt.placeholderSymbol !== undefined) ? yamlPrompt.placeholderSymbol : placeholder;
+	const systemPrompt = yamlPrompt.systemPrompt || '';
+	const userPrompt = yamlPrompt.userPrompt || '';
+	const assistantPrompt = yamlPrompt.assistantPrompt || '';
+	const appendThinkPromptNewScope = yamlPrompt.appendThinkPromptNewScope || '';
+	const appendThinkPromptRefactoring = yamlPrompt.appendThinkPromptRefactoring || '';
+	const appendThinkPromptAddition = yamlPrompt.appendThinkPromptAddition || '';
 
 	// Code blocks
 	const sourceCode = ctx.documentText.split('\n');
 
 	// Cached source code
-	const cachedSourceCode = getCachedSourceCode(documentUri, sourceCode, ctx, startEditingHere, stopEditingHere);
-	const cachedSourceCodeWithLine = withLineNumberCodeBlock(cachedSourceCode, 0, [startEditingHere, stopEditingHere]).CodeBlock;
+	const cachedSourceCode = getCachedSourceCode(documentUri, sourceCode, ctx, startEditingHereSymbol, stopEditingHereSymbol);
+	const cachedSourceCodeWithLine = withLineNumberCodeBlock(cachedSourceCode, 0, [startEditingHereSymbol, stopEditingHereSymbol]).CodeBlock;
 	const sourceCodeBlock =
 `\`\`\`${ctx.languageId} title=${ctx.relativePath}
 ${cachedSourceCodeWithLine}
@@ -192,7 +203,7 @@ ${cachedSourceCodeWithLine}
 		cursorLineAfter,
 		afterPlaceholder
 	} = insertCursorHere(latestAroundSnippetLines.join('\n'),
-						ctx.cursorLine, ctx.cursorCharacter, ctx.aroundFromLine,
+						ctx.cursorLine, (cursorAlwaysHead) ? 0 :ctx.cursorCharacter, ctx.aroundFromLine,
 						placeholder);
 	const aroundSnippetWithPlaceholderWithLine = withLineNumberCodeBlock(aroundSnippetWithPlaceholder, ctx.aroundFromLine).CodeBlock;
 	
@@ -217,9 +228,9 @@ ${cachedSourceCodeWithLine}
 // ... existing code ...
 
 ${latestBeforeOutsideLastWithLine}
-${startEditingHere}
+${startEditingHereSymbol}
 ${aroundSnippetWithPlaceholderWithLine}
-${stopEditingHere}
+${stopEditingHereSymbol}
 ${latestAfterOutsideFirstWithLine}
 
 // ... existing code ...
@@ -235,27 +246,19 @@ ${latestSourceCode}
 // ... existing code ...
 
 ${latestBeforeOutsideLastWithLine}
-${startEditingHere}
+${startEditingHereSymbol}
 ${cursorLineBefore}`;
 
 
-	// Get YAML configuration
-	const yamlPrompt = getYamlConfigPrompt(ctx.relativePath);
-	const systemPrompt = yamlPrompt.systemPrompt || '';
-	const userPrompt = yamlPrompt.userPrompt || '';
-	const assistantPrompt = yamlPrompt.assistantPrompt || '';
-	const appendThinkPromptNewScope = yamlPrompt.appendThinkPromptNewScope || '';
-	const appendThinkPromptRefactoring = yamlPrompt.appendThinkPromptRefactoring || '';
-	const appendThinkPromptAddition = yamlPrompt.appendThinkPromptAddition || '';
 	
 	// Create Handlebars context
 	let handlebarsContext = {
 		// Basic information
 		"languageId": ctx.languageId,
 		"relativePath": ctx.relativePath,
-		"placeholder": config.completeHereSymbol,
-		"startEditingHere": config.startEditingHereSymbol,
-		"stopEditingHere": config.stopEditingHereSymbol,
+		"placeholder": placeholder,
+		"startEditingHere": startEditingHereSymbol,
+		"stopEditingHere": stopEditingHereSymbol,
 		"commentLanguage": config.commentLanguage,
 		
 		// Code blocks

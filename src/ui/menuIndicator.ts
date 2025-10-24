@@ -220,8 +220,8 @@ async function buildMainMenuMarkdown(): Promise<vscode.MarkdownString> {
     const selectedPromptMode = getConfig().selectedPromptMode || 'Coding';
     for (const mode of getYamlConfigPromptModes()) {
         const isEnabled = (mode === selectedPromptMode);
-        const promptCheckbox = checkboxControl(`${mode}`, isEnabled, `command:cotab.selectedPromptMode${mode}`);
-        md.appendMarkdown(`${promptCheckbox}\n\n`);
+        const promptRadio = radioControl(`${mode}`, isEnabled, `command:cotab.selectedPromptMode${mode}`);
+        md.appendMarkdown(`${promptRadio}\n\n`);
     }
 
     //###########################################################
@@ -327,6 +327,35 @@ function checkboxSvg(checked: boolean): string {
         + `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' style='vertical-align: middle;'>`
         + `<rect x='0.5' y='0.5' width='${size - 1}' height='${size - 1}' rx='${radius}' ry='${radius}' fill='${boxFill}' stroke='${boxStroke}'/>`
         + `${check}`
+        + `</svg>`;
+
+    return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+}
+
+// VS Code-style radio button (SVG) + make entire label clickable
+function radioControl(label: string, selected: boolean, commandLink: string): string {
+    const icon = radioSvg(selected);
+    const img = `![](${icon})`;
+    return `[${img} ${label}](${commandLink})`;
+}
+
+function radioSvg(selected: boolean): string {
+    const size = 14;
+    const stroke = '#3c3c3c';
+    const bg = '#1f1f1f';
+    const accent = '#0e639c';
+    const dot = '#ffffff';
+    const center = size / 2;
+    const outerRadius = (size - 1) / 2;
+
+    const dotSvg = selected
+        ? `<circle cx='${center}' cy='${center}' r='${size/2/2.5}' fill='${dot}' />`
+        : '';
+
+    const svg = `<?xml version='1.0' encoding='UTF-8'?>`
+        + `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' style='vertical-align: middle;'>`
+        + `<circle cx='${center}' cy='${center}' r='${outerRadius}' fill='${selected ? accent : bg}' stroke='${selected ? accent : stroke}' />`
+        + `${dotSvg}`
         + `</svg>`;
 
     return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
