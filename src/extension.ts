@@ -14,6 +14,7 @@ import { registerMenuIndicator } from './ui/menuIndicator';
 import { registerTerminalCommand } from './utils/terminalCommand';
 import { registerServerManager, autoStopServerOnExit } from './managers/serverManager';
 import { registerYamlConfig } from './utils/yamlConfig';
+import { registerQuickStartup } from './ui/quickStartup';
 
 const cotabDisposables: vscode.Disposable[] = [];
 let cotabContext: vscode.ExtensionContext;
@@ -46,6 +47,9 @@ export function activate(context: vscode.ExtensionContext) {
 	
 	// Register menu indicator
 	registerMenuIndicator(context.subscriptions);
+
+    // Quick Startup
+    registerQuickStartup(context.subscriptions, context);
 	
 	cotabContext = context;
 

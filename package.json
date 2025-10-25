@@ -2,7 +2,7 @@
   "name": "cotab",
   "displayName": "Cotab",
   "description": "Cursor Smart Rewrites-style inline edit suggestions. OpenAI compatible API / LM Studio / Ollama support.",
-  "version": "0.0.7",
+  "version": "0.0.9",
   "publisher": "cotab",
   "license": "Apache-2.0",
   "repository": {
@@ -290,6 +290,12 @@
           "default": "INFO",
           "description": "Log output level (ERROR: errors only, WARNING: warnings and above, INFO: info and above, DEBUG: everything)",
           "order": 501
+        },
+        "cotab.quickStartup.hideOnStartup": {
+          "type": "boolean",
+          "default": false,
+          "description": "Do not show Quick Startup on next startup",
+          "order": 901
         }
       }
     },

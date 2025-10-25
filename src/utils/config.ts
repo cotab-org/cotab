@@ -198,6 +198,11 @@ export async function setConfigSelectedPromptMode(mode: string): Promise<void> {
         .update('cotab.basic.selectedPromptMode', mode, vscode.ConfigurationTarget.Global);
 }
 
+export async function setConfigApiBaseURL(url: string): Promise<void> {
+    await vscode.workspace.getConfiguration()
+        .update('cotab.llm.apiBaseURL', url, vscode.ConfigurationTarget.Global);
+}
+
 
 // Get VS Code UI locale
 function getUiLocale(): string {
