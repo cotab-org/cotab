@@ -30,7 +30,21 @@ export function buildLinkButtonSvgDataUri(label: string, bgColor: string, fgColo
     return 'data:image/svg+xml;base64,' + base64;
 }
 
-export function buildNetworkServerLabelSvgDataUri(text: string = 'Network Server Running'): string {
+type NetworkServerLabelTheme = 'green' | 'blue' | 'red' | 'yellow' | 'cyan' | 'purple';
+
+const NETWORK_LABEL_GRADIENTS: Record<NetworkServerLabelTheme, { start: string; end: string }> = {
+    green: { start: '#1a7032', end: '#20ab6c' },
+    blue: { start: '#1a4d8c', end: '#2d7dd2' },
+    red: { start: '#b02a37', end: '#d63384' },
+    yellow: { start: '#b8860b', end: '#d4a017' },
+    cyan: { start: '#0f6674', end: '#20a2a8' },
+    purple: { start: '#5a2d91', end: '#7c3aed' },
+};
+
+export function buildNetworkServerLabelSvgDataUri(
+    text: string = 'Network Server Running',
+    theme: NetworkServerLabelTheme = 'green',
+): string {
     const paddingX = 8;
     const height = 28;
     const fontSize = 12;
@@ -39,12 +53,14 @@ export function buildNetworkServerLabelSvgDataUri(text: string = 'Network Server
     const width = textWidth + paddingX * 2;
     const radius = 8;
 
+    const gradient = NETWORK_LABEL_GRADIENTS[theme] ?? NETWORK_LABEL_GRADIENTS.green;
+
     const svg = `<?xml version='1.0' encoding='UTF-8'?>`
         + `<svg xmlns='http://www.w3.org/2000/svg' width='${width}' height='${height}'>`
         + `<defs>`
         + `<linearGradient id='networkGradient' x1='0%' y1='0%' x2='100%' y2='0%'>`
-        + `<stop offset='0%' style='stop-color:#28a745;stop-opacity:1' />`
-        + `<stop offset='100%' style='stop-color:#20c997;stop-opacity:1' />`
+        + `<stop offset='0%' style='stop-color:${gradient.start};stop-opacity:1' />`
+        + `<stop offset='100%' style='stop-color:${gradient.end};stop-opacity:1' />`
         + `</linearGradient>`
         + `<filter id='glow'>`
         + `<feGaussianBlur stdDeviation='2' result='coloredBlur'/>`
