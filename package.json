@@ -291,10 +291,10 @@
           "description": "Log output level (ERROR: errors only, WARNING: warnings and above, INFO: info and above, DEBUG: everything)",
           "order": 501
         },
-        "cotab.quickStartup.hideOnStartup": {
+        "cotab.quickSetup.hideOnSetup": {
           "type": "boolean",
           "default": false,
-          "description": "Do not show Quick Startup on next startup",
+          "description": "Do not show Quick Setup on next startup",
           "order": 901
         }
       }

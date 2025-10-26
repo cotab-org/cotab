@@ -1,3 +1,6 @@
+## 0.0.9
+- Add: Quick Setup Wizard
+- Fix: Inline suggestion issue
 ## 0.0.8
 - Add radio button to prompt selection
 ## 0.0.7

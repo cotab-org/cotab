@@ -1,20 +1,20 @@
 import * as vscode from 'vscode';
-import { getConfig, setConfigHideOnStartup } from '../utils/config';
+import { getConfig, setConfigHideOnSetup } from '../utils/config';
 import { setConfigApiBaseURL } from '../utils/config';
 import { terminalCommand } from '../utils/terminalCommand';
 import { getAiClient } from '../llm/llmProvider';
 import { buildLinkButtonSvgDataUri, buildNetworkServerLabelSvgDataUri } from './menuUtil';
 
-export function registerQuickStartup(disposables: vscode.Disposable[], context: vscode.ExtensionContext): void {
-    disposables.push(vscode.commands.registerCommand('cotab.quickStartup.show', async () => {
-        await showQuickStartup(context);
+export function registerQuickSetup(disposables: vscode.Disposable[], context: vscode.ExtensionContext): void {
+    disposables.push(vscode.commands.registerCommand('cotab.quickSetup.show', async () => {
+        await showQuickSetup(context);
     }));
 
-    // On startup, auto-show (only if hideOnStartup is off)
-    const hide = getConfig().hideOnStartup;
+    // On setup, auto-show (only if hideOnSetup is off)
+    const hide = getConfig().hideOnSetup;
     if (!hide) {
-        // Delayed display (wait for initialization to complete after startup)
-        setTimeout(() => { void showQuickStartup(context); }, 500);
+        // Delayed display (wait for initialization to complete after setup)
+        setTimeout(() => { void showQuickSetup(context); }, 500);
     }
 }
 
@@ -99,11 +99,11 @@ async function isServerRunning(): Promise<boolean> {
     return await client.isActive();
 }
 
-async function showQuickStartup(context: vscode.ExtensionContext): Promise<void> {
+async function showQuickSetup(context: vscode.ExtensionContext): Promise<void> {
     // Create webview panel
     const panel = vscode.window.createWebviewPanel(
-        'cotab.quickStartup',
-        'Cotab Quick Startup',
+        'cotab.quickSetup',
+        'Cotab Quick Setup',
         vscode.ViewColumn.Active,
         {
             enableScripts: true,
@@ -117,12 +117,25 @@ async function showQuickStartup(context: vscode.ExtensionContext): Promise<void>
     // get state
     const config = getConfig();
     const apiBaseURL = config.apiBaseURL;
-    const hideOnStartup = config.hideOnStartup;
+    const hideOnSetup = config.hideOnSetup;
     const initial = await getServerSectionState();
     const iconUri = panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'icon.png'));
+    const tutorial1Uri = panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'doc', 'asset', 'cotab-tutorial-autocomplete1.gif'));
+    const spinnerAnalyzeUri = panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'dot-spinner-0.svg')).toString();
+    const spinnerRedUri = panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'spinner-red-0.svg')).toString();
+    const spinnerNormalUri = panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'spinner-0.svg')).toString();
 
     // view contents
-    panel.webview.html = getHtml({ apiBaseURL, hideOnStartup, initial, iconUri });
+    panel.webview.html = getHtml({
+        apiBaseURL,
+        hideOnSetup,
+        initial,
+        iconUri,
+        tutorial1Uri,
+        spinnerAnalyzeUri,
+        spinnerRedUri,
+        spinnerNormalUri
+    });
 
     // Handle webview command
     panel.webview.onDidReceiveMessage(async (msg) => {
@@ -143,10 +156,10 @@ async function handleWebviewMessage(panel: vscode.WebviewPanel, msg: any): Promi
                 autoRefreshManager?.refresh();
             }, 500);
     }
-    else if (msg?.type === 'setHideOnStartup') {
+    else if (msg?.type === 'setHideOnSetup') {
         const value = Boolean(msg.value);
-        await setConfigHideOnStartup(value);
-        panel.webview.postMessage({ type: 'saved', key: 'hideOnStartup', value });
+        await setConfigHideOnSetup(value);
+        panel.webview.postMessage({ type: 'saved', key: 'hideOnSetup', value });
     }
     else if (msg?.type === 'executeCommand') {
         const command = String(msg.command || '');
@@ -160,10 +173,19 @@ async function handleWebviewMessage(panel: vscode.WebviewPanel, msg: any): Promi
     }
 }
 
-function getHtml(params: { apiBaseURL: string; hideOnStartup: boolean; initial: { kind: string; label: string; command?: string; }; iconUri: vscode.Uri }): string {
+function getHtml(params: {
+    apiBaseURL: string;
+    hideOnSetup: boolean;
+    initial: { kind: string; label: string; command?: string; };
+    iconUri: vscode.Uri;
+    tutorial1Uri: vscode.Uri;
+    spinnerAnalyzeUri: string;
+    spinnerRedUri: string;
+    spinnerNormalUri: string;
+}): string {
     const nonce = String(Date.now());
     const apiBaseURL = escapeHtml(params.apiBaseURL || '');
-    const hideOnStartup = params.hideOnStartup ? 'checked' : '';
+    const hideOnSetup = params.hideOnSetup ? 'checked' : '';
     const initialState = JSON.stringify(params.initial);
     // Prepare shared SVG URIs for consistent UI
     const assetsJson = JSON.stringify({
@@ -178,9 +200,10 @@ function getHtml(params: { apiBaseURL: string; hideOnStartup: boolean; initial: 
     <meta charset="UTF-8" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: https: http: vscode-resource:; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Cotab Quick Startup</title>
+    <title>Cotab Quick Setup</title>
     <style>
-        body { font-family: -apple-system, Segoe UI, Ubuntu, Helvetica, Arial, sans-serif; padding: 16px; color: var(--vscode-foreground); background: var(--vscode-editor-background); }
+        body { font-family: -apple-system, Segoe UI, Ubuntu, Helvetica, Arial, sans-serif; padding: 16px; padding-bottom: 96px; color: var(--vscode-foreground); background: var(--vscode-editor-background); }
+        *, *::before, *::after { box-sizing: border-box; }
         h1 { font-size: 16px; margin: 0 0 12px; }
         label { display: block; margin-bottom: 6px; }
         input[type="text"] { width: 100%; padding: 6px 8px; border: 1px solid var(--vscode-input-border); background: var(--vscode-input-background); color: var(--vscode-input-foreground); border-radius: 4px; }
@@ -202,8 +225,150 @@ function getHtml(params: { apiBaseURL: string; hideOnStartup: boolean; initial: 
             text-align: center;
             justify-content: center;
         }
+        .started-section {
+            display: flex;
+            align-items: stretch;
+            justify-content: center;
+            gap: 24px;
+            padding: 24px;
+            background: linear-gradient(135deg, rgba(83, 98, 148, 0.35) 0%, rgba(33, 38, 56, 0.2) 40%, rgba(21, 23, 34, 0.35) 100%);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            box-shadow: 0 16px 32px rgba(0, 0, 0, 0.22);
+        }
+        .started-section > h3 {
+            flex-basis: 100%;
+            width: 100%;
+            margin: 0 0 12px;
+            font-size: clamp(18px, 2.6vw, 22px);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.6px;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.9);
+        }
+        .started-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            min-width: 140px;
+            padding: 16px 18px;
+            border-radius: 12px;
+            background: rgba(15, 18, 28, 0.45);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(6px);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        }
+        .started-icon {
+            width: 72px;
+            height: 72px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+        .started-spinner {
+            display: block;
+            width: 48px;
+            height: 48px;
+        }
+        .started-label {
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.85);
+        }
+        .section.started-hero {
+            width: min(960px, 100%);
+            max-width: 960px;
+            padding: clamp(24px, 4vw, 36px) clamp(20px, 5vw, 40px);
+            background: linear-gradient(150deg, rgba(96, 110, 165, 0.45) 0%, rgba(42, 48, 74, 0.42) 35%, rgba(16, 19, 30, 0.55) 100%);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 28px 60px rgba(0, 0, 0, 0.32);
+        }
+        .started-section.started-hero {
+            flex-direction: column;
+            gap: 32px;
+            padding: 0;
+            background: none;
+            border: none;
+            box-shadow: none;
+        }
+        .started-hero-item {
+            width: clamp(280px, 100%, 840px);
+            margin: 0 auto;
+            padding: clamp(20px, 3vw, 32px);
+            border-radius: 18px;
+            background: rgba(12, 16, 28, 0.55);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 22px 48px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(8px);
+        }
+        .started-hero-media {
+            width: 100%;
+            border-radius: 16px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 24px 52px rgba(0, 0, 0, 0.4);
+        }
+        .started-hero-media::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(0, 0, 0, 0) 35%, rgba(0, 0, 0, 0.12) 100%);
+            pointer-events: none;
+        }
+        .started-hero-gif {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+        .started-hero-label-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            margin-top: 20px;
+        }
+        .started-hero-label {
+            display: block;
+            font-size: clamp(16px, 2.2vw, 18px);
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: none;
+            color: rgba(255, 255, 255, 0.92);
+        }
+        @media (max-width: 520px) {
+            .section.started-hero {
+                padding: 20px;
+                border-radius: 16px;
+            }
+            .started-hero-item {
+                padding: 18px;
+                border-radius: 14px;
+            }
+            .started-hero-media {
+                border-radius: 12px;
+            }
+            .section.started-section {
+                margin-left: auto;
+                margin-right: auto;
+            }
+        }
         .section .center { text-align: center; justify-content: center; }
         .spacer { height: 8px; }
+        .separator {
+            flex: 1;
+            height: 1px;
+            margin-top: 16px;
+            margin-bottom: 16px;
+            background-color:
+            currentColor;
+            opacity: 0.35;
+        }
         .server-section {
             display: flex;
             max-width: 600px;
@@ -216,6 +381,20 @@ function getHtml(params: { apiBaseURL: string; hideOnStartup: boolean; initial: 
             background: linear-gradient(140deg, rgba(56, 69, 90, 0.25) 0%, rgba(21, 25, 35, 0.15) 50%, rgba(56, 69, 90, 0.25) 100%);
             border: 1px solid rgba(255,255,255,0.04); box-shadow: 0 10px 24px rgba(0,0,0,0.18); max-width: 600px; margin-left: auto; margin-right: auto;
         }
+        .hide-next-container {
+            position: fixed;
+            bottom: 16px;
+            left: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--vscode-editor-background);
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 6px;
+            padding: 10px 14px;
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+        }
+        .hide-next-container label { margin: 0; }
         .server-action { display: inline-flex; }
         .server-action img { display: block; filter: drop-shadow(0 6px 12px rgba(0,0,0,0.35)); }
         .server-or { display: flex; align-items: center; gap: 12px; width: 100%; font-size: 16px; color: var(--vscode-descriptionForeground); opacity: 0.8; }
@@ -237,7 +416,7 @@ function getHtml(params: { apiBaseURL: string; hideOnStartup: boolean; initial: 
                 <span class="title-text">Cotab</span>
             </h1>
         </div>
-        <h2 class="center">Quick Startup</h2>
+        <h2 class="center">Quick Setup</h2>
         <div class="server-section">
             <div class="spacer"></div>
             <div id="serverLabel" class="muted"></div>
@@ -255,12 +434,43 @@ function getHtml(params: { apiBaseURL: string; hideOnStartup: boolean; initial: 
             </div>
             <div class="spacer"></div>
         </div>
-        <div class="spacer"></div>
-        <div class="section">
-            <label class="checkbox center"><input id="hideNext" type="checkbox" ${hideOnStartup}/> 次回からは表示しない</label>
+        <div class="separator"></div>
+        <h2 class="center">Getting started</h2>
+        <div class="section started-section started-hero">
+            <div class="started-hero-item">
+                <div class="started-hero-media">
+                    <img src="${params.tutorial1Uri}" class="started-hero-gif" alt="Cotabのチュートリアルフロー" />
+                </div>
+                <div class="started-hero-label-group">
+                    <span class="started-hero-label">ACCEPT : TAB</span>
+                    <span class="started-hero-label">ACCEPT (Only First Line) : SHIFT + TAB</span>
+                </div>
+            </div>
         </div>
-        <h2 class="center">Tutorial</h2>
-        <div class="section">
+        <div class="separator"></div>
+        <h2 class="center">Status</h2>
+        <div class="section started-section">
+            <div class="started-item">
+                <div class="started-icon">
+                    <img src="${params.spinnerAnalyzeUri}" class="started-spinner" />
+                </div>
+                <span class="started-label">Analyzing</span>
+            </div>
+            <div class="started-item">
+                <div class="started-icon">
+                    <img src="${params.spinnerRedUri}" class="started-spinner" />
+                </div>
+                <span class="started-label">Completing<br>current line</span>
+            </div>
+            <div class="started-item">
+                <div class="started-icon">
+                    <img src="${params.spinnerNormalUri}" class="started-spinner"/>
+                </div>
+                <span class="started-label">Completing<br>after current line</span>
+            </div>
+        </div>
+        <div class="hide-next-container">
+            <label class="checkbox"><input id="hideNext" type="checkbox" ${hideOnSetup}/>Don't show this again</label>
         </div>
 
         <script nonce="${nonce}">
@@ -271,7 +481,7 @@ function getHtml(params: { apiBaseURL: string; hideOnStartup: boolean; initial: 
             const apiBaseURLInput = document.getElementById('apiBaseURL');
             const hideNext = document.getElementById('hideNext');
             const assets = ${assetsJson};
-            console.log('[cotab] quickStartup assets loaded', assets);
+            console.log('[cotab] quickSetup assets loaded', assets);
 
             function setImage(container, uri, alt) {
                 container.innerHTML = '';
@@ -291,7 +501,7 @@ function getHtml(params: { apiBaseURL: string; hideOnStartup: boolean; initial: 
                 serverAction.innerHTML = '';
                 serverAction.dataset.cmd = '';
 
-                console.log('[cotab] quickStartup render state', state);
+                console.log('[cotab] quickSetup render state', state);
                 if (state?.kind === 'network') {
                     setImage(serverLabel, assets.networkLbl, 'Network Server Running');
                     serverAction.style.display = 'none';
@@ -334,7 +544,7 @@ function getHtml(params: { apiBaseURL: string; hideOnStartup: boolean; initial: 
             });
 
             hideNext.addEventListener('change', () => {
-                vscode.postMessage({ type: 'setHideOnStartup', value: hideNext.checked });
+                vscode.postMessage({ type: 'setHideOnSetup', value: hideNext.checked });
             });
 
             serverAction.addEventListener('click', (e) => {

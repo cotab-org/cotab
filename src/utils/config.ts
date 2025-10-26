@@ -24,7 +24,7 @@ export interface CotabConfig {
     serverAutoStopOnIdleTime: number;
     commentLanguage: string;
     selectedPromptMode: string;
-    hideOnStartup: boolean;
+    hideOnSetup: boolean;
 
     // llm
     provider: 'OpenAICompatible';
@@ -125,7 +125,7 @@ function getConfigRaw(): CotabConfig {
         serverAutoStart: cfg.get<boolean>('cotab.server.autoStart', true),
         serverAutoStopOnIdleTime: cfg.get<number>('cotab.server.autoStopOnIdleTime', 300),
         selectedPromptMode: cfg.get<string>('cotab.basic.selectedPromptMode', 'auto'),
-        hideOnStartup: cfg.get<boolean>('cotab.quickStartup.hideOnStartup', false),
+        hideOnSetup: cfg.get<boolean>('cotab.quickSetup.hideOnSetup', false),
 
         // llm
         provider: cfg.get<'OpenAICompatible'>('cotab.llm.provider', 'OpenAICompatible'),
@@ -205,9 +205,9 @@ export async function setConfigApiBaseURL(url: string): Promise<void> {
         .update('cotab.llm.apiBaseURL', url, vscode.ConfigurationTarget.Global);
 }
 
-export async function setConfigHideOnStartup(hide: boolean): Promise<void> {
+export async function setConfigHideOnSetup(hide: boolean): Promise<void> {
     await vscode.workspace.getConfiguration()
-        .update('cotab.quickStartup.hideOnStartup', hide, vscode.ConfigurationTarget.Global);
+        .update('cotab.quickSetup.hideOnSetup', hide, vscode.ConfigurationTarget.Global);
 }
 
 

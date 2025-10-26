@@ -35,13 +35,15 @@ const svgOverlayDecorationType = vscode.window.createTextEditorDecorationType({
 });
 
 const simpleLocker = new SimpleLocker();
+let renderTimer: NodeJS.Timeout | null = null;
 
 export function renderSvgOverlays(
 	editor: vscode.TextEditor,
 	segments: OverlaySegment[],
 	options?: { unfinished?: boolean; dispIdx?: number }) {	
 	
-	setTimeout(async () => {
+	renderTimer = setTimeout(async () => {
+		renderTimer = null;
 		const isUnfinished = options?.unfinished ?? false;
 		if (isUnfinished && simpleLocker.isLocked()) {
 			return;
@@ -117,10 +119,18 @@ async function renderSvgOverlaysInternal(
 
 export function clearSvgOverlays(editor: vscode.TextEditor): void {
 	editor.setDecorations(svgOverlayDecorationType, []);
+	if (renderTimer) {
+		clearTimeout(renderTimer);
+		renderTimer = null;
+	}
 }
 
 export function disposeSvgDecorationTypes(): void {
 	svgOverlayDecorationType.dispose();
+	if (renderTimer) {
+		clearTimeout(renderTimer);
+		renderTimer = null;
+	}
 }
 
 type ShikiHighlighter = any;
