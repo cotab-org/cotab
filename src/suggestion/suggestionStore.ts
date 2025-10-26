@@ -24,7 +24,7 @@ export function getSuggestions(uri: vscode.Uri | string): {originalDiffOperation
 	return store.get(toKey(uri)) ?? {originalDiffOperations: [], edits: [], checkCompleteLine: -1, is_stoped: false};
 }
 
-export function getMergedSuggestions(uri: vscode.Uri | string):
+export function getMergedSuggestions(uri: vscode.Uri | string, isFullAccept: boolean):
  {originalDiffOperations: LineDiff[], edits: Map<number, LineEdit[]>, checkCompleteLine: number, is_stoped: boolean} {
 	// Group edits for the same line
 	const lineGroups = new Map<number, LineEdit[]>();
@@ -35,6 +35,9 @@ export function getMergedSuggestions(uri: vscode.Uri | string):
 			lineGroups.set(s.line, []);
 		}
 		lineGroups.get(s.line)!.push(s);
+		if (!isFullAccept) {
+			break;
+		}
 	}
 
 	return {originalDiffOperations: data.originalDiffOperations, edits: lineGroups, checkCompleteLine: data.checkCompleteLine, is_stoped: data.is_stoped};

@@ -321,7 +321,7 @@ prompts:
 
     for (let i = 0; i < config.prompts.length; i++) {
         const prompt = config.prompts[i];
-        yamlContent += `#    mode: "${prompt.mode}"\n`;
+        yamlContent += `#  - mode: "${prompt.mode}"\n`;
         yamlContent += `#    extensions: [${prompt.extensions.map(ext => `"${ext}"`).join(', ')}]\n`;
         yamlContent += `#    cursorAlwaysHead: ${prompt.cursorAlwaysHead !== undefined ? prompt.cursorAlwaysHead : false}\n`;
         if (prompt.placeholderSymbol !== undefined) {

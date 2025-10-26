@@ -112,7 +112,7 @@ Sure! I will output only the code block. and I will not forget to also output "{
 Here is the complete edited code block:
 {{assistantSourceCodeBlockBforeCursor}}`;
 
-const defaultAppendThinkPromptNewScope = `I have checked the latest source code. The editing position is within an empty scope, and it is highly likely that the user intends to write new code.Therefore, I implement the new code inferred from the surrounding implementation at the editing position.`;
+const defaultAppendThinkPromptNewScope = `I have checked the latest source code. The editing position is within an empty scope, and it is highly likely that the user intends to write new code.Therefore, I implement the new code inferred from the surrounding implementation at the editing position, without including comments. The user always wants to insert some new code.`;
 const defaultAppendThinkPromptRefactoring = `I have checked the latest source code and edit history. Since some code has been deleted or modified, I will determine the necessary refactoring based on those changes and update the existing code accordingly.`;
 const defaultAppendThinkPromptAddition = `I have checked the latest source code and edit history. Since some code has been added or modified, I will implement the remaining necessary code after \`\`\`{{cursorLineBefore}}\`\`\`.`;
 

@@ -4,7 +4,7 @@ import { buildCompletionPrompts } from '../llm/completionPrompts';
 import { codeBlockBuilder } from '../llm/codeBlockBuilder';
 import { getEditorContext } from '../utils/editorContext';
 // diff util no longer directly used here
-import { setSuggestions, clearSuggestions, LineEdit } from './suggestionStore';
+import { clearSuggestions, LineEdit } from './suggestionStore';
 import { clearAllDecorations } from './suggestionRenderer';
 import { processDiffAndApplyEdits } from '../diff/lineDiff';
 import { updateSuggestionsAndDecorations } from './suggestionUtils';
@@ -114,11 +114,14 @@ export class SuggestionManager implements vscode.Disposable {
         // Skip completion when multiple selections (multiple cursors/selection) and exit
         if (this.isMultiSelection()) {
             logDebug('Skipping completion due to multiple selection/multiple cursor detection');
+            clearSuggestions(document.uri);
+            clearAllDecorations(vscode.window.activeTextEditor!);
+            hideProgress();
             return [];
         }
 
-        const cfg = getConfig();
-        if (!cfg.isCurrentEnabled()) {
+        const config = getConfig();
+        if (!config.isCurrentEnabled()) {
             return [];
         }
 
@@ -151,13 +154,16 @@ export class SuggestionManager implements vscode.Disposable {
 
         // check if already canceled
         if (checkAborted()) {
+            clearSuggestions(document.uri);
+            clearAllDecorations(vscode.window.activeTextEditor!);
+            hideProgress();
             return [];
         }
 
         try {
             this.isExecuting = true;
             const result = await this.provideInlineCompletionItemsInternal(
-                cfg,
+                config,
                 document,
                 position,
                 context,
@@ -219,6 +225,8 @@ export class SuggestionManager implements vscode.Disposable {
         // Early exit if already canceled
         if (checkAborted()) {
             logDebug(`provideInlineCompletionItemsInternal early exit due to cancellation (before buildCodeBlocks)`);
+            clearSuggestions(document.uri);
+            clearAllDecorations(vscode.window.activeTextEditor!);
             hideProgress();
             return [];
         }
@@ -228,6 +236,8 @@ export class SuggestionManager implements vscode.Disposable {
         const cancellationAnalysisTokenSource = new vscode.CancellationTokenSource();
         const cancelAnalysis = () => {
             cancellationAnalysisTokenSource.cancel();
+            clearSuggestions(document.uri);
+            clearAllDecorations(vscode.window.activeTextEditor!);
             hideProgress();
         }
         const { sourceAnalysis, symbolCodeBlock, editHistoryCodeBlock } =
@@ -313,6 +323,9 @@ export class SuggestionManager implements vscode.Disposable {
         // Early exit if already canceled
         if (checkAborted()) {
             logDebug(`provideInlineCompletionItemsInternal early exit due to cancellation (before chatCompletions)`);
+            clearSuggestions(document.uri);
+            clearAllDecorations(vscode.window.activeTextEditor!);
+            hideProgress();
             return [];
         }
 
@@ -355,6 +368,8 @@ export class SuggestionManager implements vscode.Disposable {
             }).catch((error) => {
                 logError(`Error occurred during completion generation: ${streamCount}th time ${error}`);
                 cursorLineReady = true; // Set flag even on error to release wait
+                clearSuggestions(document.uri);
+                clearAllDecorations(vscode.window.activeTextEditor!);
                 hideProgress();
             });
 
@@ -362,6 +377,8 @@ export class SuggestionManager implements vscode.Disposable {
             return await waitForCursorLine();
         } catch (error) {
             logError(`Error occurred in LLM call: ${streamCount}th time ${error}`);
+            clearSuggestions(document.uri);
+            clearAllDecorations(vscode.window.activeTextEditor!);
             hideProgress();
             return [];
         }

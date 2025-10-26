@@ -25,16 +25,11 @@ export interface OverlaySegment {
 const colors = {
 	fontColor: '#ffffffb5',
 	unfinishedFontColor: '#ffffff70',
-	backgroundColor: '#38422260',
+	backgroundColor: '#eeff0022',
 	borderColor: '#666666',
 };
 
 const svgOverlayDecorationType = vscode.window.createTextEditorDecorationType({
-	before: { margin: '0 0 0 0' },
-	rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed,
-});
-
-const svgOverlayUnfinishedDecorationType = vscode.window.createTextEditorDecorationType({
 	before: { margin: '0 0 0 0' },
 	rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed,
 });
@@ -71,7 +66,6 @@ async function renderSvgOverlaysInternal(
 
 	if (!segments || segments.length === 0) {
 		editor.setDecorations(svgOverlayDecorationType, []);
-		editor.setDecorations(svgOverlayUnfinishedDecorationType, []);
 		return;
 	}
 
@@ -115,14 +109,7 @@ async function renderSvgOverlaysInternal(
 			},
 		});
 
-		//logDebug(`renderSvgOverlays: ${decos.length} (unfinished=${isUnfinished})`);
-		if (isUnfinished) {
-			editor.setDecorations(svgOverlayDecorationType, []);
-			editor.setDecorations(svgOverlayUnfinishedDecorationType, decos);
-		} else {
-			editor.setDecorations(svgOverlayDecorationType, decos);
-			editor.setDecorations(svgOverlayUnfinishedDecorationType, []);
-		}
+		editor.setDecorations(svgOverlayDecorationType, decos);
 	} catch (err) {
 		logDebug(`renderSvgOverlays error: ${String(err)}`);
 	}
@@ -130,12 +117,10 @@ async function renderSvgOverlaysInternal(
 
 export function clearSvgOverlays(editor: vscode.TextEditor): void {
 	editor.setDecorations(svgOverlayDecorationType, []);
-	editor.setDecorations(svgOverlayUnfinishedDecorationType, []);
 }
 
 export function disposeSvgDecorationTypes(): void {
 	svgOverlayDecorationType.dispose();
-	svgOverlayUnfinishedDecorationType.dispose();
 }
 
 type ShikiHighlighter = any;
@@ -144,7 +129,8 @@ async function buildSvgDataUriWithShiki(
 	segments: OverlaySegment[],
 	unfinished: boolean,
 	languageId: string): Promise<{ uri: vscode.Uri; width: number; height: number }> {
-	const cfg = getConfig();
+	const config = getConfig();
+	const bgColor = config.backgroundColor;
 
 	let texts = '';
 	let computedWidth = 0;
@@ -161,9 +147,13 @@ async function buildSvgDataUriWithShiki(
 
 	const width = Math.max(1, computedWidth);
 	const height = Math.max(1, computedHeight);
+	
+	// make background color
+	const tonedownBackgroundColor = `rgb(${parseInt(bgColor.slice(1, 3), 16) * 0.9}, ${parseInt(bgColor.slice(3, 5), 16) * 0.9}, ${parseInt(bgColor.slice(5, 7), 16) * 0.9})`;
+
 	const svg =
 `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
-<rect x="0" y="0" width="${width}" height="${height}" fill="${cfg.backgroundColor}" stroke="${colors.borderColor}" stroke-width="1" />
+<rect x="0" y="0" width="${width}" height="${height}" fill="${tonedownBackgroundColor}" stroke="${colors.borderColor}" stroke-width="1" />
 ${texts}
 </svg>`;
 	const encoded = encodeURIComponent(svg)
@@ -172,6 +162,10 @@ ${texts}
 	return { uri: vscode.Uri.parse(`data:image/svg+xml;utf8,${encoded}`), width, height };
 }
 
+/**
+ * Generates highlighted HTML from source code using Shiki highlighter.
+ * The generated HTML is later converted to SVG via convertShikiHtmlToSvgGut().
+ */
 async function generateHighlightedHtml(code: string,
     decorations: shiki.DecorationItem[],
     themeName: string,
@@ -226,6 +220,7 @@ async function generateHighlightedHtml(code: string,
 
 const TEXT_Y_RATIO = 0.72;
 
+// Converts highlighted HTML to SVG content with proper text positioning and character diff rendering
 async function convertShikiHtmlToSvgGut(shikiHtml: string, charDiffSegmentsList: CharDiffSegment[][], fontStyle: string, fontOpacity: number): Promise<{
 	guts: string; maxWidth: number; totalHeight: number }> {
 	const dom = new JSDOM(shikiHtml);
@@ -235,6 +230,7 @@ async function convertShikiHtmlToSvgGut(shikiHtml: string, charDiffSegmentsList:
 	const lines = Array.from(document.querySelectorAll(".line")) as Element[];
 	let maxWidth = 0;
 	const svgLines = await Promise.all(lines.map(async (line, index) => {
+		// code texts
 		const spans = Array.from(line.childNodes).map((node) => {
 			if (node.nodeType === 3) {
 				return `<tspan xml:space="preserve">${escapeForSVG(node.textContent ?? "")}</tspan>`;
@@ -260,8 +256,8 @@ async function convertShikiHtmlToSvgGut(shikiHtml: string, charDiffSegmentsList:
 
 		const rectY = index * cfg.lineHeight;
 		const textY = rectY + Math.round(cfg.lineHeight * TEXT_Y_RATIO);
-        // const rect = `<rect x="0" y="${rectY}" width="${width}" height="${cfg.lineHeight}" fill="${colors.backgroundColor}" />`;
-		// const rects = [rect];
+		
+		// highlighted bg
 		const rects: string[] = [];
 		for(const segment of charDiffSegments) {
 			if (segment.type !== 'add') continue;
@@ -269,7 +265,11 @@ async function convertShikiHtmlToSvgGut(shikiHtml: string, charDiffSegmentsList:
 			const diffWidth = await getTextWidth(segment.text);
 			rects.push(`<rect x="${diffX}" y="${rectY}" width="${diffWidth}" height="${cfg.lineHeight}" fill="${colors.backgroundColor}" />`);
 		}
+
+		// code(span) to text tag
         const text = `<text x="0" y="${textY}" font-family="${cfg.fontFamily}" font-size="${cfg.fontSize}" font-weight="${cfg.fontWeight}" font-style="${fontStyle}" style="opacity:${fontOpacity}" dominant-baseline="alphabetic" xml:space="preserve" shape-rendering="crispEdges">${spans}</text>`;
+
+		// marge highlighted bg and code text
 		return `${rects.join("\n")}\n${text}`;
 	}));
 

@@ -6,6 +6,7 @@ import { clearSuggestions } from './suggestionStore';
 import { startClipboardPolling } from '../managers/clipboardManager';
 import { editHistoryManager } from '../managers/editHistoryManager';
 import { clearAcceptingSuggestion, isAcceptingSuggestion } from './suggestionCommands';
+import { suggestionManager } from './suggestionManager';
 
 export function registerAutoSuggestionTrigger(disposables: vscode.Disposable[]) {
 	const localDisposables: vscode.Disposable[] = [];
@@ -55,6 +56,7 @@ export function registerAutoSuggestionTrigger(disposables: vscode.Disposable[]) 
 				return;
 			}
 			
+			suggestionManager?.cancelCurrentRequest();
 			clearSuggestions(editor.document.uri);
 			clearAllDecorations(editor);
 			
@@ -87,6 +89,7 @@ export function registerAutoSuggestionTrigger(disposables: vscode.Disposable[]) 
 
 			if (! isAcceptingSuggestion())
 			{
+				suggestionManager?.cancelCurrentRequest();
 				clearSuggestions(editor.document.uri);
 				clearAllDecorations(editor);
 				
@@ -124,6 +127,7 @@ export function registerAutoSuggestionTrigger(disposables: vscode.Disposable[]) 
 					cmd === 'editor.action.inlineSuggest.commit'
 				) {
 					if (editor && !isAcceptingSuggestion()) {
+						suggestionManager?.cancelCurrentRequest();
 						clearSuggestions(editor.document.uri);
 						clearAllDecorations(editor);
 					}

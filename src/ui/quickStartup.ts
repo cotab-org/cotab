@@ -119,9 +119,10 @@ async function showQuickStartup(context: vscode.ExtensionContext): Promise<void>
     const apiBaseURL = config.apiBaseURL;
     const hideOnStartup = config.hideOnStartup;
     const initial = await getServerSectionState();
+    const iconUri = panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'icon.png'));
 
     // view contents
-    panel.webview.html = getHtml({ apiBaseURL, hideOnStartup, initial });
+    panel.webview.html = getHtml({ apiBaseURL, hideOnStartup, initial, iconUri });
 
     // Handle webview command
     panel.webview.onDidReceiveMessage(async (msg) => {
@@ -159,7 +160,7 @@ async function handleWebviewMessage(panel: vscode.WebviewPanel, msg: any): Promi
     }
 }
 
-function getHtml(params: { apiBaseURL: string; hideOnStartup: boolean; initial: { kind: string; label: string; command?: string; }; }): string {
+function getHtml(params: { apiBaseURL: string; hideOnStartup: boolean; initial: { kind: string; label: string; command?: string; }; iconUri: vscode.Uri }): string {
     const nonce = String(Date.now());
     const apiBaseURL = escapeHtml(params.apiBaseURL || '');
     const hideOnStartup = params.hideOnStartup ? 'checked' : '';
@@ -181,7 +182,6 @@ function getHtml(params: { apiBaseURL: string; hideOnStartup: boolean; initial: 
     <style>
         body { font-family: -apple-system, Segoe UI, Ubuntu, Helvetica, Arial, sans-serif; padding: 16px; color: var(--vscode-foreground); background: var(--vscode-editor-background); }
         h1 { font-size: 16px; margin: 0 0 12px; }
-        .section { border: 1px solid var(--vscode-panel-border); border-radius: 6px; padding: 12px; margin-bottom: 12px; background: var(--vscode-editor-background); }
         label { display: block; margin-bottom: 6px; }
         input[type="text"] { width: 100%; padding: 6px 8px; border: 1px solid var(--vscode-input-border); background: var(--vscode-input-background); color: var(--vscode-input-foreground); border-radius: 4px; }
         .row { display: flex; gap: 8px; align-items: center; }
@@ -191,39 +191,76 @@ function getHtml(params: { apiBaseURL: string; hideOnStartup: boolean; initial: 
         .checkbox { display: flex; align-items: center; gap: 8px; }
         .btnimg { display:inline-flex; }
         .btnimg img { display: block; }
-        .center { text-align: center;    }
-        .section .center { justify-content: center; }
+        .center { text-align: center; }
+        .section {
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 6px;
+            padding: 12px;
+            margin: 0 auto 12px;
+            background: var(--vscode-editor-background);
+            max-width: 600px;
+            text-align: center;
+            justify-content: center;
+        }
+        .section .center { text-align: center; justify-content: center; }
         .spacer { height: 8px; }
-        .server-section { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; padding: 16px; border-radius: 10px; background: linear-gradient(140deg, rgba(56, 69, 90, 0.25) 0%, rgba(21, 25, 35, 0.15) 50%, rgba(56, 69, 90, 0.25) 100%); border: 1px solid rgba(255,255,255,0.04); box-shadow: 0 10px 24px rgba(0,0,0,0.18); }
+        .server-section {
+            display: flex;
+            max-width: 600px;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            text-align: center;
+            padding: 16px;
+            border-radius: 10px;
+            background: linear-gradient(140deg, rgba(56, 69, 90, 0.25) 0%, rgba(21, 25, 35, 0.15) 50%, rgba(56, 69, 90, 0.25) 100%);
+            border: 1px solid rgba(255,255,255,0.04); box-shadow: 0 10px 24px rgba(0,0,0,0.18); max-width: 600px; margin-left: auto; margin-right: auto;
+        }
         .server-action { display: inline-flex; }
         .server-action img { display: block; filter: drop-shadow(0 6px 12px rgba(0,0,0,0.35)); }
         .server-or { display: flex; align-items: center; gap: 12px; width: 100%; font-size: 16px; color: var(--vscode-descriptionForeground); opacity: 0.8; }
         .server-or-line { flex: 1; height: 1px; background-color: currentColor; opacity: 0.35; }
         .server-hint { font-size: 12px; color: var(--vscode-descriptionForeground); opacity: 0.8; }
+        /* Title alignment */
+        .title-wrapper { display: flex; flex-direction: column; align-items: center; margin: 24px 0 16px; }
+        .title-head { display: flex; align-items: center; justify-content: center; font-size: 40px; }
+        .title-head::after { content: ''; display: block; width: 56px; height: 0; flex: 0 0 56px; }
+        .title-head img { width: 56px; height: 56px; display: block; }
+        .title-head .title-text { font-size: 48px; font-weight: bold; letter-spacing: 2px; }
+        h2 { margin-top: 16px; margin-bottom: 16px; }
     </style>
     </head>
     <body>
-        <h1 class="center">Cotab Quick Startup</h1>
-            <div class="server-section">
-                <div class="spacer"></div>
-                <div id="serverLabel" class="muted"></div>
-                <a id="serverAction" class="btnimg server-action" style="display:none;" href="#" title="server action"></a>
-                <div class="spacer"></div>
-                <div class="server-or">
-                    <span class="server-or-line"></span>
-                    <span>OR</span>
-                    <span class="server-or-line"></span>
-                </div>
-                <div class="spacer"></div>
-                <label for="apiBaseURL">OpenAI compatible Base URL</label>
-                <div class="row">
-                    <input id="apiBaseURL" type="text" class="grow" value="${apiBaseURL}" placeholder="http://localhost:8080/v1" />
-                </div>
-                <div class="spacer"></div>
+        <div class="title-wrapper">
+            <h1 class="title-head">
+                <img src="${params.iconUri}" alt="Cotab" />
+                <span class="title-text">Cotab</span>
+            </h1>
+        </div>
+        <h2 class="center">Quick Startup</h2>
+        <div class="server-section">
+            <div class="spacer"></div>
+            <div id="serverLabel" class="muted"></div>
+            <a id="serverAction" class="btnimg server-action" style="display:none;" href="#" title="server action"></a>
+            <div class="spacer"></div>
+            <div class="server-or">
+                <span class="server-or-line"></span>
+                <span>OR</span>
+                <span class="server-or-line"></span>
             </div>
+            <div class="spacer"></div>
+            <label for="apiBaseURL">OpenAI compatible Base URL</label>
+            <div class="row">
+                <input id="apiBaseURL" type="text" class="grow" value="${apiBaseURL}" placeholder="http://localhost:8080/v1" />
+            </div>
+            <div class="spacer"></div>
+        </div>
         <div class="spacer"></div>
         <div class="section">
             <label class="checkbox center"><input id="hideNext" type="checkbox" ${hideOnStartup}/> 次回からは表示しない</label>
+        </div>
+        <h2 class="center">Tutorial</h2>
+        <div class="section">
         </div>
 
         <script nonce="${nonce}">

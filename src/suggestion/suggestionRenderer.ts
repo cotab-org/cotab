@@ -6,41 +6,19 @@ import { getVisualWidth } from './suggestionUtils';
 import { renderSvgOverlays, clearSvgOverlays, disposeSvgDecorationTypes, OverlaySegment } from './suggestionSvgRenderer';
 
 
-/* Green base
-const fontColor = '#cfead6';
-const backgroundColor = '#2ea04333';
-const borderColor = '#3fb950';
-*/
 // Yellow base (color scheme close to merge color)
-const inlineFontColor = '#ffffff60';
-const fontColor = '#ffffffb5';
-const nofinishedFontColor = '#ffffff70';
-const backgroundColor = '#38422260';
-const borderColor = '#384222';
+const inlineFontColor = '#ffffffb5'; // '#ffffff60';
+const appendBGColor = '#eeff0022';
+
+let renderTimer: NodeJS.Timeout | null = null;
 
 const inlineDecorationType = vscode.window.createTextEditorDecorationType({
-	after: { color: inlineFontColor/*, fontStyle: 'italic'*/ },
-	rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed,
-});
-
-const overlayDecorationType = vscode.window.createTextEditorDecorationType({
-	after: { color: fontColor/*, fontStyle: 'italic'*/ },
-	rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed,
-});
-
-const nofinishedOverlayDecorationType = vscode.window.createTextEditorDecorationType({
-	after: { color: nofinishedFontColor, fontStyle: 'italic' },
+	after: { color: inlineFontColor/*, fontStyle: 'italic'*/, backgroundColor: appendBGColor },
 	rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed,
 });
 
 const deleteDecorationType = vscode.window.createTextEditorDecorationType({
 	backgroundColor: '#ff000050',
-	border: 'none'
-});
-
-const invisibleDecorationType = vscode.window.createTextEditorDecorationType({
-	color: 'transparent',
-	backgroundColor: 'transparent',
 	border: 'none'
 });
 
@@ -126,21 +104,7 @@ function makeOverlaySuggestions(editor: vscode.TextEditor,
 		const paddingRight = dispMaxWidth - visualWidth;
 		const marginLeft = visualDispPos - visualInsIdx;
 		const decolateText = visualNewText.slice(paddingLeft);
-		//logInfo(`decolateText: ${dispMaxWidth} ${visualWidth} ${decolateText}`);
-		// overlayOptions.push({
-		// 	range: range,
-		// 	renderOptions: {
-		// 		after: {
-		// 			contentText: /*padding +*/ decolateText,
-		// 			backgroundColor: backgroundColor,
-		// 			border: `1px solid ${borderColor}`,
-		// 			textDecoration: `;
-		// 				display: inline-block;
-		// 				padding: 0 ${paddingRight}ch 0 ${paddingLeft}ch`,
-		// 			margin: `0 0 0 ${marginLeft}ch`
-		// 		}
-		// 	},
-		// });
+		
 		// Build overlay segment for SVG renderer
 		const overlaySegment: OverlaySegment = {
 			line: line,
@@ -197,7 +161,7 @@ export function renderSuggestions(editor: vscode.TextEditor): {
 	inlineCompletionItems: vscode.InlineCompletionItem[],
 	isCompletedFirstLine: boolean
 } {
-	const {originalDiffOperations, edits, checkCompleteLine, is_stoped} = getMergedSuggestions(editor.document.uri);
+	const {originalDiffOperations, edits, checkCompleteLine, is_stoped} = getMergedSuggestions(editor.document.uri, true);
 	const activeEditor = vscode.window.activeTextEditor;
 	const activeLine = activeEditor?.selection.active.line ?? -1;
 	const activeCharacter = activeEditor?.selection.active.character ?? 0;
@@ -305,6 +269,7 @@ export function renderSuggestions(editor: vscode.TextEditor): {
 
 				// VS Code inline completion only works when there is a single add at one location
 				let hasAdd = false;
+				let firstAddPos = 0;
 				for (const seg of segs) {
 					if (seg.type === 'keep') continue;
 					if (seg.type === 'add') {
@@ -314,6 +279,7 @@ export function renderSuggestions(editor: vscode.TextEditor): {
 						}
 						else {
 							hasAdd = true;
+							firstAddPos = seg.orgIdx;
 						}
 					}
 					else {
@@ -321,17 +287,23 @@ export function renderSuggestions(editor: vscode.TextEditor): {
 						break;
 					}
 				}
-				/*
 				if (isInlineCompletionItem) {
-					// Size after removing trailing whitespace
-					const origLength = origLine.replace(/\s*$/, '').length;
-					// Not a line with only whitespace,
-					// Disable if cursor is to the right of it because inline completion won't display.
-					if (origLength != 0 && activeCharacter < origLength) {
-						isInlineCompletionItem = false;
+					if (firstAddPos != 0) {
+						// VSCode's default inline completion only works after the cursor position.
+						if (firstAddPos < activeCharacter) {
+							isInlineCompletionItem = false;
+						}
+						// Enable inline completion when completion position is at the end of the line
+						else if (firstAddPos == origLine.length) {
+							// nop
+						}
+						// Disable inline completion if the cursor is before the insertion point
+						// Because VSCode's default inline completion changes text color but not background color, which reduces readability.
+						else if (activeCharacter < firstAddPos) {
+							isInlineCompletionItem = false;
+						}
 					}
 				}
-				*/
 			}
 			if (isInlineCompletionItem) {
 				renderData.inlineCompletionItems.push(new vscode.InlineCompletionItem(suggestion.newText,
@@ -383,6 +355,12 @@ export function renderSuggestions(editor: vscode.TextEditor): {
 	}
 	if (isDispOverlay)
 	{
+		// If the first line is included in the overlay suggestion, reset suggestion count to 0
+		const isWithFirstLine = false;
+		if (isWithFirstLine) {
+			suggestionCount = 0;
+		}
+		
 		const {overlaySegments: overlaysSegs,
 				deleteOptions: deletes,
 				invisibleOptions: invisibles} = makeOverlaySuggestions(editor, suggestionList, suggestionCount);
@@ -417,27 +395,20 @@ function renderSuggestionsInternal(editor: vscode.TextEditor,
 					dispIdx: number = 0) {
 	
 			// Execute decoration settings asynchronously (prevent infinite loops)
-	setTimeout(() => {
+	renderTimer = setTimeout(() => {
+		renderTimer = null;
 		//logDebug(`updateDecorations: ${renderData.inlineCompletionItems.length} ${renderData.inlineOptions.length} ${renderData.deleteOptions.length} ${renderData.invisibleOptions.length}`);
 		editor.setDecorations(inlineDecorationType, renderData.inlineOptions);
 
 		if (renderData.noFinished)
 		{
 			renderSvgOverlays(editor, renderData.overlaySegments, { unfinished: renderData.noFinished, dispIdx });
-			editor.setDecorations(overlayDecorationType, []);
-			editor.setDecorations(nofinishedOverlayDecorationType, []);
 			editor.setDecorations(deleteDecorationType, renderData.deleteOptions);
-			//editor.setDecorations(invisibleDecorationType, renderData.invisibleOptions);
-			editor.setDecorations(invisibleDecorationType, []);
 		}
 		else
 		{
 			renderSvgOverlays(editor, renderData.overlaySegments, { unfinished: renderData.noFinished, dispIdx });
-			editor.setDecorations(overlayDecorationType, []);
-			editor.setDecorations(nofinishedOverlayDecorationType, []);
 			editor.setDecorations(deleteDecorationType, renderData.deleteOptions);
-			//editor.setDecorations(invisibleDecorationType, renderData.invisibleOptions);
-			editor.setDecorations(invisibleDecorationType, []);
 		}
 		
 		//logDebug('cotab.dispSuggestions true');
@@ -451,11 +422,12 @@ function renderSuggestionsInternal(editor: vscode.TextEditor,
 
 export function disposeDecorationTypes() {
 	inlineDecorationType.dispose();
-	overlayDecorationType.dispose();
-	nofinishedOverlayDecorationType.dispose();
 	deleteDecorationType.dispose();
-	invisibleDecorationType.dispose();
 	disposeSvgDecorationTypes();
+	if (renderTimer) {
+		clearTimeout(renderTimer);
+		renderTimer = null;
+	}
 }
 
 	// Clear all decorations immediately and reset context
@@ -464,10 +436,11 @@ export function clearAllDecorations(editor: vscode.TextEditor) {
 	
 	// Clear each decoration type with empty arrays
 	editor.setDecorations(inlineDecorationType, []);
-	editor.setDecorations(overlayDecorationType, []);
-	editor.setDecorations(nofinishedOverlayDecorationType, []);
 	editor.setDecorations(deleteDecorationType, []);
-	editor.setDecorations(invisibleDecorationType, []);
+	if (renderTimer) {
+		clearTimeout(renderTimer);
+		renderTimer = null;
+	}
 	clearSvgOverlays(editor);
 	
 	// Also disable context

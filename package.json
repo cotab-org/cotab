@@ -67,8 +67,8 @@
         "title": "Cotab: Accept Current Suggestion (All Lines)"
       },
       {
-        "command": "cotab.acceptOneLineSuggestion",
-        "title": "Cotab: Accept Current Suggestion (One Line)"
+        "command": "cotab.acceptFirstLineSuggestion",
+        "title": "Cotab: Accept Current Suggestion (First Line)"
       },
       {
         "command": "cotab.clearSuggestions",
@@ -301,12 +301,12 @@
     },
     "keybindings": [
       {
-        "command": "cotab.acceptOneLineSuggestion",
+        "command": "cotab.acceptSuggestion",
         "key": "tab",
         "when": "editorTextFocus && cotab.dispSuggestions"
       },
       {
-        "command": "cotab.acceptSuggestion",
+        "command": "cotab.acceptFirstLineSuggestion",
         "key": "shift+tab",
         "when": "editorTextFocus && cotab.dispSuggestions"
       },

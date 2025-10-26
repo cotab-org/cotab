@@ -20,7 +20,7 @@ export function clearAcceptingSuggestion() {
 export function registerSuggestionCommands(disposables: vscode.Disposable[]) {
 	disposables.push(
 		vscode.commands.registerCommand('cotab.acceptSuggestion', acceptSuggestionCmd),
-		vscode.commands.registerCommand('cotab.acceptOneLineSuggestion', acceptOneLineSuggestionCmd),
+		vscode.commands.registerCommand('cotab.acceptFirstLineSuggestion', acceptFirstLineSuggestionCmd),
 		vscode.commands.registerCommand('cotab.clearSuggestions', clearAllSuggestionsCmd),
 		vscode.commands.registerCommand('cotab.cancelSuggestions', () => suggestionManager.cancelCurrentRequest()),
 	);
@@ -70,8 +70,8 @@ export async function acceptSuggestionCmdInternal(isFullAccept: boolean = true) 
 	await vscode.commands.executeCommand('tab');
 }
 
-export async function acceptOneLineSuggestionCmd() {
-    await acceptSuggestionCmdInternal(true);
+export async function acceptFirstLineSuggestionCmd() {
+    await acceptSuggestionCmdInternal(false);
 }
 
 // async function jumpToSuggestion(editor: vscode.TextEditor, line: number) {
@@ -88,7 +88,7 @@ async function acceptSuggestionInternal(isFullAccept: boolean) {
 	if (!editor) return false;
 
 	const docUri = editor.document.uri;
-	const {edits, is_stoped} = getMergedSuggestions(docUri);
+	const {edits, is_stoped} = getMergedSuggestions(docUri, isFullAccept);
 	if (edits.size == 0) {
         return false;
     }
@@ -177,9 +177,13 @@ async function acceptSuggestionInternal(isFullAccept: boolean) {
                 const orgLastLineText = editor.document.lineAt(group.endLine);
                 const newlastLineText = groupLines[groupLines.length - 1];
                 const diffSegments = computeCharDiff(orgLastLineText.text, newlastLineText);
-                if (0 < diffSegments.length) {
-                    const lastSegment = diffSegments[diffSegments.length - 1];
-                    lastEditedPosition = lastSegment.newIdx + lastSegment.text.length;
+                for (const seg of diffSegments) {
+                    if (seg.type === 'delete') {
+                        lastEditedPosition = seg.newIdx;
+                    }
+                    else if (seg.type === 'add') {
+                        lastEditedPosition = seg.newIdx + seg.text.length;
+                    }
                 }
             }
         }
@@ -187,7 +191,7 @@ async function acceptSuggestionInternal(isFullAccept: boolean) {
         // If cut off midway, only first line
         if (! isFullAccept || !is_stoped) {
             if (1 < groupedEdits.length) {
-                hasUnappliedSuggestion = true;
+                //hasUnappliedSuggestion = true;
             }
             break;
         }

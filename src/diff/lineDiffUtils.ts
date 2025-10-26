@@ -191,9 +191,11 @@ export function diffOperationsToLineEdits(operations: LineDiff[], baseLine: numb
             case 'add': {
                 const targetLine = baseLine + (op.originalIndex ?? 0);
                 const existing = edits.find(e => e.line === targetLine);
-                if (existing) {
-                    existing.newText += '\n' + (op.newText ?? '');
-                } else {
+                //if (existing) {
+                //    existing.newText += '\n' + (op.newText ?? '');
+                //}
+                //else
+                {
                     edits.push({ line: targetLine, newText: op.newText ?? '', type: 'add' });
                 }
                 break;
