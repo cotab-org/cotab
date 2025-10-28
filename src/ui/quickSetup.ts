@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
-import { getConfig, setConfigHideOnSetup } from '../utils/config';
-import { setConfigApiBaseURL } from '../utils/config';
+import { getConfig, setConfigHideOnSetup, setConfigShowProgressSpinner, setConfigApiBaseURL } from '../utils/config';
 import { terminalCommand } from '../utils/terminalCommand';
 import { getAiClient } from '../llm/llmProvider';
 import { buildLinkButtonSvgDataUri, buildNetworkServerLabelSvgDataUri } from './menuUtil';
@@ -118,6 +117,7 @@ async function showQuickSetup(context: vscode.ExtensionContext): Promise<void> {
     const config = getConfig();
     const apiBaseURL = config.apiBaseURL;
     const hideOnSetup = config.hideOnSetup;
+    const showProgressSpinner = config.showProgressSpinner;
     const initial = await getServerSectionState();
     const iconUri = panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'icon.png'));
     const tutorial1Uri = panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'doc', 'asset', 'cotab-tutorial-autocomplete1.gif'));
@@ -134,7 +134,8 @@ async function showQuickSetup(context: vscode.ExtensionContext): Promise<void> {
         tutorial1Uri,
         spinnerAnalyzeUri,
         spinnerRedUri,
-        spinnerNormalUri
+        spinnerNormalUri,
+        showProgressSpinner
     });
 
     // Handle webview command
@@ -161,10 +162,20 @@ async function handleWebviewMessage(panel: vscode.WebviewPanel, msg: any): Promi
         await setConfigHideOnSetup(value);
         panel.webview.postMessage({ type: 'saved', key: 'hideOnSetup', value });
     }
+    else if (msg?.type === 'setShowProgressSpinner') {
+        const value = Boolean(msg.value);
+        await setConfigShowProgressSpinner(value);
+        panel.webview.postMessage({ type: 'saved', key: 'showProgressSpinner', value });
+    }
     else if (msg?.type === 'executeCommand') {
         const command = String(msg.command || '');
+        const args = Array.isArray(msg.args)
+            ? msg.args
+            : msg.args !== undefined
+                ? [msg.args]
+                : [];
         if (command) {
-            await vscode.commands.executeCommand(command);
+            await vscode.commands.executeCommand(command, ...args);
             // Refresh state after command execution
             setTimeout(async () => {
                 autoRefreshManager?.refresh();
@@ -182,10 +193,12 @@ function getHtml(params: {
     spinnerAnalyzeUri: string;
     spinnerRedUri: string;
     spinnerNormalUri: string;
+    showProgressSpinner: boolean;
 }): string {
     const nonce = String(Date.now());
     const apiBaseURL = escapeHtml(params.apiBaseURL || '');
     const hideOnSetup = params.hideOnSetup ? 'checked' : '';
+    const showProgressSpinner = params.showProgressSpinner ? 'checked' : '';
     const initialState = JSON.stringify(params.initial);
     // Prepare shared SVG URIs for consistent UI
     const assetsJson = JSON.stringify({
@@ -230,6 +243,7 @@ function getHtml(params: {
             align-items: stretch;
             justify-content: center;
             gap: 24px;
+            flex-wrap: wrap;
             padding: 24px;
             background: linear-gradient(135deg, rgba(83, 98, 148, 0.35) 0%, rgba(33, 38, 56, 0.2) 40%, rgba(21, 23, 34, 0.35) 100%);
             border-radius: 16px;
@@ -279,6 +293,23 @@ function getHtml(params: {
             letter-spacing: 0.6px;
             text-transform: uppercase;
             color: rgba(255, 255, 255, 0.85);
+        }
+        .status-options {
+            display: flex;
+            justify-content: center;
+            flex-basis: 100%;
+            width: 100%;
+        }
+        .status-options .checkbox {
+            margin: 0;
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 0.4px;
+            text-transform: none;
+            color: rgba(255, 255, 255, 0.85);
+        }
+        .status-options input[type="checkbox"] {
+            transform: scale(1);
         }
         .section.started-hero {
             width: min(960px, 100%);
@@ -381,20 +412,57 @@ function getHtml(params: {
             background: linear-gradient(140deg, rgba(56, 69, 90, 0.25) 0%, rgba(21, 25, 35, 0.15) 50%, rgba(56, 69, 90, 0.25) 100%);
             border: 1px solid rgba(255,255,255,0.04); box-shadow: 0 10px 24px rgba(0,0,0,0.18); max-width: 600px; margin-left: auto; margin-right: auto;
         }
-        .hide-next-container {
+        .floating-controls {
             position: fixed;
             bottom: 16px;
-            left: 16px;
+            right: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding: 10px 12px;
+            background: var(--vscode-editor-background);
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 8px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.16);
+            min-width: 180px;
+        }
+        .floating-controls .floating-label {
             display: flex;
             align-items: center;
             gap: 8px;
-            background: var(--vscode-editor-background);
-            border: 1px solid var(--vscode-panel-border);
-            border-radius: 6px;
-            padding: 10px 14px;
-            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+            margin: 0;
+            font-size: 12px;
+            letter-spacing: 0.1px;
+            color: var(--vscode-foreground);
+            opacity: 0.85;
         }
-        .hide-next-container label { margin: 0; }
+        .floating-controls input[type="checkbox"] {
+            transform: scale(1);
+        }
+        .floating-controls .floating-divider {
+            height: 1px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 1px;
+        }
+        .floating-controls .floating-settings-btn {
+            background: var(--vscode-button-secondaryBackground, var(--vscode-button-background));
+            color: var(--vscode-button-foreground);
+            border: 1px solid var(--vscode-button-border, transparent);
+            border-radius: 6px;
+            padding: 6px 10px;
+            cursor: pointer;
+            font-size: 12px;
+            letter-spacing: 0.2px;
+            box-shadow: none;
+            transition: background-color 120ms ease, transform 120ms ease;
+        }
+        .floating-controls .floating-settings-btn:hover {
+            transform: translateY(-1px);
+            background: var(--vscode-button-hoverBackground, var(--vscode-button-secondaryBackground, var(--vscode-button-background)));
+        }
+        .floating-controls .floating-settings-btn:active {
+            transform: translateY(0);
+        }
         .server-action { display: inline-flex; }
         .server-action img { display: block; filter: drop-shadow(0 6px 12px rgba(0,0,0,0.35)); }
         .server-or { display: flex; align-items: center; gap: 12px; width: 100%; font-size: 16px; color: var(--vscode-descriptionForeground); opacity: 0.8; }
@@ -468,9 +536,14 @@ function getHtml(params: {
                 </div>
                 <span class="started-label">Completing<br>after current line</span>
             </div>
+            <div class="status-options">
+                <label class="checkbox"><input id="showProgressSpinner" type="checkbox" ${showProgressSpinner}/>Show progress spinner</label>
+            </div>
         </div>
-        <div class="hide-next-container">
-            <label class="checkbox"><input id="hideNext" type="checkbox" ${hideOnSetup}/>Don't show this again</label>
+        <div class="floating-controls">
+            <label class="checkbox floating-label"><input id="hideNext" type="checkbox" ${hideOnSetup}/>Don't show this again</label>
+            <div class="floating-divider"></div>
+            <button id="openSettingsBtn" class="floating-settings-btn" type="button" title="Open Cotab Settings">Open Settings</button>
         </div>
 
         <script nonce="${nonce}">
@@ -480,6 +553,8 @@ function getHtml(params: {
             const serverAction = document.getElementById('serverAction');
             const apiBaseURLInput = document.getElementById('apiBaseURL');
             const hideNext = document.getElementById('hideNext');
+            const showProgressSpinnerCheckbox = document.getElementById('showProgressSpinner');
+            const openSettingsBtn = document.getElementById('openSettingsBtn');
             const assets = ${assetsJson};
             console.log('[cotab] quickSetup assets loaded', assets);
 
@@ -546,6 +621,18 @@ function getHtml(params: {
             hideNext.addEventListener('change', () => {
                 vscode.postMessage({ type: 'setHideOnSetup', value: hideNext.checked });
             });
+
+            if (showProgressSpinnerCheckbox instanceof HTMLInputElement) {
+                showProgressSpinnerCheckbox.addEventListener('change', () => {
+                    vscode.postMessage({ type: 'setShowProgressSpinner', value: showProgressSpinnerCheckbox.checked });
+                });
+            }
+
+            if (openSettingsBtn) {
+                openSettingsBtn.addEventListener('click', () => {
+                    vscode.postMessage({ type: 'executeCommand', command: 'workbench.action.openSettings', args: ['>cotab'] });
+                });
+            }
 
             serverAction.addEventListener('click', (e) => {
                 e.preventDefault();

@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { getConfig } from '../utils/config';
 
 export function registerProgressGutterIcon(disposables: vscode.Disposable[]) {
     progressGutterIconManager = new ProgressGutterIconManager();
@@ -14,6 +15,7 @@ export type GutterIconPhase = 'analyzing' | 'stream' | 'firstGenerating';
 const spinnerDecorationTypesMap: { [K in GutterIconPhase]?: vscode.TextEditorDecorationType[] } = {};
 
 class ProgressGutterIconManager implements vscode.Disposable {
+    private readonly disposables: vscode.Disposable[] = [];
     private state: {
         editor: vscode.TextEditor;
         timer?: NodeJS.Timeout;
@@ -23,14 +25,27 @@ class ProgressGutterIconManager implements vscode.Disposable {
         dispDecoration?: vscode.TextEditorDecorationType | null;
     } | null = null;
 
+    constructor() {
+        this.disposables.push(vscode.workspace.onDidChangeConfiguration((event) => {
+            if (event.affectsConfiguration('cotab.ui.showProgressSpinner')) {
+                const isEnabled = vscode.workspace.getConfiguration().get<boolean>('cotab.ui.showProgressSpinner', true);
+                if (!isEnabled) {
+                    this.hide();
+                }
+            }
+        }));
+    }
+
     dispose(): void {
         this.disposeProgressDecoration();
+        this.disposables.forEach(d => d.dispose());
+        this.disposables.length = 0;
     }
 
     // Public wrappers --------------------------------------------------------
     public show(pos: vscode.Position, phase: GutterIconPhase | undefined) {
         const editor = vscode.window.activeTextEditor;
-        if (!phase || !editor) {
+        if (!phase || !editor || !getConfig().showProgressSpinner) {
             this.hide();
             return;
         }
@@ -51,6 +66,11 @@ class ProgressGutterIconManager implements vscode.Disposable {
 
     private onUpdateTimer() {
         if (!this.state) return;
+
+        if (!getConfig().showProgressSpinner) {
+            this.hide();
+            return;
+        }
         
         const editor = this.state.editor;
 
@@ -70,6 +90,11 @@ class ProgressGutterIconManager implements vscode.Disposable {
     
     private startUpdate() {
         if (!this.state) return;
+
+        if (!getConfig().showProgressSpinner) {
+            this.hide();
+            return;
+        }
 
         this.clearTimer();
         this.onUpdateTimer();

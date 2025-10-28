@@ -291,6 +291,12 @@
           "description": "Log output level (ERROR: errors only, WARNING: warnings and above, INFO: info and above, DEBUG: everything)",
           "order": 501
         },
+        "cotab.ui.showProgressSpinner": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show spinner icon while completing code completion",
+          "order": 601
+        },
         "cotab.quickSetup.hideOnSetup": {
           "type": "boolean",
           "default": false,

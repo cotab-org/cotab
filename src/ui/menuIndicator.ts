@@ -252,7 +252,7 @@ async function buildMainMenuMarkdown(): Promise<vscode.MarkdownString> {
     md.appendMarkdown(`\n\n---\n\n`);
     const openYamlConfig = `[$(comment)](command:cotab.openYamlConfig)`;
     const openCommand = `[$(terminal)](command:cotab.openCommand)`;
-    const openSettings = `[$(gear)](command:workbench.action.openSettings?%5B%22>cotab%22%5D)`;
+    const openSettings = `[$(gear)](command:cotab.quickSetup.show)`;
     md.appendMarkdown(`${openYamlConfig} | ${openCommand} | ${openSettings}`);
     
     return md;

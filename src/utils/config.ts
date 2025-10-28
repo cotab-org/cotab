@@ -58,6 +58,9 @@ export interface CotabConfig {
     maxSymbolCount: number; // Maximum number of symbols to include in symbol code blocks
     withLineNumber: boolean; // The number of lines to include in the line number so that llm can determine
 
+    // ui
+    showProgressSpinner: boolean;
+
     // detail
     logLevel: string;
 
@@ -158,6 +161,9 @@ function getConfigRaw(): CotabConfig {
         maxSymbolCount: cfg.get<number>('cotab.promptDetail.maxSymbolCount', 300),
         withLineNumber: true,   // line number for code block
 
+        // ui
+        showProgressSpinner: cfg.get<boolean>('cotab.ui.showProgressSpinner', true),
+
         // detail
         logLevel: cfg.get<string>('cotab.detail.logLevel', 'INFO'),
         
@@ -208,6 +214,11 @@ export async function setConfigApiBaseURL(url: string): Promise<void> {
 export async function setConfigHideOnSetup(hide: boolean): Promise<void> {
     await vscode.workspace.getConfiguration()
         .update('cotab.quickSetup.hideOnSetup', hide, vscode.ConfigurationTarget.Global);
+}
+
+export async function setConfigShowProgressSpinner(enabled: boolean): Promise<void> {
+    await vscode.workspace.getConfiguration()
+        .update('cotab.ui.showProgressSpinner', enabled, vscode.ConfigurationTarget.Global);
 }
 
 
