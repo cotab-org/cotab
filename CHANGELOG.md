@@ -6,7 +6,7 @@
 - Add: Quick Setup view
 - Fix: Inline suggestion issue
 ## 0.0.8
-- Add radio button to prompt selection
+- Feat: radio button to prompt selection
 ## 0.0.7
 - Automatically start up server when completion is requested
 - Automatically stop server after idle timeout
