@@ -25,6 +25,10 @@ class StatusBarManager implements vscode.Disposable {
         this.reset();
         this.disposables.push(vscode.commands.registerCommand('cotab.statusBar.click', async () => {
             await requestUpdateCotabMenu();
+            await vscode.commands.executeCommand('workbench.action.quickOpen', '>Cotab: [Menu] If you hover without clicking, the menu will appear!');
+        }));
+        this.disposables.push(vscode.commands.registerCommand('cotab.menu.clickstatusbar', async () => {
+            await vscode.commands.executeCommand('cotab.quickSetup.show');
         }));
     }
 

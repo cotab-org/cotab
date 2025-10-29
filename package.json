@@ -93,6 +93,10 @@
       {
         "command": "cotab.server.stop",
         "title": "Cotab: [Server] Stop - Stop the llama-server on the system"
+      },
+      {
+        "command": "cotab.menu.clickstatusbar",
+        "title": "Cotab: [Menu] If you hover without clicking, the menu will appear!"
       }
     ],
     "configurationDefaults": {

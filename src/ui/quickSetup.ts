@@ -121,6 +121,7 @@ async function showQuickSetup(context: vscode.ExtensionContext): Promise<void> {
     const initial = await getServerSectionState();
     const iconUri = panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'icon.png'));
     const tutorial1Uri = panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'doc', 'asset', 'cotab-tutorial-autocomplete1.gif'));
+    const tutorial2Uri = panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'doc', 'asset', 'cotab-tutorial-open-quick-setup.gif'));
     const spinnerAnalyzeUri = panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'dot-spinner-0.svg')).toString();
     const spinnerRedUri = panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'spinner-red-0.svg')).toString();
     const spinnerNormalUri = panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'spinner-0.svg')).toString();
@@ -132,6 +133,7 @@ async function showQuickSetup(context: vscode.ExtensionContext): Promise<void> {
         initial,
         iconUri,
         tutorial1Uri,
+        tutorial2Uri,
         spinnerAnalyzeUri,
         spinnerRedUri,
         spinnerNormalUri,
@@ -190,6 +192,7 @@ function getHtml(params: {
     initial: { kind: string; label: string; command?: string; };
     iconUri: vscode.Uri;
     tutorial1Uri: vscode.Uri;
+    tutorial2Uri: vscode.Uri;
     spinnerAnalyzeUri: string;
     spinnerRedUri: string;
     spinnerNormalUri: string;
@@ -225,10 +228,8 @@ function getHtml(params: {
         button { padding: 6px 12px; border: 1px solid var(--vscode-button-border, transparent); color: var(--vscode-button-foreground); background: var(--vscode-button-background); border-radius: 4px; cursor: pointer; }
         .muted { opacity: 0.8; }
         .checkbox { display: flex; align-items: center; gap: 8px; }
-        .btnimg { display:inline-flex; }
-        .btnimg img { display: block; }
         .center { text-align: center; }
-        .section {
+        .setup-card {
             border: 1px solid var(--vscode-panel-border);
             border-radius: 6px;
             padding: 12px;
@@ -238,7 +239,20 @@ function getHtml(params: {
             text-align: center;
             justify-content: center;
         }
-        .started-section {
+        .setup-card--status {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            text-align: center;
+            padding: 16px;
+            border-radius: 10px;
+            background: linear-gradient(140deg, rgba(56, 69, 90, 0.25) 0%, rgba(21, 25, 35, 0.15) 50%, rgba(56, 69, 90, 0.25) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+            max-width: 600px;
+        }
+        .setup-card--spinners {
             display: flex;
             align-items: stretch;
             justify-content: center;
@@ -250,18 +264,84 @@ function getHtml(params: {
             border: 1px solid rgba(255, 255, 255, 0.06);
             box-shadow: 0 16px 32px rgba(0, 0, 0, 0.22);
         }
-        .started-section > h3 {
-            flex-basis: 100%;
-            width: 100%;
-            margin: 0 0 12px;
-            font-size: clamp(18px, 2.6vw, 22px);
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1.6px;
-            text-align: center;
-            color: rgba(255, 255, 255, 0.9);
+        .setup-card--hero {
+            width: min(960px, 100%);
+            max-width: 960px;
+            padding: clamp(24px, 4vw, 36px) clamp(20px, 5vw, 40px);
+            background: linear-gradient(150deg, rgba(96, 110, 165, 0.45) 0%, rgba(42, 48, 74, 0.42) 35%, rgba(16, 19, 30, 0.55) 100%);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 28px 60px rgba(0, 0, 0, 0.32);
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
         }
-        .started-item {
+        .setup-card__content-block {
+            width: clamp(280px, 100%, 840px);
+            margin: 0 auto;
+            padding: clamp(20px, 3vw, 32px);
+            border-radius: 18px;
+            background: rgba(12, 16, 28, 0.55);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 22px 48px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(8px);
+        }
+        .setup-card__media {
+            width: 100%;
+            border-radius: 16px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 24px 52px rgba(0, 0, 0, 0.4);
+        }
+        .setup-card__media::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(0, 0, 0, 0) 35%, rgba(0, 0, 0, 0.12) 100%);
+            pointer-events: none;
+        }
+        .setup-card__media-image {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+        .setup-card__caption-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            margin-top: 20px;
+        }
+        .setup-card__caption {
+            display: block;
+            font-size: clamp(16px, 2.2vw, 18px);
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: none;
+            color: rgba(255, 255, 255, 0.92);
+        }
+        .setup-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin: 0;
+            font-size: clamp(16px, 2.2vw, 18px);
+            font-weight: 600;
+            letter-spacing: 0.8px;
+            text-transform: none;
+            color: rgba(255, 255, 255, 0.92);
+        }
+        .setup-checkbox input[type="checkbox"] {
+            transform: scale(1.1);
+        }
+        .setup-checkbox__label {
+            display: block;
+            font-size: inherit;
+            font-weight: inherit;
+            letter-spacing: inherit;
+            color: inherit;
+        }
+        .spinner-card {
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -274,7 +354,7 @@ function getHtml(params: {
             backdrop-filter: blur(6px);
             box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
         }
-        .started-icon {
+        .spinner-card__icon {
             width: 72px;
             height: 72px;
             display: flex;
@@ -282,135 +362,59 @@ function getHtml(params: {
             justify-content: center;
             border-radius: 50%;
         }
-        .started-spinner {
+        .spinner-card__image {
             display: block;
             width: 48px;
             height: 48px;
         }
-        .started-label {
+        .spinner-card__label {
             font-size: 14px;
             font-weight: 600;
             letter-spacing: 0.6px;
             text-transform: uppercase;
             color: rgba(255, 255, 255, 0.85);
-        }
-        .status-options {
-            display: flex;
-            justify-content: center;
-            flex-basis: 100%;
-            width: 100%;
-        }
-        .status-options .checkbox {
-            margin: 0;
-            font-size: 14px;
-            font-weight: 500;
-            letter-spacing: 0.4px;
-            text-transform: none;
-            color: rgba(255, 255, 255, 0.85);
-        }
-        .status-options input[type="checkbox"] {
-            transform: scale(1);
-        }
-        .section.started-hero {
-            width: min(960px, 100%);
-            max-width: 960px;
-            padding: clamp(24px, 4vw, 36px) clamp(20px, 5vw, 40px);
-            background: linear-gradient(150deg, rgba(96, 110, 165, 0.45) 0%, rgba(42, 48, 74, 0.42) 35%, rgba(16, 19, 30, 0.55) 100%);
-            border-radius: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 28px 60px rgba(0, 0, 0, 0.32);
-        }
-        .started-section.started-hero {
-            flex-direction: column;
-            gap: 32px;
-            padding: 0;
-            background: none;
-            border: none;
-            box-shadow: none;
-        }
-        .started-hero-item {
-            width: clamp(280px, 100%, 840px);
-            margin: 0 auto;
-            padding: clamp(20px, 3vw, 32px);
-            border-radius: 18px;
-            background: rgba(12, 16, 28, 0.55);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 22px 48px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-            backdrop-filter: blur(8px);
-        }
-        .started-hero-media {
-            width: 100%;
-            border-radius: 16px;
-            overflow: hidden;
-            position: relative;
-            box-shadow: 0 24px 52px rgba(0, 0, 0, 0.4);
-        }
-        .started-hero-media::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(0, 0, 0, 0) 35%, rgba(0, 0, 0, 0.12) 100%);
-            pointer-events: none;
-        }
-        .started-hero-gif {
-            display: block;
-            width: 100%;
-            height: auto;
-        }
-        .started-hero-label-group {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 12px;
-            margin-top: 20px;
-        }
-        .started-hero-label {
-            display: block;
-            font-size: clamp(16px, 2.2vw, 18px);
-            font-weight: 600;
-            letter-spacing: 1px;
-            text-transform: none;
-            color: rgba(255, 255, 255, 0.92);
+            text-align: center;
         }
         @media (max-width: 520px) {
-            .section.started-hero {
+            .setup-card--hero {
                 padding: 20px;
                 border-radius: 16px;
             }
-            .started-hero-item {
+            .setup-card__content-block {
                 padding: 18px;
                 border-radius: 14px;
             }
-            .started-hero-media {
+            .setup-card__media {
                 border-radius: 12px;
             }
-            .section.started-section {
+            .setup-card--spinners {
                 margin-left: auto;
                 margin-right: auto;
             }
         }
-        .section .center { text-align: center; justify-content: center; }
         .spacer { height: 8px; }
         .separator {
             flex: 1;
             height: 1px;
             margin-top: 16px;
             margin-bottom: 16px;
-            background-color:
-            currentColor;
+            background-color: currentColor;
             opacity: 0.35;
         }
-        .server-section {
+        .status-divider {
             display: flex;
-            max-width: 600px;
-            flex-direction: column;
             align-items: center;
             gap: 12px;
-            text-align: center;
-            padding: 16px;
-            border-radius: 10px;
-            background: linear-gradient(140deg, rgba(56, 69, 90, 0.25) 0%, rgba(21, 25, 35, 0.15) 50%, rgba(56, 69, 90, 0.25) 100%);
-            border: 1px solid rgba(255,255,255,0.04); box-shadow: 0 10px 24px rgba(0,0,0,0.18); max-width: 600px; margin-left: auto; margin-right: auto;
+            width: 100%;
+            font-size: 16px;
+            color: var(--vscode-descriptionForeground);
+            opacity: 0.8;
+        }
+        .status-divider__line {
+            flex: 1;
+            height: 1px;
+            background-color: currentColor;
+            opacity: 0.35;
         }
         .floating-controls {
             position: fixed;
@@ -463,11 +467,8 @@ function getHtml(params: {
         .floating-controls .floating-settings-btn:active {
             transform: translateY(0);
         }
-        .server-action { display: inline-flex; }
-        .server-action img { display: block; filter: drop-shadow(0 6px 12px rgba(0,0,0,0.35)); }
-        .server-or { display: flex; align-items: center; gap: 12px; width: 100%; font-size: 16px; color: var(--vscode-descriptionForeground); opacity: 0.8; }
-        .server-or-line { flex: 1; height: 1px; background-color: currentColor; opacity: 0.35; }
-        .server-hint { font-size: 12px; color: var(--vscode-descriptionForeground); opacity: 0.8; }
+        .server-action-link { display: inline-flex; }
+        .server-action-link img { display: block; filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.35)); }
         /* Title alignment */
         .title-wrapper { display: flex; flex-direction: column; align-items: center; margin: 24px 0 16px; }
         .title-head { display: flex; align-items: center; justify-content: center; font-size: 40px; }
@@ -485,15 +486,15 @@ function getHtml(params: {
             </h1>
         </div>
         <h2 class="center">Quick Setup</h2>
-        <div class="server-section">
+        <section class="setup-card setup-card--status">
             <div class="spacer"></div>
-            <div id="serverLabel" class="muted"></div>
-            <a id="serverAction" class="btnimg server-action" style="display:none;" href="#" title="server action"></a>
+            <div id="serverStatus" class="muted"></div>
+            <a id="serverActionButton" class="server-action-link" style="display:none;" href="#" title="server action"></a>
             <div class="spacer"></div>
-            <div class="server-or">
-                <span class="server-or-line"></span>
+            <div class="status-divider">
+                <span class="status-divider__line"></span>
                 <span>OR</span>
-                <span class="server-or-line"></span>
+                <span class="status-divider__line"></span>
             </div>
             <div class="spacer"></div>
             <label for="apiBaseURL">OpenAI compatible Base URL</label>
@@ -501,45 +502,64 @@ function getHtml(params: {
                 <input id="apiBaseURL" type="text" class="grow" value="${apiBaseURL}" placeholder="http://localhost:8080/v1" />
             </div>
             <div class="spacer"></div>
-        </div>
+        </section>
         <div class="separator"></div>
         <h2 class="center">Getting started</h2>
-        <div class="section started-section started-hero">
-            <div class="started-hero-item">
-                <div class="started-hero-media">
-                    <img src="${params.tutorial1Uri}" class="started-hero-gif" alt="Cotabのチュートリアルフロー" />
+        <section class="setup-card setup-card--hero">
+            <div class="setup-card__content-block">
+                <div class="setup-card__media">
+                    <img src="${params.tutorial1Uri}" class="setup-card__media-image" alt="Cotabのチュートリアルフロー" />
                 </div>
-                <div class="started-hero-label-group">
-                    <span class="started-hero-label">ACCEPT : TAB</span>
-                    <span class="started-hero-label">ACCEPT (Only First Line) : SHIFT + TAB</span>
+                <div class="setup-card__caption-group">
+                    <span class="setup-card__caption">ACCEPT : TAB</span>
+                    <span class="setup-card__caption">ACCEPT (Only First Line) : SHIFT + TAB</span>
                 </div>
             </div>
-        </div>
+        </section>
         <div class="separator"></div>
-        <h2 class="center">Status</h2>
-        <div class="section started-section">
-            <div class="started-item">
-                <div class="started-icon">
-                    <img src="${params.spinnerAnalyzeUri}" class="started-spinner" />
+        <h2 class="center">Progress Icon</h2>
+        <section class="setup-card setup-card--spinners">
+            <div class="spinner-card">
+                <div class="spinner-card__icon">
+                    <img src="${params.spinnerAnalyzeUri}" class="spinner-card__image" alt="Analyzing" />
                 </div>
-                <span class="started-label">Analyzing</span>
+                <span class="spinner-card__label">Analyzing</span>
             </div>
-            <div class="started-item">
-                <div class="started-icon">
-                    <img src="${params.spinnerRedUri}" class="started-spinner" />
+            <div class="spinner-card">
+                <div class="spinner-card__icon">
+                    <img src="${params.spinnerRedUri}" class="spinner-card__image" alt="Completing current line" />
                 </div>
-                <span class="started-label">Completing<br>current line</span>
+                <span class="spinner-card__label">Completing<br>current line</span>
             </div>
-            <div class="started-item">
-                <div class="started-icon">
-                    <img src="${params.spinnerNormalUri}" class="started-spinner"/>
+            <div class="spinner-card">
+                <div class="spinner-card__icon">
+                    <img src="${params.spinnerNormalUri}" class="spinner-card__image" alt="Completing after current line" />
                 </div>
-                <span class="started-label">Completing<br>after current line</span>
+                <span class="spinner-card__label">Completing<br>after current line</span>
             </div>
-            <div class="status-options">
-                <label class="checkbox"><input id="showProgressSpinner" type="checkbox" ${showProgressSpinner}/>Show progress spinner</label>
+            <div class="setup-card__caption-group">
+                <label class="setup-checkbox">
+                    <input id="showProgressSpinner" type="checkbox" ${showProgressSpinner}/>
+                    <span class="setup-checkbox__label">Show progress icon</span>
+                </label>
             </div>
-        </div>
+        </section>
+        <div class="separator"></div>
+        <h2 class="center">Show This Page Again</h2>
+        <section class="setup-card setup-card--hero">
+            <div class="setup-card__content-block">
+                <div class="setup-card__media">
+                    <img src="${params.tutorial2Uri}" class="setup-card__media-image" alt="Show progress spinner preview" />
+                </div>
+                <div class="setup-card__caption-group">
+                    <span class="setup-card__caption">*Mouse hover. Don't click!</span>
+                    <label class="setup-checkbox">
+                        <input id="hideNextInline" type="checkbox" ${hideOnSetup}/>
+                        <span class="setup-checkbox__label">Don't show this again</span>
+                    </label>
+                </div>
+            </div>
+        </section>
         <div class="floating-controls">
             <label class="checkbox floating-label"><input id="hideNext" type="checkbox" ${hideOnSetup}/>Don't show this again</label>
             <div class="floating-divider"></div>
@@ -549,16 +569,17 @@ function getHtml(params: {
         <script nonce="${nonce}">
             const vscode = acquireVsCodeApi();
             let state = ${initialState};
-            const serverLabel = document.getElementById('serverLabel');
-            const serverAction = document.getElementById('serverAction');
+            const serverStatusContainer = document.getElementById('serverStatus');
+            const serverActionLink = document.getElementById('serverActionButton');
             const apiBaseURLInput = document.getElementById('apiBaseURL');
             const hideNext = document.getElementById('hideNext');
+            const hideNextInline = document.getElementById('hideNextInline');
             const showProgressSpinnerCheckbox = document.getElementById('showProgressSpinner');
             const openSettingsBtn = document.getElementById('openSettingsBtn');
             const assets = ${assetsJson};
             console.log('[cotab] quickSetup assets loaded', assets);
 
-            function setImage(container, uri, alt) {
+            function renderSvgImage(container, uri, alt) {
                 container.innerHTML = '';
                 const img = document.createElement('img');
                 img.alt = alt;
@@ -571,41 +592,45 @@ function getHtml(params: {
                 container.appendChild(img);
             }
 
-            function render() {
-                serverLabel.innerHTML = '';
-                serverAction.innerHTML = '';
-                serverAction.dataset.cmd = '';
+            function renderServerState() {
+                if (!serverStatusContainer || !serverActionLink) {
+                    return;
+                }
+
+                serverStatusContainer.innerHTML = '';
+                serverActionLink.innerHTML = '';
+                delete serverActionLink.dataset.command;
 
                 console.log('[cotab] quickSetup render state', state);
                 if (state?.kind === 'network') {
-                    setImage(serverLabel, assets.networkLbl, 'Network Server Running');
-                    serverAction.style.display = 'none';
+                    renderSvgImage(serverStatusContainer, assets.networkLbl, 'Network Server Running');
+                    serverActionLink.style.display = 'none';
                 } else if (state?.kind === 'start' && state?.command) {
-                    serverAction.style.display = '';
-                    serverLabel.textContent = '';
-                    setImage(serverAction, assets.startBtn, 'Start Server');
-                    serverAction.dataset.cmd = state.command;
+                    serverActionLink.style.display = '';
+                    serverStatusContainer.textContent = '';
+                    renderSvgImage(serverActionLink, assets.startBtn, 'Start Server');
+                    serverActionLink.dataset.command = state.command;
                 } else if (state?.kind === 'stop') {
-                    setImage(serverLabel, assets.stopBtn, 'Local Server Running');
-                    serverAction.style.display = 'none';
+                    renderSvgImage(serverStatusContainer, assets.stopBtn, 'Local Server Running');
+                    serverActionLink.style.display = 'none';
                 } else if (state?.kind === 'install' && state?.command) {
-                    serverAction.style.display = '';
-                    serverLabel.textContent = '';
-                    setImage(serverAction, assets.installBtn, 'Install Server');
-                    serverAction.dataset.cmd = state.command;
+                    serverActionLink.style.display = '';
+                    serverStatusContainer.textContent = '';
+                    renderSvgImage(serverActionLink, assets.installBtn, 'Install Server');
+                    serverActionLink.dataset.command = state.command;
                 } else {
-                    serverLabel.textContent = '';
-                    serverAction.style.display = 'none';
+                    serverStatusContainer.textContent = '';
+                    serverActionLink.style.display = 'none';
                 }
             }
 
-            render();
+            renderServerState();
 
             window.addEventListener('message', (event) => {
                 const msg = event.data || {};
                 if (msg.type === 'state' && msg.state) {
                     state = msg.state;
-                    render();
+                    renderServerState();
                 }
             });
 
@@ -618,9 +643,39 @@ function getHtml(params: {
                 }, 400);
             });
 
-            hideNext.addEventListener('change', () => {
-                vscode.postMessage({ type: 'setHideOnSetup', value: hideNext.checked });
-            });
+            function syncHideOnSetupCheckboxes(value) {
+                if (hideNext instanceof HTMLInputElement) {
+                    hideNext.checked = value;
+                }
+                if (hideNextInline instanceof HTMLInputElement) {
+                    hideNextInline.checked = value;
+                }
+            }
+
+            function handleHideOnSetupChange(event) {
+                const target = event.currentTarget;
+                if (!(target instanceof HTMLInputElement)) {
+                    return;
+                }
+                const value = target.checked;
+                syncHideOnSetupCheckboxes(value);
+                vscode.postMessage({ type: 'setHideOnSetup', value });
+            }
+
+            if (hideNext instanceof HTMLInputElement) {
+                hideNext.addEventListener('change', handleHideOnSetupChange);
+            }
+
+            if (hideNextInline instanceof HTMLInputElement) {
+                hideNextInline.addEventListener('change', handleHideOnSetupChange);
+            }
+
+            const initialHideValue = hideNext instanceof HTMLInputElement
+                ? hideNext.checked
+                : hideNextInline instanceof HTMLInputElement
+                    ? hideNextInline.checked
+                    : false;
+            syncHideOnSetupCheckboxes(Boolean(initialHideValue));
 
             if (showProgressSpinnerCheckbox instanceof HTMLInputElement) {
                 showProgressSpinnerCheckbox.addEventListener('change', () => {
@@ -634,13 +689,15 @@ function getHtml(params: {
                 });
             }
 
-            serverAction.addEventListener('click', (e) => {
-                e.preventDefault();
-                const cmd = serverAction.dataset.cmd;
-                if (cmd) {
-                    vscode.postMessage({ type: 'executeCommand', command: cmd });
-                }
-            });
+            if (serverActionLink) {
+                serverActionLink.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    const commandId = serverActionLink.dataset.command;
+                    if (commandId) {
+                        vscode.postMessage({ type: 'executeCommand', command: commandId });
+                    }
+                });
+            }
         </script>
     </body>
 </html>`;

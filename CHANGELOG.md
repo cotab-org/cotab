@@ -1,5 +1,9 @@
+## 0.0.10
+- Update: Quick Setup view
+- Fix: Suggestion display bug
+- Feat: First line accept
 ## 0.0.9
-- Add: Quick Setup Wizard
+- Add: Quick Setup view
 - Fix: Inline suggestion issue
 ## 0.0.8
 - Add radio button to prompt selection
