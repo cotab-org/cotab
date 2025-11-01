@@ -240,7 +240,7 @@ export class SuggestionManager implements vscode.Disposable {
             clearAllDecorations(vscode.window.activeTextEditor!);
             hideProgress();
         }
-        const { sourceAnalysis, symbolCodeBlock, editHistoryCodeBlock } =
+        const { sourceAnalysis, symbolCodeBlock, editHistoryActions } =
                 await codeBlockBuilder.buildCodeBlocks(
                                         client,
                                         editorContext,
@@ -255,15 +255,15 @@ export class SuggestionManager implements vscode.Disposable {
                         buildCompletionPrompts(editorContext,
                                                 sourceAnalysis,
                                                 symbolCodeBlock,
-                                                editHistoryCodeBlock,
+                                                editHistoryActions,
                                                 document.uri.toString());
         
         const isOutput = true;
         if (isOutput) {
-            logDebug(`System prompt:\n${systemPrompt ?? '(none)'}`);
-            logDebug(`User prompt BEGIN\n${userPrompt}\nUser prompt END`);
-            logDebug(`Assistant prompt:\n${assistantPrompt}`);
-            logDebug(`Edit History:\n${editHistoryCodeBlock}`);
+            logDebug(`####################\nSYSTEM PROMPT\n####################\n${systemPrompt ?? '(none)'}`);
+            logDebug(`####################\nUSER PROMPT\n####################\n${userPrompt}\n`);
+            logDebug(`####################\nASSITANT PROMT\n####################\n${assistantPrompt}`);
+            logDebug(`\n####################\n`);
         }
         // Callback to process partial responses received via streaming
         let firstUpdate = true;

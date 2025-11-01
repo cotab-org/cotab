@@ -8,7 +8,7 @@ export function registerEditHistory(disposables: vscode.Disposable[]) {
 
 // Represents a single edit operation
 export interface EditOperation {
-	type: 'add' | 'delete' | 'modify' | 'rename' | 'copy';
+	type: 'add' | 'delete' | 'modify' | 'rename' | 'copy' | 'reject';
     
 	// Text before editing
 	sourceOriginalText: string;
@@ -70,77 +70,116 @@ class EditHistoryManager implements vscode.Disposable {
 		let last = this.edits[this.edits.length - 1];
 
 		if (last) {
-
-            // Same text means likely reverted.
-            if (op.originalText === op.newText) {
-                // If original text of this line matches, it was reverted.
-                if (last.sourceOriginalText === op.sourceOriginalText) {
-                    this.edits.splice(this.edits.length - 1, 1);
-                    return;
+            // Reject operations are only kept once, so if the last operation is a reject, remove it
+            if (last.type === 'reject') {
+                this.edits.splice(this.edits.length - 1, 1);
+            }
+            
+            if (op.type === 'reject') {
+                this.edits.push(op);
+            }
+            else if (op.type === 'copy') {
+                if (last.type === 'copy') {
+                    last.newText = op.newText;
+                    last.timestamp = op.timestamp;
+                } else {
+                    this.edits.push(op);
                 }
             }
-
-            // Merge if last.range and op.range overlap
-            if (last.document.uri.toString() === op.document.uri.toString() &&
-                last.range.start.line - 1 <= op.range.start.line &&
-                op.range.end.line <= last.range.end.line + 1) {
-                // Create new Range by taking min/max of start/end positions of last.range and op.range
-                const start = last.range.start.isBefore(op.range.start) ? last.range.start : op.range.start;
-                const end = last.range.end.isAfter(op.range.end) ? last.range.end : op.range.end;
-                last.range = new vscode.Range(start, end);
-
-                // Get merge range
-                const readRange = new vscode.Range(
-                    new vscode.Position(last.range.start.line, 0),
-                    new vscode.Position(last.range.end.line, 99999)
-                );
-
-                // For delete operations, get original text from cache, new text is empty string
-                let originalText: string;
-                let newText: string;
-
-                let isNewOperation = false;
-                
-                originalText = this.lineCacheManager.getCacheText(op.document, readRange).replace(/\r?\n/g, '\n').replace(/\n$/, '');
-                newText = op.document.getText(readRange).replace(/\r?\n/g, '\n').replace(/\n$/, '');
-
-                const segments = computeCharDiff(originalText, newText);
-                let opType: 'add' | 'delete' | 'modify' | 'rename' | 'copy' = 'add';
-                {
-                    const filterdSegments = segments.filter(seg => seg.type !== 'keep');
-                    if (1 < filterdSegments.length) {
-                        opType = 'modify';
-                    } else {
-                        opType = (filterdSegments[0].type === 'add') ? 'add' : 'delete';
+            else {
+                // Same text means likely reverted.
+                if (op.originalText === op.newText) {
+                    // If original text of this line matches, it was reverted.
+                    if (last.sourceOriginalText === op.sourceOriginalText) {
+                        this.edits.splice(this.edits.length - 1, 1);
+                        return;
                     }
                 }
-                
-                // For multiple lines, examine differences and count non-eq items
-                if (readRange.start.line !== readRange.end.line) {
 
-                    // Exclude segments with only whitespace
-                    const filterdSegments = segments.filter(seg => seg.type !== 'keep' || seg.text.trim() !== '');
+                // Merge if last.range and op.range overlap
+                if (last.document.uri.toString() === op.document.uri.toString() &&
+                    last.range.start.line - 1 <= op.range.start.line &&
+                    op.range.end.line <= last.range.end.line + 1) {
+                    // Create new Range by taking min/max of start/end positions of last.range and op.range
+                    const start = last.range.start.isBefore(op.range.start) ? last.range.start : op.range.start;
+                    const end = last.range.end.isAfter(op.range.end) ? last.range.end : op.range.end;
+                    last.range = new vscode.Range(start, end);
 
-                    // Count edit segments
-                    let diffCount = 0;
-                    let prevSegment: CharDiffSegment | null = null;
-                    for (const segment of filterdSegments) {
-                        if (segment.type !== 'keep') {
-                            // Don't count if consecutive
-                            const isContinue = (prevSegment && prevSegment.type === segment.type);
-                            if (!isContinue) {
-                                diffCount++;
-                            }
+                    // Get merge range
+                    const readRange = new vscode.Range(
+                        new vscode.Position(last.range.start.line, 0),
+                        new vscode.Position(last.range.end.line, 99999)
+                    );
+
+                    // For delete operations, get original text from cache, new text is empty string
+                    let originalText: string;
+                    let newText: string;
+
+                    let isNewOperation = false;
+                    
+                    originalText = this.lineCacheManager.getCacheText(op.document, readRange).replace(/\r?\n/g, '\n').replace(/\n$/, '');
+                    newText = op.document.getText(readRange).replace(/\r?\n/g, '\n').replace(/\n$/, '');
+
+                    const segments = computeCharDiff(originalText, newText);
+                    let opType: 'add' | 'delete' | 'modify' | 'rename' | 'copy' | 'reject' = 'add';
+                    {
+                        const filterdSegments = segments.filter(seg => seg.type !== 'keep');
+                        if (1 < filterdSegments.length) {
+                            opType = 'modify';
+                        } else if (0 == filterdSegments.length) {
+                            opType = 'delete';
+                        } else {
+                            opType = (filterdSegments[0].type === 'add') ? 'add' : 'delete';
                         }
-                        prevSegment = segment;
                     }
-                    if (1 < diffCount) {
-                        // Multiple sections separated, so this deletion is a separate item.
-                        isNewOperation = true;
+                    
+                    // For multiple lines, examine differences and count non-eq items
+                    if (readRange.start.line !== readRange.end.line) {
+
+                        // Exclude segments with only whitespace
+                        const filterdSegments = segments.filter(seg => seg.type !== 'keep' || seg.text.trim() !== '');
+
+                        // Count edit segments
+                        let diffCount = 0;
+                        let prevSegment: CharDiffSegment | null = null;
+                        for (const segment of filterdSegments) {
+                            if (segment.type !== 'keep') {
+                                // Don't count if consecutive
+                                const isContinue = (prevSegment && prevSegment.type === segment.type);
+                                if (!isContinue) {
+                                    diffCount++;
+                                }
+                            }
+                            prevSegment = segment;
+                        }
+                        if (1 < diffCount) {
+                            // Multiple sections separated, so this deletion is a separate item.
+                            isNewOperation = true;
+                        }
                     }
-                }
-                // New
-                if (isNewOperation) {
+                    // New
+                    if (isNewOperation) {
+                        // Ignore if no letters (English, Japanese, etc.) are included
+                        if (/[\p{L}]/u.test(op.originalText) || /[\p{L}]/u.test(op.newText)) {
+                            // Detect and apply rename
+                            detectRenameAndApply(op);
+
+                            this.edits.push(op);
+                        }
+                    }
+                    // Merge
+                    else {
+                        if (/[\p{L}]/u.test(originalText) || /[\p{L}]/u.test(newText)) {
+                            last.type = opType;
+                            last.originalText = originalText;
+                            last.newText = newText;
+                            last.timestamp = op.timestamp; // Update final timestamp
+
+                            // Detect and apply rename
+                            detectRenameAndApply(last);
+                        }
+                    }
+                } else {
                     // Ignore if no letters (English, Japanese, etc.) are included
                     if (/[\p{L}]/u.test(op.originalText) || /[\p{L}]/u.test(op.newText)) {
                         // Detect and apply rename
@@ -148,28 +187,6 @@ class EditHistoryManager implements vscode.Disposable {
 
                         this.edits.push(op);
                     }
-                }
-                // Merge
-                else {
-                    if (op.type !== 'copy') {
-                        last.type = opType;
-                        last.originalText = originalText;
-                        last.newText = newText;
-
-                        // Detect and apply rename
-                        detectRenameAndApply(last);
-                    } else {
-                        last.newText = op.newText;
-                    }
-                    last.timestamp = op.timestamp; // Update final timestamp
-                }
-            } else {
-                // Ignore if no letters (English, Japanese, etc.) are included
-                if (/[\p{L}]/u.test(op.originalText) || /[\p{L}]/u.test(op.newText)) {
-                    // Detect and apply rename
-                    detectRenameAndApply(op);
-
-                    this.edits.push(op);
                 }
             }
 		} else {

@@ -72,7 +72,17 @@ Unless explicitly instructed to modify other parts, output the input code exactl
 </CODE_SUMMARY>
 
 <EDIT_HISTORY>
-The most recent edits are at the bottom.
+The "<EDIT_HISTORY>" section encodes a list of edit operations in YAML format. The latest edit is at the bottom.
+The types of actions are as follows:
+- "add": Code was added. "after" is the text after the insertion. The user is actively writing new code, so you must continue by completing the code that follows.
+- "delete": Code was removed. "after" is the text after the deletion. The user is refactoring; do not restore the deleted code. Instead, rewrite the code by moving or refactoring what was removed.
+- "modify": Code was changed. "after" is the revised text. The user is refactoring; understand the change and rewrite the code accordingly to perform any necessary refactoring.
+- "rename": A symbol was renamed. "after" is the new name. The user is performing a rename refactor; propagate the rename to all dependent locations.
+- "copy": Code was copied. "content" is the copied text. The user intends to code using this text; implement behavior consistent with the contents of this text.
+- "reject": Your completion was rejected. "content" is the text of your rejected suggestion. Do not make the same suggestion again; instead, propose different code that diverges from this content.
+And the other parameters are defined as follows:
+- "file": "current" refers to "<CODE_INPUT>", while "other" refers to edits in an external file.
+- "lines": the line number of the edited "<CODE_INPUT>".
 Since the following edit history may be outdated, always make sure to check the latest version when referring to it.
 \`\`\`yaml
 # Since this may be outdated, you must always verify the latest state when referring to it.
@@ -108,13 +118,25 @@ The provided source code may also be outdated, so I must retrieve the latest ver
 I will write program comments in "{{commentLanguage}}".
 </think>
 
-Sure! I will output only the code block. and I will not forget to also output "{{stopEditingHere}}".{{additionalAssistantOutputPrompt}}
+Sure! I will output only the code block. and I will not forget to also output "{{stopEditingHere}}".{{appendOutputPrompt}}{{additionalAssistantOutputPrompt}}
 Here is the complete edited code block:
 {{assistantSourceCodeBlockBforeCursor}}`;
 
-const defaultAppendThinkPromptNewScope = `I have checked the latest source code. The editing position is within an empty scope, and it is highly likely that the user intends to write new code.Therefore, I implement the new code inferred from the surrounding implementation at the editing position, without including comments. The user always wants to insert some new code.`;
-const defaultAppendThinkPromptRefactoring = `I have checked the latest source code and edit history. Since some code has been deleted or modified, I will determine the necessary refactoring based on those changes and update the existing code accordingly.`;
-const defaultAppendThinkPromptAddition = `I have checked the latest source code and edit history. Since some code has been added or modified, I will implement the remaining necessary code after \`\`\`{{cursorLineBefore}}\`\`\`.`;
+const defaultAppendThinkPromptNewScope = `Okey, I have checked the latest source code. The editing position is within an empty scope, and it is highly likely that the user intends to write new code.Therefore, I implement the new code inferred from the surrounding implementation at the editing position, without including comments. The user always wants to insert some new code.`;
+const defaultAppendThinkPromptRefactoring = `Okey, I have checked the latest source code and edit history. Since some code has been deleted or modified, I will determine the necessary refactoring based on those changes and update the existing code accordingly.`;
+const defaultAppendThinkPromptAddition = `Okey, I have checked the latest source code and edit history. Since some code has been added or modified, I will implement the remaining necessary code after \`\`\`{{cursorLineBefore}}\`\`\`.`;
+const defaultAppendThinkPromptReject = 
+`And the user rejected the following code:
+\`\`\`
+{{rejectContent}}
+\`\`\`
+so I must output a different piece of code.`
+const defaultAppendOutputPromptReject = 
+`The user rejected the following code:
+\`\`\`
+{{rejectContent}}
+\`\`\`
+so I must output a different piece of code.`
 
 //#######################################################################################
 // Analysis Prompts
@@ -173,6 +195,8 @@ export function getYamlDefaultCodingPrompt(): YamlPrompt {
 		appendThinkPromptNewScope: defaultAppendThinkPromptNewScope,
 		appendThinkPromptRefactoring: defaultAppendThinkPromptRefactoring,
 		appendThinkPromptAddition: defaultAppendThinkPromptAddition,
+		appendThinkPromptReject: defaultAppendThinkPromptReject,
+		appendOutputPromptReject: defaultAppendOutputPromptReject,
 		analyzeSystemPrompt: defaultAnalyzeSystemPrompt,
 		analyzeUserPrompt: defaultAnalyzeUserPrompt
 	};

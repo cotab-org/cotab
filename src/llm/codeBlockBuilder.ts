@@ -26,7 +26,45 @@ interface CacheData {
 export interface CodeBlocks {
 	sourceAnalysis: string;
 	symbolCodeBlock: string;
-	editHistoryCodeBlock: string;
+	editHistoryActions: EditHistoryAction[];
+}
+
+export interface EditHistoryAction {
+	action: string;
+	file?: string;
+	lines?: number[];
+	before?: string;
+	after?: string;
+	content?: string;
+}
+
+export function makeYamlFromEditHistoryActions(editHistoryActions: EditHistoryAction[]): string {
+	let codeBlocks: string[] = [];
+
+	for (const action of editHistoryActions) {
+		let codeBlock = '';
+		if (action.action === 'copy') {
+			codeBlock += `- action: ${action.action}`;
+			codeBlock += `\n  content: ${action.content}`;
+		}
+		else if (action.action === 'reject') {
+			codeBlock += `- action: ${action.action}`;
+			codeBlock += `\n  content: ${action.content}`;
+		}
+		else {
+			codeBlock += `- action: ${action.action}`;
+			codeBlock += `\n  file: ${action.file}`;
+			if (action.file === 'current') {
+				codeBlock += `\n  lines: [${action.lines?.join(',')}]`;
+			}
+			codeBlock += `\n  before: ${action.before}`;
+			codeBlock += `\n  after: ${action.after}`;
+		}
+
+		codeBlocks.push(codeBlock);
+	}
+	const text = (0 < codeBlocks.length) ? codeBlocks.join('\n') : '# There are no edit histories.';
+	return `\`\`\`yaml\n${text}\n\`\`\``;
 }
 
 class CodeBlockBuilder {	
@@ -48,12 +86,12 @@ class CodeBlockBuilder {
 		const symbolCodeBlock = this.buildSymbolCodeBlock(editorContext);
 
 		// Build edit history code block
-		const editHistoryCodeBlock = this.buildEditHistoryCodeBlock(editorContext, currentCursorLine);
+		const editHistoryActions = this.buildEditHistoryCodeBlock(editorContext, currentCursorLine);
 
 		return {
 			sourceAnalysis,
 			symbolCodeBlock,
-			editHistoryCodeBlock
+			editHistoryActions,
 		};
 	}
 
@@ -166,11 +204,12 @@ ${block}
 		return totalCodeBlock || '# There are no symbols.';
 	}
 
-	private buildEditHistoryCodeBlock(editorContext: EditorContext, currentCursorLine: number): string {
+	private buildEditHistoryCodeBlock(editorContext: EditorContext, currentCursorLine: number): EditHistoryAction[] {
 		let histories: string[] = [];
 		const editHistory = editHistoryManager.getEdits();
 		logInfo(`Edit history: ${editHistory.length} items`);
 
+		const editHistoryActions : EditHistoryAction[] = [];
 		for (const edit of editHistory) {
 			// // Ignore recent edits for prompt cache efficiency
 			// if (edit.range.start.line - 10 < currentCursorLine &&
@@ -195,25 +234,36 @@ ${block}
 
 			// lines
 			const lineArr = Array.from({length: edit.range.end.line - edit.range.start.line + 1});
-			const linesContent = '[' + lineArr.map((_, i) => `${1 + i + edit.range.start.line}`).join(',') + ']';
+			const lines = lineArr.map((_, i) => 1 + i + edit.range.start.line);
+			const linesContent = '[' + lines.join(',') + ']';
 			const linesOption = isCurrent ? `\n  lines: ${linesContent}` : ``;
 
-			const action = (edit.type === 'copy')
-? `- action: ${edit.type}
-  content: ${newContent}`
-: `- action: ${edit.type}${linesOption}
-  file: ${fileContent}
-  before: ${originalContent}
-  after: ${newContent}`;
-			histories.push(action);
+			if (edit.type === 'copy') {
+				editHistoryActions.push({
+					action: edit.type,
+					content: newContent,
+				});
+			}
+			else if (edit.type === 'reject') {
+				editHistoryActions.push({
+					action: edit.type,
+					file: fileContent,
+					lines: isCurrent ? lines : undefined,
+					content: newContent,
+				});
+			}
+			else {
+				editHistoryActions.push({
+					action: edit.type,
+					file: fileContent,
+					lines: isCurrent ? lines : undefined,
+					before: originalContent,
+					after: newContent,
+				});
+			}
 		}
 
-		const codeBlock = histories.join('\n') || '# There are no edit histories.';
-		const editHistoryCodeBlock =
-`\`\`\`yaml
-${codeBlock}
-\`\`\``;
-		return editHistoryCodeBlock;
+		return editHistoryActions;
 	}
 }
 

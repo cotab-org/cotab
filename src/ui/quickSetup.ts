@@ -552,7 +552,7 @@ function getHtml(params: {
                     <img src="${params.tutorial2Uri}" class="setup-card__media-image" alt="Show progress spinner preview" />
                 </div>
                 <div class="setup-card__caption-group">
-                    <span class="setup-card__caption">*Mouse hover. Don't click!</span>
+                    <span class="setup-card__caption">Hover over the status bar. Don't click!</span>
                     <label class="setup-checkbox">
                         <input id="hideNextInline" type="checkbox" ${hideOnSetup}/>
                         <span class="setup-checkbox__label">Don't show this again</span>

@@ -1,7 +1,9 @@
 # Cotab
+This is a VS Code extension that provides AI-powered multi-line edit suggestions. It generates multiple lines of code using AI, taking into account not only the cursor position but also the all code context, and displays the merged result with the existing code as an autocomplete suggestion.
+
 ![Autocomplete Tutorial](doc/asset/cotab-tutorial-autocomplete1.gif)
 
-This is a VS Code extension that provides AI-powered multi-line edit suggestions. It generates multiple lines of code using AI, taking into account not only the cursor position but also the all code context, and displays the merged result with the existing code as an autocomplete suggestion.
+The programming languages supported depend on the model you use; this extension itself is language-agnostic.
 
 ## Feature
 - Provides functionality focused solely on Autocomplete
@@ -11,12 +13,10 @@ This is a VS Code extension that provides AI-powered multi-line edit suggestions
 - Open source ensuring transparency
 - Prioritizes privacy, operates completely offline using local LLM
 
-## Quick start
+## Getting started
 1. Install Cotab via the VS Code marketplace
-2. Configure your local LLM server (e.g., llama-server) at `http://localhost:8080/v1`
+2. win:Click install server button. mac/linux: Configure your api.
 3. Start typing in any file - you'll see AI-powered multi-line suggestions appear
-
-## How to use
 
 
 ## Important Notes
@@ -60,7 +60,8 @@ Cotab only communicates with the default endpoint `"http://localhost:8080/v1"` o
 - No telemetry or usage data is ever sent
 - User code or input is never shared with third parties
 - No personal information is collected or stored
-- This project is open-source, and all source code is available on GitHub  
+- This project is open-source, and all source code is available on GitHub
+- Note: When installing llama.cpp, it communicates with its repository.
 
 With this policy, you can use Cotab with complete confidence.
 

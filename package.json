@@ -75,10 +75,6 @@
         "title": "Cotab: Clear All Suggestions"
       },
       {
-        "command": "cotab.toggleEnabled",
-        "title": "Cotab: Toggle Enabled"
-      },
-      {
         "command": "cotab.server.install",
         "title": "Cotab: [Server] Install or update - Easily install/update llama.cpp on the system via the web."
       },

@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { LineDiff } from '../diff/lineDiffUtils';
 import { clearAcceptingSuggestion } from './suggestionCommands';
+import { logDebug } from '../utils/logger';
 
 export interface LineEdit {
 	line: number;
@@ -78,4 +79,5 @@ export function clearSuggestions(uri: vscode.Uri | string) {
 	}
 	
 	store.delete(key);
+	logDebug('******************* clearSuggestions');
 }

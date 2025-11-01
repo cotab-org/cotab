@@ -38,6 +38,8 @@ export interface YamlPrompt {
     appendThinkPromptNewScope?: string;
     appendThinkPromptRefactoring?: string;
     appendThinkPromptAddition?: string;
+    appendThinkPromptReject?: string;
+    appendOutputPromptReject?: string;
     analyzeSystemPrompt?: string;
     analyzeUserPrompt?: string;
 }
@@ -121,6 +123,8 @@ export function getYamlConfig(): YamlConfig {
             prompt.appendThinkPromptNewScope = prompt.appendThinkPromptNewScope?.replace(/\n+$/, '');
             prompt.appendThinkPromptRefactoring = prompt.appendThinkPromptRefactoring?.replace(/\n+$/, '');
             prompt.appendThinkPromptAddition = prompt.appendThinkPromptAddition?.replace(/\n+$/, '');
+            prompt.appendThinkPromptReject = prompt.appendThinkPromptReject?.replace(/\n+$/, '');
+            prompt.appendOutputPromptReject = prompt.appendOutputPromptReject?.replace(/\n+$/, '');
             prompt.analyzeSystemPrompt = prompt.analyzeSystemPrompt?.replace(/\n+$/, '');
             prompt.analyzeUserPrompt = prompt.analyzeUserPrompt?.replace(/\n+$/, '');
         }
@@ -356,6 +360,16 @@ prompts:
         if (prompt.appendThinkPromptAddition) {
             yamlContent += `#    appendThinkPromptAddition: |\n`;
             yamlContent += `#      ${prompt.appendThinkPromptAddition.replace(/\n/g, '\n#      ')}\n`;
+        }
+
+        if (prompt.appendThinkPromptReject) {
+            yamlContent += `#    appendThinkPromptReject: |\n`;
+            yamlContent += `#      ${prompt.appendThinkPromptReject.replace(/\n/g, '\n#      ')}\n`;
+        }
+
+        if (prompt.appendOutputPromptReject) {
+            yamlContent += `#    appendOutputPromptReject: |\n`;
+            yamlContent += `#      ${prompt.appendOutputPromptReject.replace(/\n/g, '\n#      ')}\n`;
         }
         
         if (prompt.analyzeSystemPrompt) {

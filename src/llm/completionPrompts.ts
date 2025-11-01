@@ -4,6 +4,7 @@ import { logDebug } from '../utils/logger';
 import { withLineNumberCodeBlock } from './llmUtils';
 import { getYamlConfigPrompt } from '../utils/yamlConfig';
 import { parseHandlebarsTemplate } from '../utils/cotabUtil';
+import { EditHistoryAction, makeYamlFromEditHistoryActions } from '../llm/codeBlockBuilder';
 
 // Surrounding code line count
 const LATEST_AROUND_CODE_LINES = 15;
@@ -149,7 +150,7 @@ ${afterOutside}`
 export function buildCompletionPrompts(ctx: EditorContext,
 	sourceAnalysis?: string,
 	symbolCodeBlock?: string,
-	editHistoryCodeBlock?: string,
+	editHistoryActions?: EditHistoryAction[],
 	documentUri?: string): {
 		systemPrompt: string;
 		userPrompt: string;
@@ -161,7 +162,6 @@ export function buildCompletionPrompts(ctx: EditorContext,
 	const stopEditingHereSymbol = config.stopEditingHereSymbol;
 	sourceAnalysis = sourceAnalysis ?? '';
 	symbolCodeBlock = symbolCodeBlock ?? '';
-	editHistoryCodeBlock = editHistoryCodeBlock ?? '';
 
 	// Get YAML configuration
 	const yamlPrompt = getYamlConfigPrompt(ctx.relativePath);
@@ -173,6 +173,8 @@ export function buildCompletionPrompts(ctx: EditorContext,
 	const appendThinkPromptNewScope = yamlPrompt.appendThinkPromptNewScope || '';
 	const appendThinkPromptRefactoring = yamlPrompt.appendThinkPromptRefactoring || '';
 	const appendThinkPromptAddition = yamlPrompt.appendThinkPromptAddition || '';
+	const appendThinkPromptReject = yamlPrompt.appendThinkPromptReject || '';
+	const appendOutputPromptReject = yamlPrompt.appendOutputPromptReject || '';
 
 	// Code blocks
 	const sourceCode = ctx.documentText.split('\n');
@@ -250,6 +252,28 @@ ${startEditingHereSymbol}
 ${cursorLineBefore}`;
 
 
+	let lastAction = '';
+	let lastActionWithoutReject = '';
+	let rejectContent = '';
+	if (editHistoryActions && 0 < editHistoryActions.length) {
+		lastAction = editHistoryActions[editHistoryActions.length - 1].action;
+		for (let i = editHistoryActions.length - 1; i >= 0; i--) {
+			const action = editHistoryActions[i];
+			if (action.action === 'reject') {
+				if (action.content) {
+					let line = '';
+					if (action.lines && 0 < action.lines.length) {
+						line = `${action.lines[0]}|`;
+					}
+					rejectContent = line + action.content;
+				}
+			}
+			else {
+				lastActionWithoutReject = action.action;
+				break;
+			}
+		}
+	}
 	
 	// Create Handlebars context
 	let handlebarsContext = {
@@ -264,7 +288,7 @@ ${cursorLineBefore}`;
 		// Code blocks
 		"sourceCodeBlock": sourceCodeBlock,
 		"symbolCodeBlock": symbolCodeBlock,
-		"editHistoryCodeBlock": editHistoryCodeBlock,
+		"editHistoryCodeBlock": makeYamlFromEditHistoryActions(editHistoryActions??[]),
 		"sourceAnalysis": sourceAnalysis,
 		"latestSourceCodeBlock": latestSourceCodeBlock,
 		"assistantSourceCodeBlockBforeCursor": assistantSourceCodeBlockBforeCursor,
@@ -277,13 +301,19 @@ ${cursorLineBefore}`;
 		"additionalAssistantOutputPrompt": config.additionalAssistantOutputPrompt ? '\n' + config.additionalAssistantOutputPrompt : '',
 		
 		// Thinking prompt
-		"appendThinkPrompt": ""
+		"appendThinkPrompt": "",
+		"rejectContent": rejectContent,
+
+		// Output
+		"appendOutputPrompt": "",
 	};
 	
 	// Decide appendThinkPrompt by simple rules
 	let parsedAppendThinkPrompt = '';
+	let parsedAppendOutputPrompt = '';
 	{
 		let appendThinkPrompt = '';
+		let appendOutputPrompt = '';
 		const cursorIndex = ctx.cursorLine - ctx.aroundFromLine;
 		const cursorLineText = (0 <= cursorIndex && cursorIndex < latestAroundSnippetLines.length)
 			? latestAroundSnippetLines[cursorIndex]
@@ -293,17 +323,28 @@ ${cursorLineBefore}`;
 			appendThinkPrompt = appendThinkPromptNewScope;
 		} else {
 			// Determine by the LAST action in edit history (delete/rename/modify => refactor)
-			const historyText = editHistoryCodeBlock || '';
-			const matches = Array.from(historyText.matchAll(/-\s*action:\s*(\w+)/gi));
-			const lastAction = (0 < matches.length) ? (matches[matches.length - 1][1] || '').toLowerCase() : '';
-			const isRefactorAction = lastAction === 'delete' || lastAction === 'rename' || lastAction === 'modify';
-			appendThinkPrompt = isRefactorAction ? appendThinkPromptRefactoring : appendThinkPromptAddition;
+			if (lastActionWithoutReject === 'delete') {
+				appendThinkPrompt = appendThinkPromptRefactoring;
+			} else if (lastActionWithoutReject === 'rename') {
+				appendThinkPrompt = appendThinkPromptRefactoring;
+			} else if (lastActionWithoutReject === 'modify') {
+				appendThinkPrompt = appendThinkPromptRefactoring;
+			} else {
+				appendThinkPrompt = appendThinkPromptAddition;
+			}
+			// Append reject prompt if the last action was 'reject'
+			if (lastAction === 'reject') {
+				appendThinkPrompt += '\n' + appendThinkPromptReject;
+				appendOutputPrompt += appendOutputPromptReject;
+			}
 		}
 		parsedAppendThinkPrompt = parseHandlebarsTemplate(appendThinkPrompt, handlebarsContext);
+		parsedAppendOutputPrompt = parseHandlebarsTemplate(appendOutputPrompt, handlebarsContext);
 	}
 
 	// Thinking prompt
 	handlebarsContext.appendThinkPrompt = parsedAppendThinkPrompt;
+	handlebarsContext.appendOutputPrompt = parsedAppendOutputPrompt;
 	
 	// Parse Handlebars templates
 	const parsedSystemPrompt = parseHandlebarsTemplate(systemPrompt, handlebarsContext);

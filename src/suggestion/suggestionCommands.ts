@@ -5,6 +5,7 @@ import { logInfo, logDebug, logWarning, logError } from '../utils/logger';
 import { suggestionManager } from './suggestionManager';
 import { computeCharDiff } from '../diff/charDiff';
 import { statusBarManager } from '../ui/statusBarManager';
+import { editHistoryManager } from '../managers/editHistoryManager';
 
 // Flag to prevent duplicate processing
 let isProcessingSuggestion = false;
@@ -39,11 +40,58 @@ export function registerSuggestionCommands(disposables: vscode.Disposable[]) {
 // 	await jumpToSuggestion(editor, next.line);
 // }
 
+function addRejectHistory(editor: vscode.TextEditor) {
+    logDebug('******************* addRejectHistory');
+	const suggestions = getSuggestions(editor.document.uri);
+	const firstEdit = suggestions.edits[0];
+	if (editHistoryManager && firstEdit) {
+		const document = editor.document;
+		const targetLine = firstEdit.line;
+		let originalLineText = '';
+		if (0 <= targetLine && targetLine < document.lineCount) {
+			originalLineText = document.lineAt(targetLine).text;
+		}
+		const newLineText = (firstEdit.newText ?? '').split('\n')[0] ?? '';
+		const rangeLine = document.lineCount === 0
+			? 0
+			: Math.min(Math.max(targetLine, 0), Math.max(document.lineCount - 1, 0));
+		const range = new vscode.Range(
+			new vscode.Position(rangeLine, 0),
+			new vscode.Position(rangeLine, originalLineText.length)
+		);
+		editHistoryManager.addEdit({
+			type: 'reject',
+			sourceOriginalText: originalLineText,
+			originalText: originalLineText,
+			newText: newLineText,
+			range,
+			document,
+			timestamp: Date.now(),
+		});
+	}
+}
+
 export async function clearAllSuggestionsCmd() {
 	const editor = vscode.window.activeTextEditor;
 	if (!editor) return;
+
+    // add history
+    addRejectHistory(editor);
+
+    // cancel completion
+    suggestionManager.cancelCurrentRequest();
+
+    // clear suggestion
 	clearSuggestions(editor.document.uri);
 	clearAllDecorations(editor);
+
+	// hide inline suggestion
+	try {
+        // 
+		await vscode.commands.executeCommand('editor.action.inlineSuggest.hide');
+	} catch (error) {
+		logDebug(`Failed to hide inline suggestion: ${error}`);
+	}
 }
 
 export async function acceptSuggestionCmd() {
