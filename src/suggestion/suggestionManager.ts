@@ -293,7 +293,7 @@ ${assistantPrompt}
                 checkCompleteLine,
             );
 
-            const isStopped = true;//!trimed;
+            const isStopped = yamlConfigMode.isNoCheckStopSymbol ?? !trimed;
 
             const suggestionData: SuggestionData = {
 				originalDiffOperations,

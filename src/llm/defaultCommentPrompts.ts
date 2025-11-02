@@ -193,6 +193,7 @@ export function getYamlDefaultCommentPrompt(): YamlConfigMode {
 		isDispOverwrite: true,
 		isNoHighligh: true,
 		isForceOverlay: true,
+		isNoCheckStopSymbol: true,
 		maxOutputLines: 30,	// default lines x2
 		maxTokens: 512,	// default tokens x2
 		systemPrompt: defaultSystemPrompt,

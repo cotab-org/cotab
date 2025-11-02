@@ -36,6 +36,7 @@ export interface YamlConfigMode {
     isDispOverwrite?: boolean;
     isNoHighligh?: boolean;
     isForceOverlay?: boolean;
+    isNoCheckStopSymbol?: boolean;
     maxOutputLines?: number;
     maxTokens?: number;
     systemPrompt?: string;
@@ -156,7 +157,7 @@ export function getYamlConfig(): YamlConfig {
         if (configChanged) {
             callDidChangeConfig();
         }
-        return readYamlConfig;
+        return yamlConfig;
     } catch (error) {
         logError(`Failed to load YAML config: ${error}`);
         // Clear cache on error
@@ -355,6 +356,9 @@ modes:
         }
         if (mode.isForceOverlay !== undefined) {
             yamlContent += `#    isForceOverlay: "${mode.isForceOverlay}"\n`;
+        }
+        if (mode.isNoCheckStopSymbol !== undefined) {
+            yamlContent += `#    isNoCheckStopSymbol: ${mode.isNoCheckStopSymbol}\n`;
         }
         if (mode.maxOutputLines !== undefined) {
             yamlContent += `#    maxOutputLines: "${mode.maxOutputLines}"\n`;

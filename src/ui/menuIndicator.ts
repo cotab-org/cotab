@@ -38,7 +38,7 @@ export function registerMenuIndicator(disposables: vscode.Disposable[]): void {
 }
 
 export function requestUpdateCotabMenu() {
-    UpdateCotabMenu();
+    updateCotabMenu();
 }
 
 // Periodically check and update until menu tooltip changes (max 30 seconds)
@@ -52,7 +52,7 @@ export function requestUpdateCotabMenuUntilChanged(maxMillis: number = 30000, in
 			return;
 		}
 
-		const current = await UpdateCotabMenu();
+		const current = await updateCotabMenu();
 		if (current !== baseline) {
 			clearInterval(timer);
 		}
@@ -148,6 +148,7 @@ class MenuIndicator implements vscode.Disposable {
         // register commands
         for (const mode of getYamlConfigPromptModes()) {
             const disposable = vscode.commands.registerCommand(`cotab.selectedPromptMode${mode}`, async () => {
+                closeCotabMenu();
                 await setConfigSelectedPromptMode(mode);
                 requestUpdateCotabMenu();
             });
@@ -159,13 +160,13 @@ class MenuIndicator implements vscode.Disposable {
 
 // ---------------- existing functional implementation below ----------------
 
-async function CloseCotabMenu() {
-    await UpdateCotabMenu(true);
+async function closeCotabMenu() {
+    await updateCotabMenu(true);
 }
 
 let isUpdatingMenu = false;
 let prevTooltip: string;
-async function UpdateCotabMenu(isReset: boolean = false): Promise<string> {
+async function updateCotabMenu(isReset: boolean = false): Promise<string> {
     if (isUpdatingMenu) return prevTooltip;
     isUpdatingMenu = true;
 
@@ -364,7 +365,7 @@ async function setGlobalEnabledCmd(enabled: boolean) {
 
 async function toggleGlobalEnabledCmd() {
     // Hide immediately for best click response
-    await CloseCotabMenu();
+    await closeCotabMenu();
     
 	await setGlobalEnabledCmd(!getConfig().enabled);
 }
@@ -383,7 +384,7 @@ async function setExtensionEnabledCmd(extensionId: string, enabled: boolean) {
 
 async function toggleExtensionEnabledCmd() {
     // Hide immediately for best click response
-    await CloseCotabMenu();
+    await closeCotabMenu();
     
     const languageId: string = vscode.window.activeTextEditor?.document.languageId || '';
     if (languageId) {
@@ -394,7 +395,7 @@ async function toggleExtensionEnabledCmd() {
 
 async function installLlamaServer(): Promise<void> {
     // Hide immediately for best click response
-    await CloseCotabMenu();
+    await closeCotabMenu();
     
     try {
         vscode.window.showInformationMessage('Installing Server (llama.cpp) ...');
@@ -425,7 +426,7 @@ async function installLlamaServer(): Promise<void> {
 
 async function uninstallLlamaServer(): Promise<void> {
     // Hide immediately for best click response
-    await CloseCotabMenu();
+    await closeCotabMenu();
     
     try {
         vscode.window.showInformationMessage('Uninstalling Server (llama.cpp) ...');
@@ -440,7 +441,7 @@ async function uninstallLlamaServer(): Promise<void> {
 
 async function startLlamaServer(): Promise<void> {
     // Hide immediately for best click response
-    await CloseCotabMenu();
+    await closeCotabMenu();
     
     const config = getConfig();
     const url = new URL(config.apiBaseURL);
@@ -468,7 +469,7 @@ async function startLlamaServer(): Promise<void> {
 
 async function stopLlamaServer(): Promise<void> {
     // Hide immediately for best click response
-    await CloseCotabMenu();
+    await closeCotabMenu();
     
     // no await
     serverManager.stopServer(true);
