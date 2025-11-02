@@ -2,7 +2,7 @@
   "name": "cotab",
   "displayName": "Cotab",
   "description": "Cursor Smart Rewrites-style inline edit suggestions. OpenAI compatible API / LM Studio / Ollama support.",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "publisher": "cotab",
   "license": "Apache-2.0",
   "repository": {

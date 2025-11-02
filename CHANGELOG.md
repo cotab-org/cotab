@@ -1,7 +1,11 @@
+## 0.0.11
+- Feat: Reject completion suggestion
+- Update: Comment prompt
+- Update: Prompt to better reflect edit history
 ## 0.0.10
+- Feat: First line accept
 - Update: Quick Setup view
 - Fix: Suggestion display bug
-- Feat: First line accept
 ## 0.0.9
 - Add: Quick Setup view
 - Fix: Inline suggestion issue
