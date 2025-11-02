@@ -11,7 +11,7 @@ export interface CompletionParams {
 	assistantPrompt?: string;
 	abortSignal?: vscode.CancellationToken;
 	checkAborted?: () => boolean;
-	maxLines?: number; // Maximum line limit (default: 10)
+	maxLines?: number; // Maximum line limit (default: 15)
 	maxTokens?: number; // Maximum token limit (default: 256)
 	stops?: string[]; // Stop tokens
 	onUpdate?: (partial: string) => boolean; // Callback to receive partial output sequentially

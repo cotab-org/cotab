@@ -40,7 +40,7 @@ let renderTimer: NodeJS.Timeout | null = null;
 export function renderSvgOverlays(
 	editor: vscode.TextEditor,
 	segments: OverlaySegment[],
-	options?: { unfinished?: boolean; dispIdx?: number }) {	
+	options: { unfinished: boolean; dispIdx: number, isNoHighligh: boolean }) {	
 	
 	renderTimer = setTimeout(async () => {
 		renderTimer = null;
@@ -61,10 +61,9 @@ export function renderSvgOverlays(
 async function renderSvgOverlaysInternal(
 	editor: vscode.TextEditor,
 	segments: OverlaySegment[],
-	options?: { unfinished?: boolean; dispIdx?: number }) {
-	const cfg = getConfig();
-	const isUnfinished = options?.unfinished ?? false;
-	const dispIdx = options?.dispIdx ?? 0;
+	options: { unfinished: boolean; dispIdx: number, isNoHighligh: boolean }) {
+	const isUnfinished = options.unfinished ?? false;
+	const dispIdx = options.dispIdx ?? 0;
 
 	if (!segments || segments.length === 0) {
 		editor.setDecorations(svgOverlayDecorationType, []);
@@ -84,7 +83,8 @@ async function renderSvgOverlaysInternal(
 		const svgUri = await buildSvgDataUriWithShiki(
 				sliced,
 				isUnfinished,
-				languageId
+				languageId,
+				options.isNoHighligh
 			);
 		const svgData = svgUri;
 		const iconUri = svgData.uri;
@@ -138,7 +138,8 @@ type ShikiHighlighter = any;
 async function buildSvgDataUriWithShiki(
 	segments: OverlaySegment[],
 	unfinished: boolean,
-	languageId: string): Promise<{ uri: vscode.Uri; width: number; height: number }> {
+	languageId: string,
+	isNoHighligh: boolean): Promise<{ uri: vscode.Uri; width: number; height: number }> {
 	const config = getConfig();
 	const bgColor = config.backgroundColor;
 
@@ -150,7 +151,7 @@ async function buildSvgDataUriWithShiki(
 	const code = segments.map(segment => { return ' '.repeat(segment.paddingLeftCh) + segment.text.replace(/\u00A0/g, ' '); }).join("\n");
 	const charDiffs = segments.map(segment => { return segment.visualDiffSegments; });
 	const html = await generateHighlightedHtml(code, decorateds, getConfig().shikiTheme, languageId);
-	const conv = await convertShikiHtmlToSvgGut(html, charDiffs, (unfinished ? 'italic' : 'normal'), (unfinished ? 0.7 : 1));
+	const conv = await convertShikiHtmlToSvgGut(html, charDiffs, (unfinished ? 'italic' : 'normal'), (unfinished ? 0.7 : 1), isNoHighligh);
 	texts += conv.guts;
 	computedWidth = Math.ceil(conv.maxWidth);
 	computedHeight = Math.ceil(conv.totalHeight);
@@ -231,11 +232,16 @@ async function generateHighlightedHtml(code: string,
 const TEXT_Y_RATIO = 0.72;
 
 // Converts highlighted HTML to SVG content with proper text positioning and character diff rendering
-async function convertShikiHtmlToSvgGut(shikiHtml: string, charDiffSegmentsList: CharDiffSegment[][], fontStyle: string, fontOpacity: number): Promise<{
+async function convertShikiHtmlToSvgGut(
+	shikiHtml: string,
+	charDiffSegmentsList: CharDiffSegment[][],
+	fontStyle: string,
+	fontOpacity: number,
+	isNoHighligh: boolean): Promise<{
 	guts: string; maxWidth: number; totalHeight: number }> {
 	const dom = new JSDOM(shikiHtml);
 	const document = dom.window.document;
-    const cfg = getConfig();
+    const config = getConfig();
 
 	const lines = Array.from(document.querySelectorAll(".line")) as Element[];
 	let maxWidth = 0;
@@ -264,26 +270,28 @@ async function convertShikiHtmlToSvgGut(shikiHtml: string, charDiffSegmentsList:
 		const width = await getTextWidth(lineContent);
 		if (width > maxWidth) maxWidth = width;
 
-		const rectY = index * cfg.lineHeight;
-		const textY = rectY + Math.round(cfg.lineHeight * TEXT_Y_RATIO);
+		const rectY = index * config.lineHeight;
+		const textY = rectY + Math.round(config.lineHeight * TEXT_Y_RATIO);
 		
 		// highlighted bg
 		const rects: string[] = [];
-		for(const segment of charDiffSegments) {
-			if (segment.type !== 'add') continue;
-			const diffX = await getTextWidth(lineContent.slice(0, segment.newIdx));
-			const diffWidth = await getTextWidth(segment.text);
-			rects.push(`<rect x="${diffX}" y="${rectY}" width="${diffWidth}" height="${cfg.lineHeight}" fill="${colors.backgroundColor}" />`);
+		if (! isNoHighligh) {
+			for(const segment of charDiffSegments) {
+				if (segment.type !== 'add') continue;
+				const diffX = await getTextWidth(lineContent.slice(0, segment.newIdx));
+				const diffWidth = await getTextWidth(segment.text);
+				rects.push(`<rect x="${diffX}" y="${rectY}" width="${diffWidth}" height="${config.lineHeight}" fill="${colors.backgroundColor}" />`);
+			}
 		}
 
 		// code(span) to text tag
-        const text = `<text x="0" y="${textY}" font-family="${cfg.fontFamily}" font-size="${cfg.fontSize}" font-weight="${cfg.fontWeight}" font-style="${fontStyle}" style="opacity:${fontOpacity}" dominant-baseline="alphabetic" xml:space="preserve" shape-rendering="crispEdges">${spans}</text>`;
+        const text = `<text x="0" y="${textY}" font-family="${config.fontFamily}" font-size="${config.fontSize}" font-weight="${config.fontWeight}" font-style="${fontStyle}" style="opacity:${fontOpacity}" dominant-baseline="alphabetic" xml:space="preserve" shape-rendering="crispEdges">${spans}</text>`;
 
 		// marge highlighted bg and code text
 		return `${rects.join("\n")}\n${text}`;
 	}));
 
-	const totalHeight = lines.length * cfg.lineHeight;
+	const totalHeight = lines.length * config.lineHeight;
 
 	return {
 		guts: svgLines.join("\n"),
@@ -404,11 +412,11 @@ function escapeForSVG(text: string): string {
 }
 
 async function getTextWidth(text: string, editor?: vscode.TextEditor): Promise<number> {
-	const cfg = getConfig();
+	const config = getConfig();
 	try {
 		const ed = editor || vscode.window.activeTextEditor;
 		if (!ed) return 0;
-		const widths = await measureTextsWidthPx(cfg.fontFamily, cfg.fontSize, cfg.fontWeight, cfg.fontStyle, [text], ed);
+		const widths = await measureTextsWidthPx(config.fontFamily, config.fontSize, config.fontWeight, config.fontStyle, [text], ed);
 		return widths[0] ?? 0;
 	} catch {
 		return 0;

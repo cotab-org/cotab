@@ -7,6 +7,7 @@ import { logDebug, logError } from './logger';
 import { getConfig } from './config';
 import { getYamlDefaultCodingPrompt } from '../llm/defaultCodingPrompts';
 import { getYamlDefaultCommentPrompt } from '../llm/defaultCommentPrompts';
+import { getYamlDefaultTranslatePrompt } from '../llm/defaultTranslationPrompts';
 import { getYamlDefaultProofreadingPrompt } from '../llm/defaultProofreadingPrompts';
 import { getYamlDefaultBusinessChatPrompt } from '../llm/defaultBusinessChatPrompts';
 
@@ -27,11 +28,16 @@ interface YamlConfigCache {
     lastAccessed: number; // Last access time (milliseconds)
 }
 
-export interface YamlPrompt {
+export interface YamlConfigMode {
     mode: string;
     extensions: string[];
     cursorAlwaysHead?: boolean;
     placeholderSymbol?: string;
+    isDispOverwrite?: boolean;
+    isNoHighligh?: boolean;
+    isForceOverlay?: boolean;
+    maxOutputLines?: number;
+    maxTokens?: number;
     systemPrompt?: string;
     userPrompt?: string;
     assistantPrompt?: string;
@@ -45,7 +51,7 @@ export interface YamlPrompt {
 }
 
 export interface YamlConfig {
-    prompts: YamlPrompt[];
+    modes: YamlConfigMode[];
 }
 
 
@@ -99,12 +105,18 @@ export function getYamlConfig(): YamlConfig {
         logDebug(`Loading YAML config from: ${configPath}`);
         
         // Read and parse the file
-        const yamlContent = fs.readFileSync(configPath, 'utf8');
-        const fullConfig = parse(yamlContent) as YamlConfig;
+        const readYamlContent = fs.readFileSync(configPath, 'utf8');
+        const readYamlConfig = parse(readYamlContent) as YamlConfig;
 
-        // Check if prompts array is empty and add default prompt if needed
-        if (fullConfig.prompts.length == 0) {
-            fullConfig.prompts = getDefaultYamlConfig().prompts;
+        // Merge the prompt configurations from the YAML file into the default config
+        const yamlConfig = getDefaultYamlConfig();
+        for (const readMode of readYamlConfig.modes) {
+            const modeIndex = yamlConfig.modes.findIndex(m => m.mode === readMode.mode);
+            if (modeIndex !== -1) {
+                yamlConfig.modes[modeIndex] = { ...yamlConfig.modes[modeIndex], ...readMode };
+            } else {
+                yamlConfig.modes.push({ ...readMode });
+            }
         }
         
         // Trigger config change callback if file has been modified since last cache
@@ -116,22 +128,23 @@ export function getYamlConfig(): YamlConfig {
             configChanged = true;
         }
 
-        for (const prompt of fullConfig.prompts) {
-            prompt.systemPrompt = prompt.systemPrompt?.replace(/\n+$/, '');
-            prompt.userPrompt = prompt.userPrompt?.replace(/\n+$/, '');
-            prompt.assistantPrompt = prompt.assistantPrompt?.replace(/\n+$/, '');
-            prompt.appendThinkPromptNewScope = prompt.appendThinkPromptNewScope?.replace(/\n+$/, '');
-            prompt.appendThinkPromptRefactoring = prompt.appendThinkPromptRefactoring?.replace(/\n+$/, '');
-            prompt.appendThinkPromptAddition = prompt.appendThinkPromptAddition?.replace(/\n+$/, '');
-            prompt.appendThinkPromptReject = prompt.appendThinkPromptReject?.replace(/\n+$/, '');
-            prompt.appendOutputPromptReject = prompt.appendOutputPromptReject?.replace(/\n+$/, '');
-            prompt.analyzeSystemPrompt = prompt.analyzeSystemPrompt?.replace(/\n+$/, '');
-            prompt.analyzeUserPrompt = prompt.analyzeUserPrompt?.replace(/\n+$/, '');
+        // remove last crlf
+        for (const mode of yamlConfig.modes) {
+            mode.systemPrompt = mode.systemPrompt?.replace(/\n+$/, '');
+            mode.userPrompt = mode.userPrompt?.replace(/\n+$/, '');
+            mode.assistantPrompt = mode.assistantPrompt?.replace(/\n+$/, '');
+            mode.appendThinkPromptNewScope = mode.appendThinkPromptNewScope?.replace(/\n+$/, '');
+            mode.appendThinkPromptRefactoring = mode.appendThinkPromptRefactoring?.replace(/\n+$/, '');
+            mode.appendThinkPromptAddition = mode.appendThinkPromptAddition?.replace(/\n+$/, '');
+            mode.appendThinkPromptReject = mode.appendThinkPromptReject?.replace(/\n+$/, '');
+            mode.appendOutputPromptReject = mode.appendOutputPromptReject?.replace(/\n+$/, '');
+            mode.analyzeSystemPrompt = mode.analyzeSystemPrompt?.replace(/\n+$/, '');
+            mode.analyzeUserPrompt = mode.analyzeUserPrompt?.replace(/\n+$/, '');
         }
 
         // Update cache with new data
         yamlConfigCache = {
-            config: fullConfig,
+            config: yamlConfig,
             filePath: configPath,
             lastModified,
             lastAccessed: now
@@ -143,7 +156,7 @@ export function getYamlConfig(): YamlConfig {
         if (configChanged) {
             callDidChangeConfig();
         }
-        return fullConfig;
+        return readYamlConfig;
     } catch (error) {
         logError(`Failed to load YAML config: ${error}`);
         // Clear cache on error
@@ -154,9 +167,10 @@ export function getYamlConfig(): YamlConfig {
 
 function getDefaultYamlConfig(): YamlConfig {
     return {
-        prompts: [
+        modes: [
             getYamlDefaultCodingPrompt(),
             getYamlDefaultCommentPrompt(),
+            getYamlDefaultTranslatePrompt(),
             getYamlDefaultProofreadingPrompt(),
             getYamlDefaultBusinessChatPrompt(),
         ]
@@ -165,10 +179,10 @@ function getDefaultYamlConfig(): YamlConfig {
 
 export function getYamlConfigPromptModes(): string[] {
     let modes: string[] = [];
-    for (const prompt of getYamlConfig().prompts) {
-        if (prompt.mode) {
-            if (!modes.includes(prompt.mode)) {
-                modes.push(prompt.mode);
+    for (const mode of getYamlConfig().modes) {
+        if (mode.mode) {
+            if (!modes.includes(mode.mode)) {
+                modes.push(mode.mode);
             }
         }
     }
@@ -176,19 +190,19 @@ export function getYamlConfigPromptModes(): string[] {
 }
 
 /**
- * Find matching YamlPrompt based on file extension
+ * Find matching YamlConfigMode based on file extension
  */
-export function getYamlConfigPrompt(filePath: string): YamlPrompt {
+export function getYamlConfigMode(filePath: string): YamlConfigMode {
     const selectedPromptMode = getConfig().selectedPromptMode || 'Coding';
-    const yamlPrompt = getYamlConfigPromptInternal(selectedPromptMode, filePath);
+    const yamlConfigMode = getYamlConfigPromptInternal(selectedPromptMode, filePath);
 
     // Return the matching prompt or fallback to default if none found
-    return yamlPrompt || getDefaultYamlConfig().prompts[0];
+    return yamlConfigMode || getDefaultYamlConfig().modes[0];
 }
 
-function getYamlConfigPromptInternal(promptMode: string, filePath: string): YamlPrompt | null {
+function getYamlConfigPromptInternal(promptMode: string, filePath: string): YamlConfigMode | null {
     const yamlConfig = getYamlConfig();
-    if (!yamlConfig || !yamlConfig.prompts) {
+    if (!yamlConfig || !yamlConfig.modes) {
         return null;
     }
 
@@ -196,17 +210,17 @@ function getYamlConfigPromptInternal(promptMode: string, filePath: string): Yaml
     const extension = path.extname(filePath).substring(1).toLowerCase();
 
     // Find matching prompt configuration
-    for (const prompt of yamlConfig.prompts) {
-        if (prompt.mode !== promptMode) {
+    for (const mode of yamlConfig.modes) {
+        if (mode.mode !== promptMode) {
             continue;
         }
-        if (prompt.extensions && prompt.extensions.length > 0) {
-            for (const extPattern of prompt.extensions) {
+        if (mode.extensions && mode.extensions.length > 0) {
+            for (const extPattern of mode.extensions) {
                 try {
                     // Handle wildcard patterns first
                     if (extPattern === '*') {
                         logDebug(`Found matching prompt for extension '${extension}' using wildcard pattern '*'`);
-                        return prompt;
+                        return mode;
                     }
                     
                     // Check if the pattern is a regex (contains regex special characters, but not just '*')
@@ -217,13 +231,13 @@ function getYamlConfigPromptInternal(promptMode: string, filePath: string): Yaml
                         const regex = new RegExp(extPattern, 'i');
                         if (regex.test(extension)) {
                             logDebug(`Found matching prompt for extension '${extension}' using regex pattern '${extPattern}'`);
-                            return prompt;
+                            return mode;
                         }
                     } else {
                         // Use exact string matching (case insensitive)
                         if (extPattern.toLowerCase() === extension) {
                             logDebug(`Found matching prompt for extension '${extension}' using exact match`);
-                            return prompt;
+                            return mode;
                         }
                     }
                 } catch (error) {
@@ -231,7 +245,7 @@ function getYamlConfigPromptInternal(promptMode: string, filePath: string): Yaml
                     // Fallback to exact string matching if regex is invalid
                     if (extPattern.toLowerCase() === extension) {
                         logDebug(`Found matching prompt for extension '${extension}' using fallback exact match`);
-                        return prompt;
+                        return mode;
                     }
                 }
             }
@@ -320,70 +334,83 @@ function generateYamlConfigTemplate(): string {
 # 
 # Prompt format is handlebars template.
 
-prompts:
+modes:
 `;
 
-    for (let i = 0; i < config.prompts.length; i++) {
-        const prompt = config.prompts[i];
-        yamlContent += `#  - mode: "${prompt.mode}"\n`;
-        yamlContent += `#    extensions: [${prompt.extensions.map(ext => `"${ext}"`).join(', ')}]\n`;
-        yamlContent += `#    cursorAlwaysHead: ${prompt.cursorAlwaysHead !== undefined ? prompt.cursorAlwaysHead : false}\n`;
-        if (prompt.placeholderSymbol !== undefined) {
-            yamlContent += `#    placeholderSymbol: "${prompt.placeholderSymbol}"\n`;
+    for (let i = 0; i < config.modes.length; i++) {
+        const mode = config.modes[i];
+        yamlContent += `#  - mode: "${mode.mode}"\n`;
+        yamlContent += `#    extensions: [${mode.extensions.map(ext => `"${ext}"`).join(', ')}]\n`;
+        if (mode.cursorAlwaysHead !== undefined) {
+            yamlContent += `#    cursorAlwaysHead: ${mode.cursorAlwaysHead}\n`;
+        }
+        if (mode.placeholderSymbol !== undefined) {
+            yamlContent += `#    placeholderSymbol: "${mode.placeholderSymbol}"\n`;
+        }
+        if (mode.isDispOverwrite !== undefined) {
+            yamlContent += `#    isDispOverwrite: "${mode.isDispOverwrite}"\n`;
+        }
+        if (mode.isNoHighligh !== undefined) {
+            yamlContent += `#    isNoHighligh: "${mode.isNoHighligh}"\n`;
+        }
+        if (mode.isForceOverlay !== undefined) {
+            yamlContent += `#    isForceOverlay: "${mode.isForceOverlay}"\n`;
+        }
+        if (mode.maxOutputLines !== undefined) {
+            yamlContent += `#    maxOutputLines: "${mode.maxOutputLines}"\n`;
+        }
+        if (mode.maxTokens !== undefined) {
+            yamlContent += `#    maxTokens: "${mode.maxTokens}"\n`;
         }
         
-        if (prompt.systemPrompt) {
+        if (mode.systemPrompt) {
             yamlContent += `#    systemPrompt: |\n`;
-            yamlContent += `#      ${prompt.systemPrompt.replace(/\n/g, '\n#      ')}\n`;
+            yamlContent += `#      ${mode.systemPrompt.replace(/\n/g, '\n#      ')}\n`;
         }
         
-        if (prompt.userPrompt) {
+        if (mode.userPrompt) {
             yamlContent += `#    userPrompt: |\n`;
-            yamlContent += `#      ${prompt.userPrompt.replace(/\n/g, '\n#      ')}\n`;
+            yamlContent += `#      ${mode.userPrompt.replace(/\n/g, '\n#      ')}\n`;
         }
         
-        if (prompt.assistantPrompt) {
+        if (mode.assistantPrompt) {
             yamlContent += `#    assistantPrompt: |\n`;
-            yamlContent += `#      ${prompt.assistantPrompt.replace(/\n/g, '\n#      ')}\n`;
+            yamlContent += `#      ${mode.assistantPrompt.replace(/\n/g, '\n#      ')}\n`;
         }
         
-        if (prompt.appendThinkPromptNewScope) {
+        if (mode.appendThinkPromptNewScope) {
             yamlContent += `#    appendThinkPromptNewScope: |\n`;
-            yamlContent += `#      ${prompt.appendThinkPromptNewScope.replace(/\n/g, '\n#      ')}\n`;
+            yamlContent += `#      ${mode.appendThinkPromptNewScope.replace(/\n/g, '\n#      ')}\n`;
         }
         
-        if (prompt.appendThinkPromptRefactoring) {
+        if (mode.appendThinkPromptRefactoring) {
             yamlContent += `#    appendThinkPromptRefactoring: |\n`;
-            yamlContent += `#      ${prompt.appendThinkPromptRefactoring.replace(/\n/g, '\n#      ')}\n`;
+            yamlContent += `#      ${mode.appendThinkPromptRefactoring.replace(/\n/g, '\n#      ')}\n`;
         }
         
-        if (prompt.appendThinkPromptAddition) {
+        if (mode.appendThinkPromptAddition) {
             yamlContent += `#    appendThinkPromptAddition: |\n`;
-            yamlContent += `#      ${prompt.appendThinkPromptAddition.replace(/\n/g, '\n#      ')}\n`;
+            yamlContent += `#      ${mode.appendThinkPromptAddition.replace(/\n/g, '\n#      ')}\n`;
         }
 
-        if (prompt.appendThinkPromptReject) {
+        if (mode.appendThinkPromptReject) {
             yamlContent += `#    appendThinkPromptReject: |\n`;
-            yamlContent += `#      ${prompt.appendThinkPromptReject.replace(/\n/g, '\n#      ')}\n`;
+            yamlContent += `#      ${mode.appendThinkPromptReject.replace(/\n/g, '\n#      ')}\n`;
         }
 
-        if (prompt.appendOutputPromptReject) {
+        if (mode.appendOutputPromptReject) {
             yamlContent += `#    appendOutputPromptReject: |\n`;
-            yamlContent += `#      ${prompt.appendOutputPromptReject.replace(/\n/g, '\n#      ')}\n`;
+            yamlContent += `#      ${mode.appendOutputPromptReject.replace(/\n/g, '\n#      ')}\n`;
         }
         
-        if (prompt.analyzeSystemPrompt) {
+        if (mode.analyzeSystemPrompt) {
             yamlContent += `#    analyzeSystemPrompt: |\n`;
-            yamlContent += `#      ${prompt.analyzeSystemPrompt.replace(/\n/g, '\n#      ')}\n`;
+            yamlContent += `#      ${mode.analyzeSystemPrompt.replace(/\n/g, '\n#      ')}\n`;
         }
         
-        if (prompt.analyzeUserPrompt) {
+        if (mode.analyzeUserPrompt) {
             yamlContent += `#    analyzeUserPrompt: |\n`;
-            yamlContent += `#      ${prompt.analyzeUserPrompt.replace(/\n/g, '\n#      ')}\n`;
-        }
-        
-        if (i < config.prompts.length - 1) {
-            yamlContent += '\n';
+            yamlContent += `#      ${mode.analyzeUserPrompt.replace(/\n/g, '\n#      ')}\n`;
         }
     }
     

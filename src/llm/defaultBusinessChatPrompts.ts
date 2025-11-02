@@ -1,4 +1,4 @@
-import { YamlPrompt } from '../utils/yamlConfig';
+import { YamlConfigMode } from '../utils/yamlConfig';
 
 /**
  * Default prompts for code completion and analysis
@@ -136,7 +136,7 @@ Output the result in "English".`;
 /**
  * Creates default YAML configuration prompt
  */
-export function getYamlDefaultBusinessChatPrompt(): YamlPrompt {
+export function getYamlDefaultBusinessChatPrompt(): YamlConfigMode {
 	return {
 		mode: 'BusinessChat(experimental)',
 		extensions: ['*'],

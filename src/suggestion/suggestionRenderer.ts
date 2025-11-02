@@ -24,7 +24,8 @@ const deleteDecorationType = vscode.window.createTextEditorDecorationType({
 
 function makeOverlaySuggestions(editor: vscode.TextEditor,
 	suggestionList: LineEdit[],
-	suggestionCount: number
+	suggestionCount: number,
+	isDispOverwrite: boolean
 ): {
 	overlaySegments: OverlaySegment[],
 	deleteOptions: vscode.DecorationOptions[],
@@ -51,26 +52,30 @@ function makeOverlaySuggestions(editor: vscode.TextEditor,
 		const leftSpaceWidth = visualText.match(/^\s*/)?.[0]?.length ?? 0;
 		dispMinLeftSpaceWidth = (0 <= dispMinLeftSpaceWidth) ? Math.min(dispMinLeftSpaceWidth, leftSpaceWidth) : leftSpaceWidth;
 	}
+	
 	dispMaxWidth -= dispMinLeftSpaceWidth;
 	
 	// Maximum character count at edit location (display to the right of this longest line)
-	let visualOrgMaxWidth = -1;
-	for (let j = suggestionCount; j < suggestionList.length; j++) {
-		const suggestion = suggestionList[j];
+	let visualOrgMaxWidth = 0;
+	if (! isDispOverwrite)
+	{
+		for (let j = suggestionCount; j < suggestionList.length; j++) {
+			const suggestion = suggestionList[j];
 
-		// If it's an addition, it doesn't affect existing lines, so it's not relevant.
-		if (suggestion.type === 'add') continue;
+			// If it's an addition, it doesn't affect existing lines, so it's not relevant.
+			if (suggestion.type === 'add') continue;
 
-		const line = suggestion.line;
-		if (line < 0 || editor.document.lineCount <= line) continue;
+			const line = suggestion.line;
+			if (line < 0 || editor.document.lineCount <= line) continue;
 
-		const lineText = editor.document.lineAt(line).text.replace(/ /g, '\u00A0');
-		const visualWidth = getVisualWidthHelper(lineText).width;
-		if (visualOrgMaxWidth < visualWidth) {
-			visualOrgMaxWidth = visualWidth;
+			const lineText = editor.document.lineAt(line).text.replace(/ /g, '\u00A0');
+			const visualWidth = getVisualWidthHelper(lineText).width;
+			if (visualOrgMaxWidth < visualWidth) {
+				visualOrgMaxWidth = visualWidth;
+			}
 		}
 	}
-	let visualDispPos = visualOrgMaxWidth + 1;	// Display to the right of longest line
+	let visualDispPos = (visualOrgMaxWidth == 0) ? visualOrgMaxWidth : visualOrgMaxWidth + 1;	// Display to the right of longest line
 	visualDispPos += (tabSize - (visualDispPos % tabSize)) % tabSize;	// Consider tab stops
 
 	for (;suggestionCount < suggestionList.length; suggestionCount++) {
@@ -153,6 +158,9 @@ interface RenderData {
 	invisibleOptions: vscode.DecorationOptions[],
 
 	noFinished: boolean;
+
+	// option
+	isNoHighligh: boolean;
 };
 
 let prevRenderData: RenderData;
@@ -161,7 +169,7 @@ export function renderSuggestions(editor: vscode.TextEditor): {
 	inlineCompletionItems: vscode.InlineCompletionItem[],
 	isCompletedFirstLine: boolean
 } {
-	const {originalDiffOperations, edits, checkCompleteLine, is_stoped} = getMergedSuggestions(editor.document.uri, true);
+	const mergedData = getMergedSuggestions(editor.document.uri, true);
 	const activeEditor = vscode.window.activeTextEditor;
 	const activeLine = activeEditor?.selection.active.line ?? -1;
 	const activeCharacter = activeEditor?.selection.active.character ?? 0;
@@ -172,6 +180,7 @@ export function renderSuggestions(editor: vscode.TextEditor): {
 		invisibleOptions: [],
 		deleteOptions: [],
 		noFinished: false,
+		isNoHighligh: mergedData.isNoHighligh,
 	};
 
 	// test
@@ -179,7 +188,7 @@ export function renderSuggestions(editor: vscode.TextEditor): {
 
 	let appendLineNum = 0;
 	let suggestionList: LineEdit[] = [];
-	for (const [line, suggestions] of edits) {
+	for (const [line, suggestions] of mergedData.edits) {
 		for (let i = 0; i < suggestions.length; i++)
 		{
 			const suggestion = suggestions[i];
@@ -205,7 +214,7 @@ export function renderSuggestions(editor: vscode.TextEditor): {
 		}
 	}
 
-	const isOnlyCursorLine = 0 <= checkCompleteLine;
+	const isOnlyCursorLine = 0 <= mergedData.checkCompleteLine;
 	let isCompletedFirstLine = false;
 	let isOverlay = false;
 	let completedCursorLine = false;
@@ -242,9 +251,9 @@ export function renderSuggestions(editor: vscode.TextEditor): {
 			}
 
 				// First difference after cursor
-			if (checkCompleteLine <= line && prevType !== '') {
+			if (mergedData.checkCompleteLine <= line && prevType !== '') {
 				// If there are lines after the output.
-				const existNext = originalDiffOperations.find(
+				const existNext = mergedData.originalDiffOperations.find(
 									d => d.type !== 'delete' &&
 									d.originalIndex !== undefined &&
 									line < d.originalIndex);
@@ -260,68 +269,73 @@ export function renderSuggestions(editor: vscode.TextEditor): {
 			isOverlay = true;
 		}
 		if (!isOverlay && suggestion.line === suggestion.editedLine) {
-			const origLine = editor.document.lineAt(suggestion.line).text;
-			const segs = computeCharDiff(origLine, suggestion.newText);
-			
-			let isInlineCompletionItem = false;
-			if (suggestion.line === activeLine) {
-				isInlineCompletionItem = true;
+			if (mergedData.isForceOverlay) {
+				isDispOverlay = true;
+			}
+			else {
+				const origLine = editor.document.lineAt(suggestion.line).text;
+				const segs = computeCharDiff(origLine, suggestion.newText);
+				
+				let isInlineCompletionItem = false;
+				if (suggestion.line === activeLine) {
+					isInlineCompletionItem = true;
 
-				// VS Code inline completion only works when there is a single add at one location
-				let hasAdd = false;
-				let firstAddPos = 0;
-				for (const seg of segs) {
-					if (seg.type === 'keep') continue;
-					if (seg.type === 'add') {
-						if (hasAdd) {
+					// VS Code inline completion only works when there is a single add at one location
+					let hasAdd = false;
+					let firstAddPos = 0;
+					for (const seg of segs) {
+						if (seg.type === 'keep') continue;
+						if (seg.type === 'add') {
+							if (hasAdd) {
+								isInlineCompletionItem = false;
+								break;
+							}
+							else {
+								hasAdd = true;
+								firstAddPos = seg.orgIdx;
+							}
+						}
+						else {
 							isInlineCompletionItem = false;
 							break;
 						}
-						else {
-							hasAdd = true;
-							firstAddPos = seg.orgIdx;
-						}
 					}
-					else {
-						isInlineCompletionItem = false;
-						break;
+					if (isInlineCompletionItem) {
+						if (firstAddPos != 0) {
+							// VSCode's default inline completion only works after the cursor position.
+							if (firstAddPos < activeCharacter) {
+								isInlineCompletionItem = false;
+							}
+							// Enable inline completion when completion position is at the end of the line
+							else if (firstAddPos == origLine.length) {
+								// nop
+							}
+							// Disable inline completion if the cursor is before the insertion point
+							// Because VSCode's default inline completion changes text color but not background color, which reduces readability.
+							else if (activeCharacter < firstAddPos) {
+								isInlineCompletionItem = false;
+							}
+						}
 					}
 				}
 				if (isInlineCompletionItem) {
-					if (firstAddPos != 0) {
-						// VSCode's default inline completion only works after the cursor position.
-						if (firstAddPos < activeCharacter) {
-							isInlineCompletionItem = false;
-						}
-						// Enable inline completion when completion position is at the end of the line
-						else if (firstAddPos == origLine.length) {
-							// nop
-						}
-						// Disable inline completion if the cursor is before the insertion point
-						// Because VSCode's default inline completion changes text color but not background color, which reduces readability.
-						else if (activeCharacter < firstAddPos) {
-							isInlineCompletionItem = false;
-						}
-					}
+					renderData.inlineCompletionItems.push(new vscode.InlineCompletionItem(suggestion.newText,
+						new vscode.Range(line, 0, line, suggestion.newText.length)
+					));
 				}
-			}
-			if (isInlineCompletionItem) {
-				renderData.inlineCompletionItems.push(new vscode.InlineCompletionItem(suggestion.newText,
-					new vscode.Range(line, 0, line, suggestion.newText.length)
-				));
-			}
-			else {
-				// if exist nextline(becouse now line completed for llm output)
-				//if (suggestionCount + 1 < suggestionList.length)
-				{
-					for (const seg of segs)
+				else {
+					// if exist nextline(becouse now line completed for llm output)
+					//if (suggestionCount + 1 < suggestionList.length)
 					{
-						if (seg.type === 'add') {
-							renderData.inlineOptions.push({range : new vscode.Range(line, seg.orgIdx, line, seg.orgIdx),
-								renderOptions: { after: { contentText: seg.text } },
-							});
-						} else if (seg.type === 'delete') {
-							renderData.deleteOptions.push({range: new vscode.Range(line, seg.orgIdx, line, seg.orgIdx + (seg.delete ?? 0))});
+						for (const seg of segs)
+						{
+							if (seg.type === 'add') {
+								renderData.inlineOptions.push({range : new vscode.Range(line, seg.orgIdx, line, seg.orgIdx),
+									renderOptions: { after: { contentText: seg.text } },
+								});
+							} else if (seg.type === 'delete') {
+								renderData.deleteOptions.push({range: new vscode.Range(line, seg.orgIdx, line, seg.orgIdx + (seg.delete ?? 0))});
+							}
 						}
 					}
 				}
@@ -344,7 +358,7 @@ export function renderSuggestions(editor: vscode.TextEditor): {
 	if (isDispOverlay)
 	{
 		// If cut in the middle, only the first line
-		if (!is_stoped)
+		if (!mergedData.isStopped)
 		{
 			if (suggestionCount == 0) {
 				suggestionList = suggestionList.slice(0, 1);
@@ -356,14 +370,13 @@ export function renderSuggestions(editor: vscode.TextEditor): {
 	if (isDispOverlay)
 	{
 		// If the first line is included in the overlay suggestion, reset suggestion count to 0
-		const isWithFirstLine = false;
-		if (isWithFirstLine) {
+		if (mergedData.isForceOverlay) {
 			suggestionCount = 0;
 		}
 		
 		const {overlaySegments: overlaysSegs,
 				deleteOptions: deletes,
-				invisibleOptions: invisibles} = makeOverlaySuggestions(editor, suggestionList, suggestionCount);
+				invisibleOptions: invisibles} = makeOverlaySuggestions(editor, suggestionList, suggestionCount, mergedData.isDispOverwrite);
 		renderData.overlaySegments.push(...overlaysSegs);
 		renderData.deleteOptions.push(...deletes);
 		renderData.invisibleOptions.push(...invisibles);
@@ -400,16 +413,8 @@ function renderSuggestionsInternal(editor: vscode.TextEditor,
 		//logDebug(`updateDecorations: ${renderData.inlineCompletionItems.length} ${renderData.inlineOptions.length} ${renderData.deleteOptions.length} ${renderData.invisibleOptions.length}`);
 		editor.setDecorations(inlineDecorationType, renderData.inlineOptions);
 
-		if (renderData.noFinished)
-		{
-			renderSvgOverlays(editor, renderData.overlaySegments, { unfinished: renderData.noFinished, dispIdx });
-			editor.setDecorations(deleteDecorationType, renderData.deleteOptions);
-		}
-		else
-		{
-			renderSvgOverlays(editor, renderData.overlaySegments, { unfinished: renderData.noFinished, dispIdx });
-			editor.setDecorations(deleteDecorationType, renderData.deleteOptions);
-		}
+		renderSvgOverlays(editor, renderData.overlaySegments, { unfinished: renderData.noFinished, dispIdx, isNoHighligh: renderData.isNoHighligh });
+		editor.setDecorations(deleteDecorationType, renderData.deleteOptions);
 		
 		//logDebug('cotab.dispSuggestions true');
 		const hasSuggestions =

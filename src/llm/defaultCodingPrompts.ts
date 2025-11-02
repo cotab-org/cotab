@@ -1,4 +1,4 @@
-import { YamlPrompt } from '../utils/yamlConfig';
+import { YamlConfigMode } from '../utils/yamlConfig';
 
 /**
  * Default prompts for code completion and analysis
@@ -113,6 +113,7 @@ The retrieved latest edit history is as follows:
 The provided source code may also be outdated, so I must retrieve the latest version. I am required to always refer to this latest source code.
 <CODE_INPUT>
 {{latestSourceCodeBlock}}
+This latest code must be referenced, and any lines outside this range must be referenced to the original code provided by the user.
 </CODE_INPUT>
 {{appendThinkPrompt}}{{additionalAssistantThinkPrompt}}
 I will write program comments in "{{commentLanguage}}".
@@ -185,7 +186,7 @@ Output the result in "English".`;
 /**
  * Creates default YAML configuration prompt
  */
-export function getYamlDefaultCodingPrompt(): YamlPrompt {
+export function getYamlDefaultCodingPrompt(): YamlConfigMode {
 	return {
 		mode: 'Coding',
 		extensions: ['*'],

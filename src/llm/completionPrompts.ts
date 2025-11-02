@@ -2,7 +2,7 @@ import { EditorContext } from '../utils/editorContext';
 import { getConfig } from '../utils/config';
 import { logDebug } from '../utils/logger';
 import { withLineNumberCodeBlock } from './llmUtils';
-import { getYamlConfigPrompt } from '../utils/yamlConfig';
+import { getYamlConfigMode, YamlConfigMode } from '../utils/yamlConfig';
 import { parseHandlebarsTemplate } from '../utils/cotabUtil';
 import { EditHistoryAction, makeYamlFromEditHistoryActions } from '../llm/codeBlockBuilder';
 
@@ -155,7 +155,9 @@ export function buildCompletionPrompts(ctx: EditorContext,
 		systemPrompt: string;
 		userPrompt: string;
 		assistantPrompt: string;
-		beforePlaceholderWithLF: string } {
+		beforePlaceholderWithLF: string;
+		yamlConfigMode: YamlConfigMode;
+	} {
 	const config = getConfig();
 	let placeholder = config.completeHereSymbol;
 	const startEditingHereSymbol = config.startEditingHereSymbol;
@@ -164,17 +166,17 @@ export function buildCompletionPrompts(ctx: EditorContext,
 	symbolCodeBlock = symbolCodeBlock ?? '';
 
 	// Get YAML configuration
-	const yamlPrompt = getYamlConfigPrompt(ctx.relativePath);
-	const cursorAlwaysHead = yamlPrompt.cursorAlwaysHead !== undefined ? yamlPrompt.cursorAlwaysHead : false;
-	placeholder = (yamlPrompt.placeholderSymbol !== undefined) ? yamlPrompt.placeholderSymbol : placeholder;
-	const systemPrompt = yamlPrompt.systemPrompt || '';
-	const userPrompt = yamlPrompt.userPrompt || '';
-	const assistantPrompt = yamlPrompt.assistantPrompt || '';
-	const appendThinkPromptNewScope = yamlPrompt.appendThinkPromptNewScope || '';
-	const appendThinkPromptRefactoring = yamlPrompt.appendThinkPromptRefactoring || '';
-	const appendThinkPromptAddition = yamlPrompt.appendThinkPromptAddition || '';
-	const appendThinkPromptReject = yamlPrompt.appendThinkPromptReject || '';
-	const appendOutputPromptReject = yamlPrompt.appendOutputPromptReject || '';
+	const yamlConfigMode = getYamlConfigMode(ctx.relativePath);
+	const cursorAlwaysHead = yamlConfigMode.cursorAlwaysHead !== undefined ? yamlConfigMode.cursorAlwaysHead : false;
+	placeholder = (yamlConfigMode.placeholderSymbol !== undefined) ? yamlConfigMode.placeholderSymbol : placeholder;
+	const systemPrompt = yamlConfigMode.systemPrompt || '';
+	const userPrompt = yamlConfigMode.userPrompt || '';
+	const assistantPrompt = yamlConfigMode.assistantPrompt || '';
+	const appendThinkPromptNewScope = yamlConfigMode.appendThinkPromptNewScope || '';
+	const appendThinkPromptRefactoring = yamlConfigMode.appendThinkPromptRefactoring || '';
+	const appendThinkPromptAddition = yamlConfigMode.appendThinkPromptAddition || '';
+	const appendThinkPromptReject = yamlConfigMode.appendThinkPromptReject || '';
+	const appendOutputPromptReject = yamlConfigMode.appendOutputPromptReject || '';
 
 	// Code blocks
 	const sourceCode = ctx.documentText.split('\n');
@@ -293,6 +295,7 @@ ${cursorLineBefore}`;
 		"latestSourceCodeBlock": latestSourceCodeBlock,
 		"assistantSourceCodeBlockBforeCursor": assistantSourceCodeBlockBforeCursor,
 		"cursorLineBefore": orgCursorLineBefore,
+		"cursorLineBeforeWithLine": cursorLineBefore,
 		
 		// Additional prompts
 		"additionalSystemPrompt": config.additionalSystemPrompt ? '\n' + config.additionalSystemPrompt : '',
@@ -355,7 +358,8 @@ ${cursorLineBefore}`;
 		systemPrompt: parsedSystemPrompt,
 		userPrompt: parsedUserPrompt,
 		assistantPrompt: parsedAssistantPrompt,
-		beforePlaceholderWithLF: cursorLineBefore
+		beforePlaceholderWithLF: cursorLineBefore,
+		yamlConfigMode,
 	};
 }
 

@@ -136,11 +136,11 @@ async function acceptSuggestionInternal(isFullAccept: boolean) {
 	if (!editor) return false;
 
 	const docUri = editor.document.uri;
-	const {edits, is_stoped} = getMergedSuggestions(docUri, isFullAccept);
-	if (edits.size == 0) {
+	const mergedData = getMergedSuggestions(docUri, isFullAccept);
+	if (mergedData.edits.size == 0) {
         return false;
     }
-	logDebug(`Accepting ${edits.size} suggestions`);
+	logDebug(`Accepting ${mergedData.edits.size} suggestions`);
     
     const wsEdit = new vscode.WorkspaceEdit();
     let lastEditedLine = -1;
@@ -148,7 +148,7 @@ async function acceptSuggestionInternal(isFullAccept: boolean) {
     
     // Apply integrated edits for each line
     // First, group suggestions from consecutive lines
-    const sortedLines = Array.from(edits.keys()).sort((a, b) => a - b);
+    const sortedLines = Array.from(mergedData.edits.keys()).sort((a, b) => a - b);
     const groupedEdits: Array<{startLine: number,
                             endLine: number,
                             text: string,
@@ -161,7 +161,7 @@ async function acceptSuggestionInternal(isFullAccept: boolean) {
                     } | null = null;
     
     for (const line of sortedLines) {
-        const suggestions = edits.get(line)!;
+        const suggestions = mergedData.edits.get(line)!;
         const newTextLines = suggestions.map(s => s.newText).join('\n').split('\n');
         
         logDebug(`Processing ${suggestions.length} suggestions for line ${line}`);
@@ -237,7 +237,7 @@ async function acceptSuggestionInternal(isFullAccept: boolean) {
         }
 
         // If cut off midway, only first line
-        if (! isFullAccept || !is_stoped) {
+        if (! isFullAccept || !mergedData.isStopped) {
             if (1 < groupedEdits.length) {
                 //hasUnappliedSuggestion = true;
             }
@@ -253,7 +253,7 @@ async function acceptSuggestionInternal(isFullAccept: boolean) {
         }
         
         // Add debug information
-        logDebug(`Applying edit for ${edits.size} suggestions`);
+        logDebug(`Applying edit for ${mergedData.edits.size} suggestions`);
         logDebug(`Document URI: ${docUri.toString()}`);
         logDebug(`Document is dirty: ${editor.document.isDirty}`);
         logDebug(`Document is closed: ${editor.document.isClosed}`);

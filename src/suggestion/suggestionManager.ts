@@ -4,7 +4,7 @@ import { buildCompletionPrompts } from '../llm/completionPrompts';
 import { codeBlockBuilder } from '../llm/codeBlockBuilder';
 import { getEditorContext } from '../utils/editorContext';
 // diff util no longer directly used here
-import { clearSuggestions, LineEdit } from './suggestionStore';
+import { clearSuggestions, LineEdit, SuggestionData } from './suggestionStore';
 import { clearAllDecorations } from './suggestionRenderer';
 import { processDiffAndApplyEdits } from '../diff/lineDiff';
 import { updateSuggestionsAndDecorations } from './suggestionUtils';
@@ -181,7 +181,7 @@ export class SuggestionManager implements vscode.Disposable {
      * Core processing that receives completion results from LLM via streaming while performing diff calculation and decoration.
      */
     private async provideInlineCompletionItemsInternal(
-        cfg: CotabConfig,
+        config: CotabConfig,
         document: vscode.TextDocument,
         position: vscode.Position,
         context: vscode.InlineCompletionContext,
@@ -251,7 +251,7 @@ export class SuggestionManager implements vscode.Disposable {
 
         // 
 
-        const { systemPrompt, userPrompt, assistantPrompt, beforePlaceholderWithLF } =
+        const { systemPrompt, userPrompt, assistantPrompt, beforePlaceholderWithLF, yamlConfigMode } =
                         buildCompletionPrompts(editorContext,
                                                 sourceAnalysis,
                                                 symbolCodeBlock,
@@ -260,10 +260,20 @@ export class SuggestionManager implements vscode.Disposable {
         
         const isOutput = true;
         if (isOutput) {
-            logDebug(`####################\nSYSTEM PROMPT\n####################\n${systemPrompt ?? '(none)'}`);
-            logDebug(`####################\nUSER PROMPT\n####################\n${userPrompt}\n`);
-            logDebug(`####################\nASSITANT PROMT\n####################\n${assistantPrompt}`);
-            logDebug(`\n####################\n`);
+            logDebug(`
+########################################
+# SYSTEM PROMPT
+########################################
+${systemPrompt ?? '(none)'}
+########################################
+# USER PROMPT
+########################################
+${userPrompt}
+########################################
+# ASSISTANT PROMPT
+########################################
+${assistantPrompt}
+########################################`);
         }
         // Callback to process partial responses received via streaming
         let firstUpdate = true;
@@ -271,7 +281,7 @@ export class SuggestionManager implements vscode.Disposable {
         const applySuggestions = (llmOutputText: string, checkCompleteLine: boolean): {
             edits: LineEdit[],
             isCompletedFirstLine: boolean,
-            isStoped: boolean,
+            isStopped: boolean,
             isCompletedCursorLine: boolean
         } => {
             // Detect differences and create edit data
@@ -283,17 +293,25 @@ export class SuggestionManager implements vscode.Disposable {
                 checkCompleteLine,
             );
 
-            const {isCompletedFirstLine, inlineCompletionItems} = updateSuggestionsAndDecorations(
-                originalDiffOperations,
-                edits,
+            const isStopped = true;//!trimed;
+
+            const suggestionData: SuggestionData = {
+				originalDiffOperations,
+				edits,
+				checkCompleteLine: checkCompleteLine ? currentCursorLine : -1,
+				isStopped,
+				isDispOverwrite: yamlConfigMode.isDispOverwrite ?? false,
+                isNoHighligh: yamlConfigMode.isNoHighligh ?? false,
+                isForceOverlay: yamlConfigMode.isForceOverlay ?? false,
+			};
+			const {isCompletedFirstLine, inlineCompletionItems} = updateSuggestionsAndDecorations(
                 document.uri,
-                checkCompleteLine ? currentCursorLine : -1,
-                !trimed);
+                suggestionData);
 
             if (inlineCompletionItems.length) {
                 cursorLineInlineCompletions = inlineCompletionItems;
             }
-            return { edits, isCompletedFirstLine, isStoped: !trimed, isCompletedCursorLine: currentCursorLine <= finalLineNumber };
+            return { edits, isCompletedFirstLine, isStopped: !trimed, isCompletedCursorLine: currentCursorLine <= finalLineNumber };
         }
 
         const startTime = Date.now();
@@ -305,7 +323,7 @@ export class SuggestionManager implements vscode.Disposable {
             }
 //return true; // no stream debug
 //process.stdout.write(partial);
-            const {edits, isCompletedFirstLine: firstLineComplete, isStoped: is_stoped, isCompletedCursorLine} = applySuggestions(partial, true);
+            const {edits, isCompletedFirstLine: firstLineComplete, isStopped, isCompletedCursorLine} = applySuggestions(partial, true);
             
             // Detect if suggestions for the cursor line are ready
             if (isCompletedCursorLine) {
@@ -332,7 +350,8 @@ export class SuggestionManager implements vscode.Disposable {
         let streamCount = this.streamCount + 1;
         try {
             this.streamCount++;
-            const maxOutputLines = cfg.maxOutputLines;			
+            const maxOutputLines = (yamlConfigMode.maxOutputLines !== undefined) ? yamlConfigMode.maxOutputLines : config.maxOutputLines;
+            const maxTokens = (yamlConfigMode.maxTokens !== undefined) ? yamlConfigMode.maxTokens : config.maxTokens;
             
             // Start LLM call in background
             logInfo(`Completion generation started - Output up to ${maxOutputLines} lines (${streamCount}th time)`);
@@ -345,6 +364,7 @@ export class SuggestionManager implements vscode.Disposable {
                 abortSignal: cancellationTokenSource.token,
                 checkAborted,
                 maxLines: maxOutputLines,
+                maxTokens: maxTokens,
                 stops: ['```', '... existing code ...'],	// this.stopEditingHereSymbol
                 onUpdate: receiveStreamingResponse,
                 onComplete: (reason: CompletionEndReason, finalResult?: string) => {
@@ -354,7 +374,7 @@ export class SuggestionManager implements vscode.Disposable {
                         clearAllDecorations(vscode.window.activeTextEditor!);
                     }
                     else {
-                        const { edits, isCompletedFirstLine: firstLineComplete, isStoped: is_stoped, isCompletedCursorLine } = 
+                        const { edits, isCompletedFirstLine: firstLineComplete, isStopped: is_stoped, isCompletedCursorLine } = 
                                 applySuggestions(finalResult ?? '', false);
                     }
 

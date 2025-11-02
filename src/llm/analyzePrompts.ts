@@ -1,4 +1,4 @@
-import { getYamlConfigPrompt } from '../utils/yamlConfig';
+import { getYamlConfigMode } from '../utils/yamlConfig';
 import { parseHandlebarsTemplate } from '../utils/cotabUtil';
 
 /**
@@ -16,9 +16,9 @@ export function buildAnalyzePrompts(languageId: string, filename: string, source
 	};
 
 	// Get YAML prompt
-	const yamlPrompt = getYamlConfigPrompt(filename);
-	const systemPrompt = yamlPrompt.analyzeSystemPrompt || '';
-	const userPrompt = yamlPrompt.analyzeUserPrompt || '';
+	const yamlConfigMode = getYamlConfigMode(filename);
+	const systemPrompt = yamlConfigMode.analyzeSystemPrompt || '';
+	const userPrompt = yamlConfigMode.analyzeUserPrompt || '';
 
 	// Parse Handlebars templates
 	const parsedSystemPrompt = parseHandlebarsTemplate(systemPrompt, handlebarsContext);

@@ -1,21 +1,18 @@
 import * as vscode from 'vscode';
 import { LineDiff } from '../diff/lineDiffUtils';
-import { LineEdit, setSuggestions, clearSuggestions } from './suggestionStore';
+import { LineEdit, setSuggestions, clearSuggestions, SuggestionData } from './suggestionStore';
 import { renderSuggestions, clearAllDecorations } from './suggestionRenderer';
 
 /**
  * Updates suggestions and decorations, and returns whether completion of the cursor line is finished.
  */
 export function updateSuggestionsAndDecorations(
-    originalDiffOperations: LineDiff[],
-    edits: LineEdit[],
     documentUri: vscode.Uri,
-    checkCompleteLine: number,
-    is_stoped: boolean,
+	suggestionData: SuggestionData,
 ): { isCompletedFirstLine: boolean, inlineCompletionItems: vscode.InlineCompletionItem[]} {
     const activeEditor = vscode.window.activeTextEditor;
 
-    if (!edits.length) {
+    if (!suggestionData.edits.length) {
 		clearSuggestions(documentUri);
     	if (activeEditor && activeEditor.document.uri.toString() === documentUri.toString()) {
 			clearAllDecorations(activeEditor);
@@ -23,7 +20,7 @@ export function updateSuggestionsAndDecorations(
 		return {isCompletedFirstLine:false, inlineCompletionItems:[]};
 	}
     
-    setSuggestions(documentUri, originalDiffOperations, edits, checkCompleteLine, is_stoped);
+	setSuggestions(documentUri, suggestionData);
 
     let isCompletedFirstLine = false;
 	let inlineCompletionItems: vscode.InlineCompletionItem[] = [];
