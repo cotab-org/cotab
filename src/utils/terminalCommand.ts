@@ -432,7 +432,12 @@ class TerminalCommand implements vscode.Disposable {
     }
 
     public runLocalLlamaServer(): void {
-        const args = getConfig().localServerArg.split(' ');
+        const config = getConfig();
+        const args = config.localServerArg.split(' ');
+        if (!args.includes('-c') && !args.includes('--ctx-size')) {
+            const contextSize = config.localServerContextSize;
+            args.push(`-c`, `${contextSize}`);
+        }
         this.runLocalLlamaServerInternal(args);
     }
 

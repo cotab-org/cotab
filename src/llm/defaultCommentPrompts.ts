@@ -18,6 +18,8 @@ RULES:
 - Do not change, reorder, or delete any existing code or whitespace.
 - Do not rename identifiers or alter semantics.
 - Insert comments only within the "{{startEditingHere}}" ... "{{stopEditingHere}}" block.
+- Within the edit block, focus your comments on code that follows the cursor (i.e., lines below the insertion position). Only annotate code above the cursor when strictly necessary to clarify the behavior of the following lines.
+- When multiple options exist, prefer annotating the nearest statements immediately after the insertion position over earlier lines.
 - Prefer high-signal comments: purpose, inputs/outputs, invariants, non-obvious logic, side-effects, complexity, caveats, and TODOs.
 - Keep comments short and actionable (1-2 lines each). Avoid restating obvious code.
 - Use idiomatic formats (e.g., docstrings for Python, JSDoc/TSDoc for TypeScript, block comments for functions/classes when appropriate).
@@ -38,7 +40,7 @@ A single formatting change outside comments can cause issues; preserve original 
 <INSTRUCTIONS>
 1. Carefully examine the input code block and understand intent, data flow, and invariants.
 2. Refer to the edit history to understand recent changes that may need clarification.
-3. Around "{{placeholder}}", reason deeply about what is non-obvious and insert comments there. Do not modify existing characters; only insert comments using the correct syntax.
+3. Around "{{placeholder}}", focus on the code that comes after this insertion point within the edit block. Reason deeply about what is non-obvious in the following lines and insert comments there. Do not annotate code that is entirely above the insertion point unless it is essential context for the lines below. Do not modify existing characters; only insert comments using the correct syntax.
 4. Prefer comments that explain purpose, pre/post-conditions, edge cases, complexity, side-effects, and rationale behind tricky parts.
 5. Keep comments concise (1-2 lines each) and avoid restating obvious code.
 6. Confirm your comments do not contradict the user's intent and do not alter behavior.
@@ -56,6 +58,7 @@ A single formatting change outside comments can cause issues; preserve original 
 - You MUST output the entire "{{startEditingHere}}" block exactly once.
 - You MUST preserve all lines outside the edit block exactly as provided.
 - Output only comments; do NOT add or change executable code.
+- Focus comments on the code below the insertion point within the edit block; do not summarize or comment earlier sections unless strictly required to understand what follows.
 </IMPORTANT>
 
 <SYMBOL_CONTEXTS>
@@ -101,7 +104,7 @@ Program comments must be written in "{{commentLanguage}}".{{additionalUserPrompt
 const defaultAssistantPrompt =
 `<think>
 Okey, I will carefully review the code and insert explanatory comments without changing behavior. I will only modify the content within the "{{startEditingHere}}" ... "{{stopEditingHere}}" block and I will not output anything outside that block. After finishing within the allowed range I will always output "{{stopEditingHere}}" to indicate the end. I will preserve all whitespace and formatting of existing code exactly. I MUST insert comments at "{{placeholder}}" exactly where required, using the correct comment syntax for "{{languageId}}" and writing in "{{commentLanguage}}".
-I will not add any executable statements. I will avoid renaming or redefining identifiers. I will prefer high-signal, concise comments that explain purpose, preconditions, edge cases, complexity, side-effects, and rationale behind non-obvious logic. When appropriate, I will use idiomatic documentation forms (e.g., docstrings, JSDoc/TSDoc) and otherwise line comments near the relevant code. I will proactively reference external symbols defined in "SYMBOL_CONTEXT" to ensure accurate commentary.
+I will not add any executable statements. I will avoid renaming or redefining identifiers. I will prioritize annotating code located after the insertion point within the edit block, preferring the nearest statements immediately following the cursor. I will not add comments about code that is entirely above the insertion point unless it is necessary context for understanding subsequent lines. I will prefer high-signal, concise comments that explain purpose, preconditions, edge cases, complexity, side-effects, and rationale behind non-obvious logic. When appropriate, I will use idiomatic documentation forms (e.g., docstrings, JSDoc/TSDoc) and otherwise line comments near the relevant code. I will proactively reference external symbols defined in "SYMBOL_CONTEXT" to ensure accurate commentary.
 As the provided edit history and source code may be outdated, I will obtain the latest information before making any edits.
 The retrieved latest edit history is as follows:
 <EDIT_HISTORY>

@@ -119,8 +119,8 @@ function insertCursorHere(
 function getCachedSourceCode(documentUri: string | undefined,
 	sourceCode: string[],
 	ctx: EditorContext,
-	startEditingHere: string,
-	stopEditingHere: string
+	startEditingHere?: string,
+	stopEditingHere?: string
 ): string {
 	let cachedSourceCode: string | null = null;
 
@@ -133,11 +133,11 @@ function getCachedSourceCode(documentUri: string | undefined,
 		const beforeOutside = sourceCode.slice(0, ctx.aroundCacheFromLine).join('\n');
 		const aroundSnippet = sourceCode.slice(ctx.aroundCacheFromLine, ctx.aroundCacheToLine).join('\n');
 		const afterOutside = sourceCode.slice(ctx.aroundCacheToLine).join('\n');
+		const startSymbol = (startEditingHere)?('\n' + startEditingHere) : ''
+		const stopSymbol = (stopEditingHere)?('\n' + stopEditingHere) : '';
 		const inputCode =
-`${beforeOutside}
-${startEditingHere}
-${aroundSnippet}
-${stopEditingHere}
+`${beforeOutside}${startSymbol}
+${aroundSnippet}${stopSymbol}
 ${afterOutside}`
 		if (documentUri) {
 			cacheInputCode(documentUri, ctx.aroundCacheFromLine, ctx.aroundCacheToLine, inputCode);
@@ -182,7 +182,7 @@ export function buildCompletionPrompts(ctx: EditorContext,
 	const sourceCode = ctx.documentText.split('\n');
 
 	// Cached source code
-	const cachedSourceCode = getCachedSourceCode(documentUri, sourceCode, ctx, startEditingHereSymbol, stopEditingHereSymbol);
+	const cachedSourceCode = getCachedSourceCode(documentUri, sourceCode, ctx);//, startEditingHereSymbol, stopEditingHereSymbol);
 	const cachedSourceCodeWithLine = withLineNumberCodeBlock(cachedSourceCode, 0, [startEditingHereSymbol, stopEditingHereSymbol]).CodeBlock;
 	const sourceCodeBlock =
 `\`\`\`${ctx.languageId} title=${ctx.relativePath}

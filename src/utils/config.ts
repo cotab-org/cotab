@@ -22,7 +22,9 @@ export interface CotabConfig {
     disableForExtensions: string;
     serverAutoStart: boolean;
     serverAutoStopOnIdleTime: number;
-    commentLanguage: string;
+    commentLanguage: string;        // use language for comments
+    settingCommentLanguage: string; // user-specified language for comments
+    defaultCommentLanguage: string; // system language (fallback)
     selectedPromptMode: string;
     hideOnSetup: boolean;
 
@@ -30,6 +32,7 @@ export interface CotabConfig {
     provider: 'OpenAICompatible';
     apiBaseURL: string;
     localServerArg: string;
+    localServerContextSize: number;
     model: string;
     temperature: number;
     top_p: number;
@@ -103,9 +106,10 @@ function getConfigRaw(): CotabConfig {
     const editorCfg = vscode.workspace.getConfiguration('editor', uri);
     const cfg = vscode.workspace.getConfiguration();
     
-    const commentLanguage = cfg.get<string>('cotab.basic.commentLanguage', '').trim();
+    const settingCommentLanguage = cfg.get<string>('cotab.basic.commentLanguage', '').trim();
     //const editorLanguage = commentLanguage || getDisplayLanguageName(getUiLocale());
-    const osLanguage = commentLanguage || getDisplayLanguageName(getOsLocale());
+    const defaultCommentLanguage = getDisplayLanguageName(getOsLocale());
+    const commentLanguage = settingCommentLanguage || defaultCommentLanguage;
     const configuredLineHeight = Number(cfg.get<number>('lineHeight') || 0);
     const fontSize = Number(cfg.get<number>('fontSize') || 14);
     const lineHeight = configuredLineHeight > 0 ? configuredLineHeight : Math.round(fontSize * LINE_HEIGHT_RATIO);
@@ -133,7 +137,8 @@ function getConfigRaw(): CotabConfig {
         // llm
         provider: cfg.get<'OpenAICompatible'>('cotab.llm.provider', 'OpenAICompatible'),
         apiBaseURL: cfg.get<string>('cotab.llm.apiBaseURL', 'http://localhost:8080/v1'),
-        localServerArg: cfg.get<string>('cotab.llm.localServerArg', '-hf unsloth/Qwen3-4B-Instruct-2507-GGUF --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -c 32768 -ctk q8_0 -ctv q8_0'),
+        localServerArg: cfg.get<string>('cotab.llm.localServerArg', '-hf unsloth/Qwen3-4B-Instruct-2507-GGUF --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -ctk q8_0 -ctv q8_0'),
+        localServerContextSize: cfg.get<number>('cotab.llm.localServerContextSize', 32768),
         model: cfg.get<string>('cotab.llm.model', 'qwen3-4b-2507'),
         temperature: cfg.get<number>('cotab.llm.temperature', 0.1),
         top_p: cfg.get<number>('cotab.llm.top_p', -1),
@@ -143,7 +148,9 @@ function getConfigRaw(): CotabConfig {
         timeoutMs: cfg.get<number>('cotab.llm.timeoutMs', 30000),
 
         // prompt
-        commentLanguage: osLanguage,
+        commentLanguage: commentLanguage,
+        settingCommentLanguage,
+        defaultCommentLanguage,
         additionalSystemPrompt: cfg.get<string>('cotab.prompt.additionalSystemPrompt', ''),
         additionalUserPrompt: cfg.get<string>('cotab.prompt.additionalUserPrompt', ''),
         additionalAssistantThinkPrompt: cfg.get<string>('cotab.prompt.additionalAssistantThinkPrompt', ''),
@@ -219,6 +226,16 @@ export async function setConfigHideOnSetup(hide: boolean): Promise<void> {
 export async function setConfigShowProgressSpinner(enabled: boolean): Promise<void> {
     await vscode.workspace.getConfiguration()
         .update('cotab.ui.showProgressSpinner', enabled, vscode.ConfigurationTarget.Global);
+}
+
+export async function setConfigCommentLanguage(language: string): Promise<void> {
+    await vscode.workspace.getConfiguration()
+        .update('cotab.basic.commentLanguage', language.trim(), vscode.ConfigurationTarget.Global);
+}
+
+export async function setConfigLocalServerContextSize(size: number): Promise<void> {
+    await vscode.workspace.getConfiguration()
+        .update('cotab.llm.localServerContextSize', size, vscode.ConfigurationTarget.Global);
 }
 
 

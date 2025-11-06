@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { getConfig, setConfigHideOnSetup, setConfigShowProgressSpinner, setConfigApiBaseURL } from '../utils/config';
+import { getConfig, setConfigHideOnSetup, setConfigShowProgressSpinner, setConfigApiBaseURL, setConfigCommentLanguage, setConfigLocalServerContextSize } from '../utils/config';
 import { terminalCommand } from '../utils/terminalCommand';
 import { getAiClient } from '../llm/llmProvider';
 import { buildLinkButtonSvgDataUri, buildNetworkServerLabelSvgDataUri } from './menuUtil';
@@ -82,13 +82,15 @@ let autoRefreshManager: AutoRefreshManager | null = null;
 
 async function getServerSectionState(): Promise<{ kind: 'stop' | 'network' | 'start' | 'install'; label: string; command?: string; }> {
     if (await terminalCommand.isRunningLocalLlamaServer()) {
-        return { kind: 'stop', label: 'Local Server Running' };
+        return { kind: 'stop', label: 'Stop Server', command: 'cotab.server.stop' };
     }
     else if (await isServerRunning()) {
         return { kind: 'network', label: 'Network Server Running' };
-    } else if (await terminalCommand.isInstalledLocalLlamaServer()) {
+    }
+    else if (await terminalCommand.isInstalledLocalLlamaServer()) {
         return { kind: 'start', label: 'Start Server', command: 'cotab.server.start' };
-    } else {
+    }
+    else {
         return { kind: 'install', label: 'Install Server', command: 'cotab.server.install' };
     }
 }
@@ -115,29 +117,22 @@ async function showQuickSetup(context: vscode.ExtensionContext): Promise<void> {
 
     // get state
     const config = getConfig();
-    const apiBaseURL = config.apiBaseURL;
-    const hideOnSetup = config.hideOnSetup;
-    const showProgressSpinner = config.showProgressSpinner;
-    const initial = await getServerSectionState();
-    const iconUri = panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'icon.png'));
-    const tutorial1Uri = panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'doc', 'asset', 'cotab-tutorial-autocomplete1.gif'));
-    const tutorial2Uri = panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'doc', 'asset', 'cotab-tutorial-open-quick-setup.gif'));
-    const spinnerAnalyzeUri = panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'dot-spinner-0.svg')).toString();
-    const spinnerRedUri = panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'spinner-red-0.svg')).toString();
-    const spinnerNormalUri = panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'spinner-0.svg')).toString();
 
     // view contents
     panel.webview.html = getHtml({
-        apiBaseURL,
-        hideOnSetup,
-        initial,
-        iconUri,
-        tutorial1Uri,
-        tutorial2Uri,
-        spinnerAnalyzeUri,
-        spinnerRedUri,
-        spinnerNormalUri,
-        showProgressSpinner
+        apiBaseURL: config.apiBaseURL,
+        hideOnSetup: config.hideOnSetup,
+        initial: await getServerSectionState(),
+        iconUri: panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'icon.png')),
+        tutorial1Uri: panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'doc', 'asset', 'cotab-tutorial-autocomplete1.gif')),
+        tutorial2Uri: panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'doc', 'asset', 'cotab-tutorial-open-quick-setup.gif')),
+        spinnerAnalyzeUri: panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'dot-spinner-0.svg')).toString(),
+        spinnerRedUri: panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'spinner-red-0.svg')).toString(),
+        spinnerNormalUri: panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'spinner-0.svg')).toString(),
+        showProgressSpinner: config.showProgressSpinner,
+        settingCommentLanguage: config.settingCommentLanguage,
+        defaultCommentLanguage: config.defaultCommentLanguage,
+        localServerContextSize: config.localServerContextSize
     });
 
     // Handle webview command
@@ -169,6 +164,18 @@ async function handleWebviewMessage(panel: vscode.WebviewPanel, msg: any): Promi
         await setConfigShowProgressSpinner(value);
         panel.webview.postMessage({ type: 'saved', key: 'showProgressSpinner', value });
     }
+    else if (msg?.type === 'saveCommentLanguage') {
+        const value = String(msg.value || '').trim();
+        await setConfigCommentLanguage(value);
+        panel.webview.postMessage({ type: 'saved', key: 'commentLanguage', value });
+    }
+    else if (msg?.type === 'saveLocalServerContextSize') {
+        const rawValue = Number(msg.value);
+        const value = Number.isFinite(rawValue) ? rawValue : 32768;
+        
+        await setConfigLocalServerContextSize(value);
+        panel.webview.postMessage({ type: 'saved', key: 'localServerContextSize', value });
+    }
     else if (msg?.type === 'executeCommand') {
         const command = String(msg.command || '');
         const args = Array.isArray(msg.args)
@@ -197,16 +204,22 @@ function getHtml(params: {
     spinnerRedUri: string;
     spinnerNormalUri: string;
     showProgressSpinner: boolean;
+    settingCommentLanguage: string;
+    defaultCommentLanguage: string;
+    localServerContextSize: number;
 }): string {
     const nonce = String(Date.now());
     const apiBaseURL = escapeHtml(params.apiBaseURL || '');
     const hideOnSetup = params.hideOnSetup ? 'checked' : '';
     const showProgressSpinner = params.showProgressSpinner ? 'checked' : '';
+    const commentLanguage = escapeHtml(params.settingCommentLanguage || '');
+    const defaultCommentLanguage = escapeHtml(params.defaultCommentLanguage || '');
+    const localServerContextSize = Number.isFinite(params.localServerContextSize) ? params.localServerContextSize : 32768;
     const initialState = JSON.stringify(params.initial);
     // Prepare shared SVG URIs for consistent UI
     const assetsJson = JSON.stringify({
         startBtn: buildNetworkServerLabelSvgDataUri('Start Local Server', 'blue'),
-        stopBtn: buildNetworkServerLabelSvgDataUri('Local Server Running', 'red'),
+        stopBtn: buildNetworkServerLabelSvgDataUri('Stop Local Server', 'red'),
         installBtn: buildNetworkServerLabelSvgDataUri('Install Local Server', 'green'),
         networkLbl: buildNetworkServerLabelSvgDataUri('Network Server Running', 'purple')
     });
@@ -222,11 +235,18 @@ function getHtml(params: {
         *, *::before, *::after { box-sizing: border-box; }
         h1 { font-size: 16px; margin: 0 0 12px; }
         label { display: block; margin-bottom: 6px; }
-        input[type="text"] { width: 100%; padding: 6px 8px; border: 1px solid var(--vscode-input-border); background: var(--vscode-input-background); color: var(--vscode-input-foreground); border-radius: 4px; }
+        input[type="text"],
+        input[type="number"] { width: 100%; padding: 6px 8px; border: 1px solid var(--vscode-input-border); background: var(--vscode-input-background); color: var(--vscode-input-foreground); border-radius: 4px; }
+        input[type="number"] { -moz-appearance: textfield; }
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type="range"] { flex: 1; cursor: pointer; }
         .row { display: flex; gap: 8px; align-items: center; }
         .grow { flex: 1; }
+        .context-size-input { width: 64px !important; min-width: 64px; text-align: left; }
         button { padding: 6px 12px; border: 1px solid var(--vscode-button-border, transparent); color: var(--vscode-button-foreground); background: var(--vscode-button-background); border-radius: 4px; cursor: pointer; }
         .muted { opacity: 0.8; }
+        .helper-text { font-size: 12px; color: var(--vscode-descriptionForeground); margin-top: 6px; text-align: left; }
         .checkbox { display: flex; align-items: center; gap: 8px; }
         .center { text-align: center; }
         .setup-card {
@@ -490,6 +510,14 @@ function getHtml(params: {
             <div class="spacer"></div>
             <div id="serverStatus" class="muted"></div>
             <a id="serverActionButton" class="server-action-link" style="display:none;" href="#" title="server action"></a>
+            <div id="context-size-container" title="Required:&#10; - set 16k (16384) or more.&#10;&#10;Recommended:&#10; - set 32k (32768) or more.&#10;&#10;Reason:&#10; - The system prompt uses about 5k, and 1,000 lines of code use about 12k more.&#10; - so please set the context window to 20k (20480) or more.&#10;&#10;The default model (qwen3-4b-2507) VRAM usage:&#10; - 16k: about 4 GB&#10; - 32k: about 5.5 GB">
+                <div class="spacer"></div>
+                <div class="row">
+                    <label for="localServerContextSlider">Context Size</label>
+                    <input id="localServerContextSlider" type="range" class="range-input" min="8192" max="131072" step="4096" value="${localServerContextSize}" />
+                    <input id="localServerContextInput" type="number" class="context-size-input" inputmode="numeric" value="${localServerContextSize}" />
+                </div>
+            </div>
             <div class="spacer"></div>
             <div class="status-divider">
                 <span class="status-divider__line"></span>
@@ -503,12 +531,21 @@ function getHtml(params: {
             </div>
             <div class="spacer"></div>
         </section>
+        <section class="setup-card setup-card--status">
+            <div class="spacer"></div>
+            <label for="commentLanguage">Comment Language</label>
+            <div class="row">
+                <input id="commentLanguage" type="text" class="grow" value="${commentLanguage}" placeholder="${defaultCommentLanguage}" />
+            </div>
+            <div class="helper-text">(e.g. 'English', '日本語', '简体中文', 'Français')</div>
+            <div class="spacer"></div>
+        </section>
         <div class="separator"></div>
         <h2 class="center">Getting started</h2>
         <section class="setup-card setup-card--hero">
             <div class="setup-card__content-block">
                 <div class="setup-card__media">
-                    <img src="${params.tutorial1Uri}" class="setup-card__media-image" alt="Cotabのチュートリアルフロー" />
+                    <img src="${params.tutorial1Uri}" class="setup-card__media-image" alt="Cotab Tutorial" />
                 </div>
                 <div class="setup-card__caption-group">
                     <span class="setup-card__caption">ACCEPT : TAB</span>
@@ -572,6 +609,9 @@ function getHtml(params: {
             const serverStatusContainer = document.getElementById('serverStatus');
             const serverActionLink = document.getElementById('serverActionButton');
             const apiBaseURLInput = document.getElementById('apiBaseURL');
+            const commentLanguageInput = document.getElementById('commentLanguage');
+            const localServerContextSlider = document.getElementById('localServerContextSlider');
+            const localServerContextInput = document.getElementById('localServerContextInput');
             const hideNext = document.getElementById('hideNext');
             const hideNextInline = document.getElementById('hideNextInline');
             const showProgressSpinnerCheckbox = document.getElementById('showProgressSpinner');
@@ -605,22 +645,29 @@ function getHtml(params: {
                 if (state?.kind === 'network') {
                     renderSvgImage(serverStatusContainer, assets.networkLbl, 'Network Server Running');
                     serverActionLink.style.display = 'none';
+                    document.getElementById('context-size-container').style.display = 'none';
                 } else if (state?.kind === 'start' && state?.command) {
                     serverActionLink.style.display = '';
                     serverStatusContainer.textContent = '';
                     renderSvgImage(serverActionLink, assets.startBtn, 'Start Server');
                     serverActionLink.dataset.command = state.command;
+                    document.getElementById('context-size-container').style.display = 'block';
                 } else if (state?.kind === 'stop') {
-                    renderSvgImage(serverStatusContainer, assets.stopBtn, 'Local Server Running');
-                    serverActionLink.style.display = 'none';
+                    serverActionLink.style.display = '';
+                    serverStatusContainer.textContent = '';
+                    renderSvgImage(serverActionLink, assets.stopBtn, 'Stop Server');
+                    serverActionLink.dataset.command = state.command;
+                    document.getElementById('context-size-container').style.display = 'block';
                 } else if (state?.kind === 'install' && state?.command) {
                     serverActionLink.style.display = '';
                     serverStatusContainer.textContent = '';
                     renderSvgImage(serverActionLink, assets.installBtn, 'Install Server');
                     serverActionLink.dataset.command = state.command;
+                    document.getElementById('context-size-container').style.display = 'block';
                 } else {
                     serverStatusContainer.textContent = '';
                     serverActionLink.style.display = 'none';
+                    document.getElementById('context-size-container').style.display = 'block';
                 }
             }
 
@@ -642,6 +689,92 @@ function getHtml(params: {
                     vscode.postMessage({ type: 'saveApiBaseURL', value });
                 }, 400);
             });
+
+            let commentLanguageSaveTimer = null;
+            if (commentLanguageInput instanceof HTMLInputElement) {
+                commentLanguageInput.addEventListener('input', () => {
+                    if (commentLanguageSaveTimer) clearTimeout(commentLanguageSaveTimer);
+                    commentLanguageSaveTimer = setTimeout(() => {
+                        const value = String(commentLanguageInput.value || '').trim();
+                        vscode.postMessage({ type: 'saveCommentLanguage', value });
+                    }, 400);
+                });
+            }
+
+            let localServerContextSaveTimer = null;
+
+            function normalizeLocalServerContextSize(value) {
+                return Number.isFinite(value) ? value : 32768;
+            }
+
+            function syncLocalServerContextSize(value, options = {}) {
+                const { updateSlider = true, updateInput = true } = options;
+                if (updateSlider && localServerContextSlider instanceof HTMLInputElement) {
+                    localServerContextSlider.value = String(value);
+                }
+                if (updateInput && localServerContextInput instanceof HTMLInputElement) {
+                    localServerContextInput.value = String(value);
+                }
+            }
+
+            if (localServerContextSlider instanceof HTMLInputElement && localServerContextInput instanceof HTMLInputElement) {
+                let currentLocalServerContextSize = normalizeLocalServerContextSize(Number(localServerContextSlider.value)) ?? 32768;
+                syncLocalServerContextSize(currentLocalServerContextSize);
+
+                const scheduleLocalServerContextSave = (value) => {
+                    if (localServerContextSaveTimer) clearTimeout(localServerContextSaveTimer);
+                    localServerContextSaveTimer = setTimeout(() => {
+                        vscode.postMessage({ type: 'saveLocalServerContextSize', value });
+                    }, 300);
+                };
+
+                localServerContextSlider.addEventListener('input', () => {
+                    const normalized = normalizeLocalServerContextSize(Number(localServerContextSlider.value));
+                    if (normalized === null) {
+                        return;
+                    }
+                    currentLocalServerContextSize = normalized;
+                    syncLocalServerContextSize(normalized, { updateSlider: false });
+                    scheduleLocalServerContextSave(normalized);
+                });
+
+                const commitLocalServerContextInput = () => {
+                    if (!(localServerContextInput instanceof HTMLInputElement)) {
+                        return;
+                    }
+                    if (localServerContextInput.value === '') {
+                        localServerContextInput.value = String(currentLocalServerContextSize);
+                        return;
+                    }
+                    const normalized = normalizeLocalServerContextSize(Number(localServerContextInput.value));
+                    if (normalized === null) {
+                        localServerContextInput.value = String(currentLocalServerContextSize);
+                        return;
+                    }
+                    currentLocalServerContextSize = normalized;
+                    syncLocalServerContextSize(normalized, { updateInput: false });
+                    scheduleLocalServerContextSave(normalized);
+                };
+
+                localServerContextInput.addEventListener('change', commitLocalServerContextInput);
+                localServerContextInput.addEventListener('blur', commitLocalServerContextInput);
+                localServerContextInput.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter') {
+                        commitLocalServerContextInput();
+                    }
+                });
+                localServerContextInput.addEventListener('input', () => {
+                    if (localServerContextInput.value === '') {
+                        return;
+                    }
+                    const normalized = normalizeLocalServerContextSize(Number(localServerContextInput.value));
+                    if (normalized === null) {
+                        return;
+                    }
+                    currentLocalServerContextSize = normalized;
+                    syncLocalServerContextSize(normalized, { updateInput: false });
+                });
+            }
 
             function syncHideOnSetupCheckboxes(value) {
                 if (hideNext instanceof HTMLInputElement) {

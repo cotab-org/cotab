@@ -155,51 +155,57 @@
         },
         "cotab.llm.localServerArg": {
           "type": "string",
-          "default": "-hf unsloth/Qwen3-4B-Instruct-2507-GGUF --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -c 32768 -ctk q8_0 -ctv q8_0",
+          "default": "-hf unsloth/Qwen3-4B-Instruct-2507-GGUF --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -ctk q8_0 -ctv q8_0",
           "description": "Arguments for launching the local server (llama.cpp)",
           "order": 203
+        },
+        "cotab.llm.localServerContextSize": {
+          "type": "number",
+          "default": 32768,
+          "description": "Context size for the local server (llama.cpp)",
+          "order": 204
         },
         "cotab.llm.model": {
           "type": "string",
           "default": "qwen/qwen3-4b-2507",
           "description": "Model name to use",
-          "order": 204
+          "order": 205
         },
         "cotab.llm.temperature": {
           "type": "number",
           "default": 0.1,
           "description": "Creativity (0-1, lower values recommended. if -1, server's default setting is used)",
-          "order": 205
+          "order": 206
         },
         "cotab.llm.top_p": {
           "type": "number",
           "default": -1,
           "description": "Top-p sampling (if -1, server's default setting is used)",
-          "order": 206
+          "order": 207
         },
         "cotab.llm.top_k": {
           "type": "number",
           "default": -1,
           "description": "Top-k sampling (if -1, server's default setting is used)",
-          "order": 207
+          "order": 208
         },
         "cotab.llm.maxTokens": {
           "type": "number",
           "default": 256,
           "description": "Maximum number of tokens for LLM output",
-          "order": 208
+          "order": 209
         },
         "cotab.llm.maxOutputLines": {
           "type": "number",
           "default": 15,
           "description": "Maximum number of output lines from LLM",
-          "order": 209
+          "order": 210
         },
         "cotab.llm.timeoutMs": {
           "type": "number",
           "default": 30000,
           "description": "LLM call timeout (ms)",
-          "order": 210
+          "order": 211
         },
         "cotab.prompt.additionalSystemPrompt": {
           "type": "string",

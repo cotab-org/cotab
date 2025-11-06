@@ -232,16 +232,16 @@ async function buildMainMenuMarkdown(): Promise<vscode.MarkdownString> {
     md.appendMarkdown(`\n\n---\n\n`);
     let serverStatus;
     if (await terminalCommand.isRunningLocalLlamaServer()) {
-        serverStatus = linkButton('Stop Server', 'command:cotab.server.stop', '#d83b01', '#ffffff');
+        serverStatus = createStopServerLabel();
     }
     else if (await isServerRunning()) {
         serverStatus = createNetworkServerLabel();
     }
     else if (await terminalCommand.isInstalledLocalLlamaServer()) {
-        serverStatus = linkButton('Start Server', 'command:cotab.server.start', '#007acc', '#ffffff');
+        serverStatus = createStartServerLabel();
     }
     else {
-        serverStatus = linkButton('Install Server', 'command:cotab.server.install', '#2ea043', '#ffffff');
+        serverStatus = createInstallServerLabel();
     }
     
     md.appendMarkdown(`${serverStatus}`);
@@ -344,8 +344,23 @@ function radioSvg(selected: boolean): string {
  * Create a stylish network server label with gradient background and status indicator
  */
 function createNetworkServerLabel(): string {
-	const uri = buildNetworkServerLabelSvgDataUri('Network Server Running');
+	const uri = buildNetworkServerLabelSvgDataUri('Network Server Running', 'purple');
 	return `![](${uri})`;
+}
+function createStopServerLabel(): string {
+    //return linkButton('Stop Server', 'command:cotab.server.stop', '#d83b01', '#ffffff');
+	const uri = buildNetworkServerLabelSvgDataUri('Stop Server', 'red');
+	return `[![](${uri})](command:cotab.server.stop)`;
+}
+function createStartServerLabel(): string {
+    //return linkButton('Start Server', 'command:cotab.server.start', '#007acc', '#ffffff');
+	const uri = buildNetworkServerLabelSvgDataUri('Start Local Server', 'blue');
+	return `[![](${uri})](command:cotab.server.start)`;
+}
+function createInstallServerLabel(): string {
+    //return linkButton('Install Server', 'command:cotab.server.install', '#2ea043', '#ffffff');
+	const uri = buildNetworkServerLabelSvgDataUri('Install Server', 'green');
+	return `[![](${uri})](command:cotab.server.install)`;
 }
 
 async function setGlobalEnabledCmd(enabled: boolean) {
