@@ -89,6 +89,13 @@ Press F5 in vscode to start debugging the plugin.
 ### Other Platforms
 
 Requires VsCode, Node.js(v22) and Git.
+
+Install Node.js v22 via ubuntu package manager.
+```bash
+url -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+sudo apt install -y nodejs
+```
+
 ```bash
 git clone https://github.com/cotab-org/cotab.git
 cd cotab

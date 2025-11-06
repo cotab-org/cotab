@@ -7,7 +7,7 @@ import { logDebug } from '../utils/logger';
 import { JSDOM } from 'jsdom';
 import { measureTextsWidthPx } from '../utils/textMeasurer';
 import { getConfig } from '../utils/config';
-import { SimpleLocker } from '../utils/cotabUtil';
+import { SimpleLocker, isDarkTheme } from '../utils/cotabUtil';
 import { CharDiffSegment } from '../diff/charDiff';
 
 export interface OverlaySegment {
@@ -22,12 +22,24 @@ export interface OverlaySegment {
 }
 
 // Color scheme aligned with existing suggestion overlay styles
-const colors = {
-	fontColor: '#ffffffb5',
-	unfinishedFontColor: '#ffffff70',
-	backgroundColor: '#eeff0022',
-	borderColor: '#666666',
-};
+function getOverlayColors() {
+	if (isDarkTheme()) {
+		return {
+			fontColor: '#ffffffb5',
+			unfinishedFontColor: '#ffffff70',
+			backgroundColor: '#eeff0022',
+			borderColor: '#666666',
+		};
+	}
+	else {
+		return {
+			fontColor: '#000000b5',
+			unfinishedFontColor: '#00000070',
+			backgroundColor: '#bbff0033',
+			borderColor: '#999999',
+		};
+	}
+}
 
 const svgOverlayDecorationType = vscode.window.createTextEditorDecorationType({
 	before: { margin: '0 0 0 0' },
@@ -77,7 +89,8 @@ async function renderSvgOverlaysInternal(
 		const themeName = getConfig().theme;
 		const languageId = editor.document.languageId;
 		const highlighter = await getOrCreateHighlighter(themeName, languageId);
-		const defaultColor = tryGetDefaultForeground(highlighter) || (isUnfinished ? colors.unfinishedFontColor : colors.fontColor);
+		const overlayColors = getOverlayColors();
+		const defaultColor = tryGetDefaultForeground(highlighter) || (isUnfinished ? overlayColors.unfinishedFontColor : overlayColors.fontColor);
 
 		const decos: vscode.DecorationOptions[] = [];
 		const svgUri = await buildSvgDataUriWithShiki(
@@ -160,11 +173,15 @@ async function buildSvgDataUriWithShiki(
 	const height = Math.max(1, computedHeight);
 	
 	// make background color
-	const tonedownBackgroundColor = `rgb(${parseInt(bgColor.slice(1, 3), 16) * 0.9}, ${parseInt(bgColor.slice(3, 5), 16) * 0.9}, ${parseInt(bgColor.slice(5, 7), 16) * 0.9})`;
+	const tonedownBackgroundColor = isDarkTheme()
+									? `rgb(${parseInt(bgColor.slice(1, 3), 16) * 0.9}, ${parseInt(bgColor.slice(3, 5), 16) * 0.9}, ${parseInt(bgColor.slice(5, 7), 16) * 0.9})`
+									: `rgb(${parseInt(bgColor.slice(1, 3), 16) * 0.98}, ${parseInt(bgColor.slice(3, 5), 16) * 0.98}, ${parseInt(bgColor.slice(5, 7), 16) * 0.98})`;
 
+
+	const overlayColors = getOverlayColors();
 	const svg =
 `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
-<rect x="0" y="0" width="${width}" height="${height}" fill="${tonedownBackgroundColor}" stroke="${colors.borderColor}" stroke-width="1" />
+	<rect x="0" y="0" width="${width}" height="${height}" fill="${tonedownBackgroundColor}" stroke="${overlayColors.borderColor}" stroke-width="1" />
 ${texts}
 </svg>`;
 	const encoded = encodeURIComponent(svg)
@@ -242,6 +259,7 @@ async function convertShikiHtmlToSvgGut(
 	const dom = new JSDOM(shikiHtml);
 	const document = dom.window.document;
     const config = getConfig();
+    const overlayColors = getOverlayColors();
 
 	const lines = Array.from(document.querySelectorAll(".line")) as Element[];
 	let maxWidth = 0;
@@ -258,7 +276,7 @@ async function convertShikiHtmlToSvgGut(
 			const classes = el.getAttribute("class") || "";
 			let fill = colorMatch ? ` fill="${colorMatch[1]}"` : "";
 			if (classes.includes("highlighted")) {
-				fill = ` fill="${colors.backgroundColor}"`;
+				fill = ` fill="${overlayColors.backgroundColor}"`;
 			}
 
 			const content = el.textContent || "";
@@ -280,7 +298,7 @@ async function convertShikiHtmlToSvgGut(
 				if (segment.type !== 'add') continue;
 				const diffX = await getTextWidth(lineContent.slice(0, segment.newIdx));
 				const diffWidth = await getTextWidth(segment.text);
-				rects.push(`<rect x="${diffX}" y="${rectY}" width="${diffWidth}" height="${config.lineHeight}" fill="${colors.backgroundColor}" />`);
+				rects.push(`<rect x="${diffX}" y="${rectY}" width="${diffWidth}" height="${config.lineHeight}" fill="${overlayColors.backgroundColor}" />`);
 			}
 		}
 
@@ -324,7 +342,7 @@ async function getOrCreateHighlighter(themeName: string, languageId: string): Pr
 				if (lang === 'cpp' || lang === 'c++') {
 					try {
 						logDebug(`Trying fallback to 'c' language for highlighter`);
-						const fallbackTheme = vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Light ? 'light-plus' : 'dark-plus';
+						const fallbackTheme = isDarkTheme() ? 'dark-plus' : 'light-plus';
 						const highlighter = await shiki.createHighlighter({ themes: [fallbackTheme], langs: ['c'] });
 						try { highlighter.setTheme(fallbackTheme); } catch {}
 						return highlighter;
@@ -334,7 +352,7 @@ async function getOrCreateHighlighter(themeName: string, languageId: string): Pr
 				}
 				
 				// Finally create a highlighter for plain text
-				const fallback = vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Light ? 'light-plus' : 'dark-plus';
+				const fallback = isDarkTheme() ? 'dark-plus' : 'light-plus';
 				const highlighter = await shiki.createHighlighter({ themes: [fallback], langs: ['text'] });
 				try { highlighter.setTheme(fallback); } catch {}
 				return highlighter;

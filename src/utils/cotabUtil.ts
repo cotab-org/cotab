@@ -81,3 +81,9 @@ export function parseHandlebarsTemplate(template: string, context: any): string 
 		return template;
 	}
 }
+
+export function isDarkTheme(): boolean {
+    const kind = vscode.window.activeColorTheme.kind;
+    const isLight = (kind === vscode.ColorThemeKind.Light || kind === vscode.ColorThemeKind.HighContrastLight);
+    return !isLight;
+}

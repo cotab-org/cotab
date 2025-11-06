@@ -3,19 +3,23 @@ import { getMergedSuggestions, LineEdit } from './suggestionStore';
 import { computeCharDiff } from '../diff/charDiff';
 import { logInfo, logDebug } from '../utils/logger';
 import { getVisualWidth } from './suggestionUtils';
+import { isDarkTheme } from '../utils/cotabUtil';
 import { renderSvgOverlays, clearSvgOverlays, disposeSvgDecorationTypes, OverlaySegment } from './suggestionSvgRenderer';
-
-
-// Yellow base (color scheme close to merge color)
-const inlineFontColor = '#ffffffb5'; // '#ffffff60';
-const appendBGColor = '#eeff0022';
 
 let renderTimer: NodeJS.Timeout | null = null;
 
-const inlineDecorationType = vscode.window.createTextEditorDecorationType({
-	after: { color: inlineFontColor/*, fontStyle: 'italic'*/, backgroundColor: appendBGColor },
+const inlineDecorationTypeDark = vscode.window.createTextEditorDecorationType({
+	after: { color: '#ffffffb5'/*, fontStyle: 'italic'*/, backgroundColor: '#eeff0022' },
 	rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed,
 });
+const inlineDecorationTypeLight = vscode.window.createTextEditorDecorationType({
+	after: { color: '#000000b5'/*, fontStyle: 'italic'*/, backgroundColor: '#bbff0033' },
+	rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed,
+});
+
+function getInlineDecorationType() {
+	return isDarkTheme() ? inlineDecorationTypeDark : inlineDecorationTypeLight;
+}
 
 const deleteDecorationType = vscode.window.createTextEditorDecorationType({
 	backgroundColor: '#ff000050',
@@ -411,7 +415,7 @@ function renderSuggestionsInternal(editor: vscode.TextEditor,
 	renderTimer = setTimeout(() => {
 		renderTimer = null;
 		//logDebug(`updateDecorations: ${renderData.inlineCompletionItems.length} ${renderData.inlineOptions.length} ${renderData.deleteOptions.length} ${renderData.invisibleOptions.length}`);
-		editor.setDecorations(inlineDecorationType, renderData.inlineOptions);
+		editor.setDecorations(getInlineDecorationType(), renderData.inlineOptions);
 
 		renderSvgOverlays(editor, renderData.overlaySegments, { unfinished: renderData.noFinished, dispIdx, isNoHighligh: renderData.isNoHighligh });
 		editor.setDecorations(deleteDecorationType, renderData.deleteOptions);
@@ -426,7 +430,8 @@ function renderSuggestionsInternal(editor: vscode.TextEditor,
 }
 
 export function disposeDecorationTypes() {
-	inlineDecorationType.dispose();
+	inlineDecorationTypeDark.dispose();
+	inlineDecorationTypeLight.dispose();
 	deleteDecorationType.dispose();
 	disposeSvgDecorationTypes();
 	if (renderTimer) {
@@ -440,7 +445,8 @@ export function clearAllDecorations(editor: vscode.TextEditor) {
 	//console.log('clearAllDecorations called for:', editor.document.uri.toString());
 	
 	// Clear each decoration type with empty arrays
-	editor.setDecorations(inlineDecorationType, []);
+	editor.setDecorations(inlineDecorationTypeDark, []);
+	editor.setDecorations(inlineDecorationTypeLight, []);
 	editor.setDecorations(deleteDecorationType, []);
 	if (renderTimer) {
 		clearTimeout(renderTimer);

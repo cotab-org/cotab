@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { BundledTheme } from "shiki";
 import { extensions } from 'vscode';
 import { execSync } from 'child_process';
+import { isDarkTheme } from './cotabUtil';
 
 let configCache: CotabConfig | null = null;
 
@@ -74,14 +75,20 @@ export interface CotabConfig {
 // Clear cache when configuration changes
 export function registerConfigWatcher(disposables: vscode.Disposable[],
                                         onEnabledChange: () => void): void {
-    let prevEnable = getConfig().enabled;    
     disposables.push(vscode.workspace.onDidChangeConfiguration((event) => {
-        if (event.affectsConfiguration('cotab')) {
+        if (
+            // detect cotab configuration change
+            event.affectsConfiguration('cotab') ||
+            // detect theme change
+            event.affectsConfiguration('workbench.colorTheme') ||
+            event.affectsConfiguration('workbench.colorCustomizations') ||
+            event.affectsConfiguration('workbench.preferredDarkColorTheme') ||
+            event.affectsConfiguration('workbench.preferredLightColorTheme')
+        ) {
+            const prevEnable = getConfig().enabled;
             configCache = null;
-
             const nowEnable = getConfig().enabled;
             if (prevEnable !== nowEnable) {
-                prevEnable = nowEnable;
                 onEnabledChange();
             }
         }
@@ -334,8 +341,8 @@ function getActiveThemeName(): string {
 		const theme = cfg.get<string>('colorTheme');
 		if (theme && theme.length) return theme;
 	} catch {}
-	const kind = vscode.window.activeColorTheme.kind;
-	return kind === vscode.ColorThemeKind.Light ? 'Light+ (default light)' : 'Dark+ (default dark)';
+    
+	return isDarkTheme() ? 'Dark+ (default dark)' : 'Light+ (default light)';
 }
 
 function getEditorBackgroundColor(): string {
@@ -449,9 +456,26 @@ function isShikiThemeExists(themeNameKebab: string): themeNameKebab is BundledTh
 
 export function toShikiThemeName(themeName: string): string {
     const kebabTheme = toKebabCase(themeName);
-    if ( isShikiThemeExists(kebabTheme) || themeName === "Default Dark Modern" ) {
-      return themeName === "Default Dark Modern" ? "dark-plus" : kebabTheme;
-    } else {
-      return "dark-plus";   // Fallback to default theme for unsupported themes.
+    // check default theme
+    if (themeName === "Default Dark Modern") {
+        return "dark-plus";
+    }
+    else if (themeName === "Default Light Modern") {
+        return "light-plus";
+    }
+    // check shiki theme
+    else if ( isShikiThemeExists(kebabTheme) ) {
+      return kebabTheme;
+    }
+    // Faullback to dark or light character
+    else if (themeName.toLowerCase().includes('dark')) {
+        return "dark-plus";
+    }
+    else if (themeName.toLowerCase().includes('light')) {
+        return "light-plus";
+    }
+    // Fallback to default theme for unsupported themes.
+    else {
+      return "dark-plus";
     }
 }

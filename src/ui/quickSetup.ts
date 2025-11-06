@@ -470,7 +470,7 @@ function getHtml(params: {
         }
         .floating-controls .floating-settings-btn {
             background: var(--vscode-button-secondaryBackground, var(--vscode-button-background));
-            color: var(--vscode-button-foreground);
+            color: var(--vscode-foreground);
             border: 1px solid var(--vscode-button-border, transparent);
             border-radius: 6px;
             padding: 6px 10px;
