@@ -234,6 +234,18 @@ function getHtml(params: {
         body { font-family: -apple-system, Segoe UI, Ubuntu, Helvetica, Arial, sans-serif; padding: 16px; padding-bottom: 96px; color: var(--vscode-foreground); background: var(--vscode-editor-background); }
         *, *::before, *::after { box-sizing: border-box; }
         h1 { font-size: 16px; margin: 0 0 12px; }
+        h2 { font-size: 32px; font-weight: bold; margin-top: 24px; margin-bottom: 24px; }
+        h3 { font-size: 24px; font-weight: bold; margin-top: 32px; margin-bottom: 32px; }
+        .header-fill {
+            border-top: 1px solid var(--vscode-panel-border);
+            border-bottom: 1px solid var(--vscode-panel-border);
+            border-color: color-mix(in srgb, currentColor 35%, transparent);
+            padding-top: 24px;
+            padding-bottom: 24px;
+            margin-top: 64px;
+            margin-bottom: 32px;
+            background: linear-gradient(90deg, rgba(41, 48, 74, 0.42) 0%, rgb(66 87 115 / 45%) 35%, rgb(66 87 115 / 45%) 65%, rgba(41, 48, 74, 0.42) 100%);
+        }
         label { display: block; margin-bottom: 6px; }
         input[type="text"],
         input[type="number"] { width: 100%; padding: 6px 8px; border: 1px solid var(--vscode-input-border); background: var(--vscode-input-background); color: var(--vscode-input-foreground); border-radius: 4px; }
@@ -416,8 +428,8 @@ function getHtml(params: {
         .separator {
             flex: 1;
             height: 1px;
-            margin-top: 16px;
-            margin-bottom: 16px;
+            margin-top: 64px;
+            margin-bottom: 32px;
             background-color: currentColor;
             opacity: 0.35;
         }
@@ -490,12 +502,11 @@ function getHtml(params: {
         .server-action-link { display: inline-flex; }
         .server-action-link img { display: block; filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.35)); }
         /* Title alignment */
-        .title-wrapper { display: flex; flex-direction: column; align-items: center; margin: 24px 0 16px; }
+        .title-wrapper { display: flex; flex-direction: column; align-items: center; margin: 64px 0 64px; }
         .title-head { display: flex; align-items: center; justify-content: center; font-size: 40px; }
         .title-head::after { content: ''; display: block; width: 56px; height: 0; flex: 0 0 56px; }
         .title-head img { width: 56px; height: 56px; display: block; }
         .title-head .title-text { font-size: 48px; font-weight: bold; letter-spacing: 2px; }
-        h2 { margin-top: 16px; margin-bottom: 16px; }
     </style>
     </head>
     <body>
@@ -505,7 +516,8 @@ function getHtml(params: {
                 <span class="title-text">Cotab</span>
             </h1>
         </div>
-        <h2 class="center">Quick Setup</h2>
+        <h2 class="center header-fill">Getting Started</h2>
+        <h3 class="center">Setup Server</h3>
         <section class="setup-card setup-card--status">
             <div class="spacer"></div>
             <div id="serverStatus" class="muted"></div>
@@ -531,17 +543,8 @@ function getHtml(params: {
             </div>
             <div class="spacer"></div>
         </section>
-        <section class="setup-card setup-card--status">
-            <div class="spacer"></div>
-            <label for="commentLanguage">Comment Language</label>
-            <div class="row">
-                <input id="commentLanguage" type="text" class="grow" value="${commentLanguage}" placeholder="${defaultCommentLanguage}" />
-            </div>
-            <div class="helper-text">(e.g. 'English', '日本語', '简体中文', 'Français')</div>
-            <div class="spacer"></div>
-        </section>
         <div class="separator"></div>
-        <h2 class="center">Getting started</h2>
+        <h3 class="center">Let’s Get Autocompleting!</h3>
         <section class="setup-card setup-card--hero">
             <div class="setup-card__content-block">
                 <div class="setup-card__media">
@@ -554,7 +557,23 @@ function getHtml(params: {
             </div>
         </section>
         <div class="separator"></div>
-        <h2 class="center">Progress Icon</h2>
+        <h3 class="center">Show This Page Again</h3>
+        <section class="setup-card setup-card--hero">
+            <div class="setup-card__content-block">
+                <div class="setup-card__media">
+                    <img src="${params.tutorial2Uri}" class="setup-card__media-image" alt="Show progress spinner preview" />
+                </div>
+                <div class="setup-card__caption-group">
+                    <span class="setup-card__caption">Hover over the status bar. Don't click!</span>
+                    <label class="setup-checkbox">
+                        <input id="hideNextInline" type="checkbox" ${hideOnSetup}/>
+                        <span class="setup-checkbox__label">Don't show this again</span>
+                    </label>
+                </div>
+            </div>
+        </section>
+        <h2 class="center header-fill">Learn More</h2>
+        <h3 class="center">Progress Icon Description</h3>
         <section class="setup-card setup-card--spinners">
             <div class="spinner-card">
                 <div class="spinner-card__icon">
@@ -582,20 +601,15 @@ function getHtml(params: {
             </div>
         </section>
         <div class="separator"></div>
-        <h2 class="center">Show This Page Again</h2>
-        <section class="setup-card setup-card--hero">
-            <div class="setup-card__content-block">
-                <div class="setup-card__media">
-                    <img src="${params.tutorial2Uri}" class="setup-card__media-image" alt="Show progress spinner preview" />
-                </div>
-                <div class="setup-card__caption-group">
-                    <span class="setup-card__caption">Hover over the status bar. Don't click!</span>
-                    <label class="setup-checkbox">
-                        <input id="hideNextInline" type="checkbox" ${hideOnSetup}/>
-                        <span class="setup-checkbox__label">Don't show this again</span>
-                    </label>
-                </div>
+        <h3 class="center">Detail Settings</h3>
+        <section class="setup-card setup-card--status">
+            <div class="spacer"></div>
+            <label for="commentLanguage">Comment Language</label>
+            <div class="row">
+                <input id="commentLanguage" type="text" class="grow" value="${commentLanguage}" placeholder="${defaultCommentLanguage}" />
             </div>
+            <div class="helper-text">(e.g. 'English', '日本語', '简体中文', 'Français')</div>
+            <div class="spacer"></div>
         </section>
         <div class="floating-controls">
             <label class="checkbox floating-label"><input id="hideNext" type="checkbox" ${hideOnSetup}/>Don't show this again</label>
