@@ -444,10 +444,24 @@ async function uninstallLlamaServer(): Promise<void> {
     await closeCotabMenu();
     
     try {
+        const isInstalled = await terminalCommand.isInstalledLocalLlamaServer();
+        if (! isInstalled) {
+            vscode.window.showInformationMessage('not installed Server (llama.cpp)');
+            return;
+        }
+        const choice = await vscode.window.showInformationMessage(
+            'Really uninstall the server (llama.cpp)?',
+            'Yes', 'No'
+        );
+        if (choice !== 'Yes') {
+            return;
+        }
         vscode.window.showInformationMessage('Uninstalling Server (llama.cpp) ...');
         
         // Uninstall llama.cpp
         await terminalCommand.uninstallLocalLlamaCpp();
+
+        vscode.window.showInformationMessage('Uninstalled Server (llama.cpp)');
     }
     catch (error) {
         vscode.window.showErrorMessage(`Server (llama.cpp) uninstall failed: ${error}`);
