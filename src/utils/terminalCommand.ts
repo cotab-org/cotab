@@ -7,6 +7,7 @@ import * as https from 'https';
 import * as os from 'os';
 import axios from 'axios';
 import { getConfig } from '../utils/config';
+import { OSInfo, GetOSInfo } from '../utils/cotabUtil';
 import { logInfo, logWarning, logError, logServer, logTerminal, showLogWindow } from './logger';
 import { requestUpdateCotabMenuUntilChanged } from '../ui/menuIndicator';
 
@@ -18,34 +19,14 @@ export function registerTerminalCommand(disposables: vscode.Disposable[]): void 
 
 export let terminalCommand: TerminalCommand;
 
+const llamaServerExe = (process.platform === 'win32') ? 'llama-server.exe' : 'llama-server';
+
 // Singleton instance (created eagerly so that external calls work even if not registered)
 class TerminalCommand implements vscode.Disposable {
     private disposables: vscode.Disposable[] = [];
     private InstallTerminal: vscode.Terminal | undefined;
     private ServerProcess!: cp.ChildProcessWithoutNullStreams;
     private serverRunningCache: { result: boolean; timestamp: number } | null = null;
-    
-    private async isWindowsNvidiaGpuPresent(): Promise<boolean> {
-        if (process.platform !== 'win32') return false;
-        try {
-            const exec = util.promisify(cp.exec);
-            const { stdout } = await exec(`powershell -NoProfile -Command "(Get-CimInstance Win32_VideoController | Where-Object Name -match 'NVIDIA' | Select-Object -First 1 -ExpandProperty Name)"`);
-            return (stdout || '').trim().length > 0;
-        } catch (_) {
-            return false;
-        }
-    }
-
-    private async isWindowsAmdGpuPresent(): Promise<boolean> {
-        if (process.platform !== 'win32') return false;
-        try {
-            const exec = util.promisify(cp.exec);
-            const { stdout } = await exec(`powershell -NoProfile -Command "(Get-CimInstance Win32_VideoController | Where-Object Name -match 'AMD|Radeon' | Select-Object -First 1 -ExpandProperty Name)"`);
-            return (stdout || '').trim().length > 0;
-        } catch (_) {
-            return false;
-        }
-    }
 
     private getInstallBaseDir(): string {
         if (process.platform === 'win32') {
@@ -135,8 +116,20 @@ class TerminalCommand implements vscode.Disposable {
         return undefined;
     }
 
-    private async downloadAndInstallWindowsBinaries(kind: 'cuda' | 'vulkan' | 'cpu'): Promise<boolean> {
+    private isSupportMyInstall(osInfo: OSInfo): boolean {
+        if (osInfo.platform === 'other' ||
+            osInfo.gpu === 'other' ||
+            osInfo.cpu === 'other') {
+            return false;
+        }
+        return true;
+    }
+    private async downloadAndInstallWindowsBinaries(osInfo: OSInfo): Promise<'success' | 'error' | 'notsupported'> {
         try {
+            if (! this.isSupportMyInstall(osInfo)) {
+                return 'notsupported';
+            }
+
             // show log window for installation progress
             try { showLogWindow(true); } catch (_) {}
             logTerminal('[Install] Fetching latest llama.cpp release information...');
@@ -145,38 +138,28 @@ class TerminalCommand implements vscode.Disposable {
             let mainBinary: any | undefined;
             let cudartBinary: any | undefined;
 
-            if (kind === 'cuda') {
+            if (osInfo.gpu === 'cuda') {
                 mainBinary = release.assets.find((asset: any) =>
-                    !asset.name.includes('cudart-llama-bin-win-cuda-') &&
+                    !asset.name.includes(`cudart-llama-bin-${osInfo.platform}-${osInfo.gpu}-`) &&
                     asset.name.includes('llama-b') &&
-                    asset.name.includes('bin-win-cuda-') &&
-                    asset.name.includes('-x64.zip')
+                    asset.name.includes(`bin-${osInfo.platform}-${osInfo.gpu}-`) && // cuda is included version
+                    asset.name.includes(`-${osInfo.cpu}.zip`)
                 );
                 cudartBinary = release.assets.find((asset: any) =>
-                    asset.name.includes('cudart-llama-bin-win-cuda-') &&
-                    asset.name.includes('-x64.zip')
+                    asset.name.includes(`cudart-llama-bin-${osInfo.platform}-${osInfo.gpu}-`) && // cuda is included version
+                    asset.name.includes(`-${osInfo.cpu}.zip`)
                 );
                 if (!mainBinary || !cudartBinary) {
                     throw new Error('CUDA binaries not found in latest release');
                 }
-            } else if (kind === 'vulkan') {
+            }
+            else {
                 mainBinary = release.assets.find((asset: any) =>
                     asset.name.includes('llama-b') &&
-                    asset.name.includes('bin-win-vulkan-x64.zip')
+                    asset.name.includes(`bin-${osInfo.platform}-${osInfo.gpu}-${osInfo.cpu}.zip`)
                 );
                 if (!mainBinary) {
-                    throw new Error('Vulkan binaries not found in latest release');
-                }
-            }
-
-            // fallback to CPU
-            if (kind === 'cpu') {
-                mainBinary = mainBinary || release.assets.find((asset: any) =>
-                    asset.name.includes('llama-b') &&
-                    asset.name.includes('bin-win-cpu-x64.zip')
-                );
-                if (!mainBinary) {
-                    throw new Error('Windows x64 CPU binaries not found in latest release');
+                    throw new Error(`${osInfo.platform}-${osInfo.gpu}-${osInfo.cpu} binaries not found in latest release`);
                 }
             }
 
@@ -202,13 +185,13 @@ class TerminalCommand implements vscode.Disposable {
             try { fs.unlinkSync(mainZipPath); } catch (_) {}
 
             // Download CUDA runtime
-            if (kind === 'cuda' && cudartBinary) {
+            if (osInfo.gpu === 'cuda' && cudartBinary) {
                 logTerminal(`[Install] Downloading ${cudartBinary.name}...`);
                 const cudartZipPath = path.join(installDir, cudartBinary.name);
                 await this.downloadFile(cudartBinary.browser_download_url, cudartZipPath);
                 
                 // Extract CUDA runtime
-                const serverExePath = this.findFileRecursive(installDir, 'llama-server.exe');
+                const serverExePath = this.findFileRecursive(installDir, llamaServerExe);
                 if (!serverExePath) throw new Error('Extracted llama.cpp archive does not contain llama-server executable');
                 const serverDir = path.dirname(serverExePath);
 
@@ -221,10 +204,10 @@ class TerminalCommand implements vscode.Disposable {
             logTerminal('[Install] ########################################');
             logTerminal('[Install] # llama.cpp installation successfully! #');
             logTerminal('[Install] ########################################');
-            return true;
+            return 'success';
         } catch (error) {
             logError(`[Install] Failed to install llama.cpp: ${error}`);
-            return false;
+            return 'error';
         }
     }
     
@@ -306,19 +289,20 @@ class TerminalCommand implements vscode.Disposable {
 
     public async isInstalledLocalLlamaServer(): Promise<boolean> {
         try {
+            const osInfo = await GetOSInfo();
             // Prefer user-installed CUDA binaries on Windows
-            if (process.platform === 'win32') {
+            if (this.isSupportMyInstall(osInfo)) {
                 const installDir = this.getInstallBaseDir();
-                const serverPath = this.findFileRecursive(installDir, 'llama-server.exe');
+                const serverPath = this.findFileRecursive(installDir, llamaServerExe);
                 if (serverPath && fs.existsSync(serverPath)) {
                     return true;
                 }
                 // Fallback: system PATH
-                if (await this.isExistCommand('llama-server.exe')) return true;
+                if (await this.isExistCommand(llamaServerExe)) return true;
                 return await this.isExistCommand('llama-server');
             }
             // Non-Windows: check system PATH
-            return await this.isExistCommand('llama-server');
+            return await this.isExistCommand(llamaServerExe);
         } catch (_) {
             return false;
         }
@@ -330,46 +314,36 @@ class TerminalCommand implements vscode.Disposable {
      */
     public async installLocalLlamaCpp(): Promise<boolean> {
         try {
-            if (process.platform != 'darwin' && process.platform != 'win32') {
-                vscode.window.showInformationMessage("Automatic install/upgrade is supported only for Mac and Windows for now. Download llama.cpp package manually and add the folder to the path. Visit github.com/ggml-org/llama.vscode/wiki for details.");
+            await this.killInstallTerminal();
+            await this.stopLocalLlamaServer();
+
+            const osInfo = await GetOSInfo();
+            const result = (this.isSupportMyInstall(osInfo))
+                            ? await this.downloadAndInstallWindowsBinaries(osInfo)
+                            : 'notsupported';
+            
+            if (result === 'success') {
+                return true;
+            }
+            else if (result === 'error') {
+                logError(`Failed to download binaries.`);
                 return false;
             }
+            else if (result === 'notsupported' && osInfo.platform === 'macos') {
+                // not waitable command. because terminal is not visible to user. so user input is required.
+                const terminalCommand = process.platform === 'darwin' ? "brew install llama.cpp" : process.platform === 'win32' ? "winget install llama.cpp" : "";
+                const {success, stdout, terminal} = await this.command(this.InstallTerminal, terminalCommand, false);
+                terminal?.sendText(`echo "##############################"`);
+                terminal?.sendText(`echo "Installation process completed!"`);
+                terminal?.sendText(`echo "Please click the 'Start Local Server' button"`);
+                terminal?.sendText(`echo "from the Cotab status bar menu to start the server!"`);
+                terminal?.sendText(`echo "##############################"`);
+                this.InstallTerminal = terminal;
+
+                return false;   // must false;
+            }
             else {
-                await this.killInstallTerminal();
-                await this.stopLocalLlamaServer();
-                let terminalCommand = process.platform === 'darwin' ? "brew install llama.cpp" : process.platform === 'win32' ? "winget install llama.cpp" : "";
-                const isWin = process.platform === 'win32';
-                const hasNvidia = await this.isWindowsNvidiaGpuPresent();
-                const hasAmd = await this.isWindowsAmdGpuPresent();
-                if (isWin && hasNvidia) {
-                    // Download CUDA binaries for Windows with NVIDIA GPU
-                    const success = await this.downloadAndInstallWindowsBinaries('cuda');
-                    if (success) {
-                        return true;
-                    } else {
-                        logError(`Failed to download CUDA binaries.`);
-                        return false;
-                    }
-                } else if (isWin && hasAmd) {
-                    // Download Vulkan (or CPU fallback) binaries for Windows with AMD/Radeon GPU
-                    const success = await this.downloadAndInstallWindowsBinaries('vulkan');
-                    if (success) {
-                        return true;
-                    } else {
-                        logError(`Failed to download Vulkan/CPU binaries.`);
-                        return false;
-                    }
-                }
-                else {
-                    // not waitable command. because terminal is not visible to user. so user input is required.
-                    const {success, stdout, terminal} = await this.command(this.InstallTerminal, terminalCommand, false);
-                    terminal?.sendText(`echo "##############################"`);
-                    terminal?.sendText(`echo "Installation process completed!"`);
-                    terminal?.sendText(`echo "Please click the 'Start Local Server' button"`);
-                    terminal?.sendText(`echo "from the Cotab status bar menu to start the server!"`);
-                    terminal?.sendText(`echo "##############################"`);
-                    this.InstallTerminal = terminal;
-                }
+                vscode.window.showInformationMessage("Automatic install/upgrade is supported only for Mac and Windows for now. Download llama.cpp package manually and add the folder to the path. Visit github.com/ggml-org/llama.vscode/wiki for details.");
                 return false;
             }
         } finally {
@@ -388,14 +362,13 @@ class TerminalCommand implements vscode.Disposable {
      */
     public async uninstallLocalLlamaCpp() {
         try {
-            if (process.platform != 'darwin' && process.platform != 'win32') {
-                vscode.window.showInformationMessage("Automatic uninstall is supported only for Mac and Windows for now. Please uninstall llama.cpp manually. Visit github.com/ggml-org/llama.vscode/wiki for details.");
-                return false;
-            }
-            else {
-                await this.killInstallTerminal();
-                await this.stopLocalLlamaServer();
+            const osInfo = await GetOSInfo();
+            const isMyInstallSupported = this.isSupportMyInstall(osInfo);
 
+            await this.killInstallTerminal();
+            await this.stopLocalLlamaServer();
+            
+            if (isMyInstallSupported) {
                 // Prefer removing user-installed directory first (all platforms)
                 const installDir = this.getInstallBaseDir();
                 try { showLogWindow(true); } catch (_) {}
@@ -410,22 +383,27 @@ class TerminalCommand implements vscode.Disposable {
                         return false;
                     }
                 }
-                else {
-                    // If on macOS/Windows, also attempt package-manager uninstall to clean system installs
-                    let terminalCommand = process.platform === 'darwin' ? "brew uninstall llama.cpp" : process.platform === 'win32' ? "winget uninstall llama.cpp" : "";
-                    if (terminalCommand) {
-                        const {success, stdout, terminal} = await this.command(this.InstallTerminal, terminalCommand, false);
-                        terminal?.sendText(`echo "##############################"`);
-                        terminal?.sendText(`echo "Uninstallation process completed!"`);
-                        terminal?.sendText(`echo "llama.cpp has been removed from your system."`);
-                        terminal?.sendText(`echo "##############################"`);
-                        this.InstallTerminal = terminal;
-                        return success;
-                    }
-                }
-                return true;
             }
-        } finally {
+            else if (osInfo.platform === 'macos') {
+                // If on macOS/Windows, also attempt package-manager uninstall to clean system installs
+                let terminalCommand = process.platform === 'darwin' ? "brew uninstall llama.cpp" : process.platform === 'win32' ? "winget uninstall llama.cpp" : "";
+                if (terminalCommand) {
+                    const {success, stdout, terminal} = await this.command(this.InstallTerminal, terminalCommand, false);
+                    terminal?.sendText(`echo "##############################"`);
+                    terminal?.sendText(`echo "Uninstallation process completed!"`);
+                    terminal?.sendText(`echo "llama.cpp has been removed from your system."`);
+                    terminal?.sendText(`echo "##############################"`);
+                    this.InstallTerminal = terminal;
+                    return success;
+                }
+            }
+            else {
+                vscode.window.showInformationMessage("Automatic uninstall is supported only for Mac and Windows for now. Please uninstall llama.cpp manually. Visit github.com/ggml-org/llama.vscode/wiki for details.");
+                return false;
+            }
+            return true;
+        }
+        finally {
             // Update menu until changed
             requestUpdateCotabMenuUntilChanged();
         }
@@ -441,26 +419,27 @@ class TerminalCommand implements vscode.Disposable {
         this.runLocalLlamaServerInternal(args);
     }
 
-    public runLocalLlamaServerInternal(args: string[]) {
+    public async runLocalLlamaServerInternal(args: string[]) {
         try {
             let command: string;
             let cwd: string | undefined;
             
-            if (process.platform === 'win32') {
+            const osInfo = await GetOSInfo();
+            if (osInfo.platform === 'win' || osInfo.platform === 'ubuntu') {
                 // Prefer user-installed server (CUDA/Vulkan/CPU) in install dir
                 const installDir = this.getInstallBaseDir();
-                const serverPath = this.findFileRecursive(installDir, 'llama-server.exe');
+                const serverPath = this.findFileRecursive(installDir, llamaServerExe);
 
                 if (serverPath && fs.existsSync(serverPath)) {
                     command = serverPath;
                     cwd = path.dirname(serverPath);
                     logInfo('Using user-installed llama-server');
                 } else {
-                    command = 'llama-server.exe';
+                    command = llamaServerExe;
                     logInfo('Using system llama-server');
                 }
             } else {
-                command = 'llama-server';
+                command = llamaServerExe;
             }
             
             this.ServerProcess = cp.spawn(command, args, {
@@ -509,12 +488,24 @@ class TerminalCommand implements vscode.Disposable {
         try {
             const exec = util.promisify(cp.exec);
             if (process.platform === 'win32') {
-                const { stdout } = await exec('tasklist /FI "IMAGENAME eq llama-server.exe"');
-                return stdout?.toLowerCase().includes('llama-server.exe') ?? false;
-            } else {
-                // Unix-like: check presence of process
-                await exec('pgrep -f llama-server');
-                return true;
+                const { stdout } = await exec(`tasklist /FI "IMAGENAME eq ${llamaServerExe}"`);
+                return stdout?.toLowerCase().includes(llamaServerExe) ?? false;
+            }
+            else {
+                // Unix-like: check presence of process by inspecting stdout, not exception
+                const cmd = process.platform === 'darwin'
+                    ? 'ps -axo pid=,comm=,command='
+                    : 'ps -eo pid=,comm=,args=';
+                const { stdout } = await exec(cmd);
+                const lines = (stdout || '').split('\n');
+                for (const line of lines) {
+                    const text = line.trim();
+                    if (!text) continue;
+                    if (text.includes(llamaServerExe)) {
+                        return true;
+                    }
+                }
+                return false;
             }
         }
         catch (_) {
@@ -550,11 +541,13 @@ class TerminalCommand implements vscode.Disposable {
                 await exec('taskkill /IM llama-server.exe /F');
             } else {
                 await exec('pkill -f llama-server');
+                await new Promise(r => setTimeout(r, 2000));
             }
             logInfo('Server stopped successfully');
         }
         catch (_) {
             // Ignore if process does not exist
+            return;
         }
         finally {
             // Update menu until changed

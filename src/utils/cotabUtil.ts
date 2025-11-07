@@ -1,9 +1,14 @@
 
 import * as vscode from 'vscode';
+import * as cp from 'child_process';
+import * as util from 'util';
+import * as Handlebars from 'handlebars';
 import { statusBarManager, StatusBarPhase } from '../ui/statusBarManager';
 import { progressGutterIconManager, GutterIconPhase } from '../ui/progressGutterIconManager';
-import * as Handlebars from 'handlebars';
 import { logError } from './logger';
+import { platform } from 'os';
+
+//################################################################
 
 export class SimpleLocker {
     private locked = false;
@@ -21,6 +26,8 @@ export class SimpleLocker {
         return this.locked;
     }
 };
+
+//###########################################################################
 
 let isPhaseLock = false;
 let prevPhase: GutterIconPhase | undefined;;
@@ -63,6 +70,8 @@ function StatusBarPhaseToGutterIconPhase(phase: StatusBarPhase): GutterIconPhase
     return gutterIconPhase;
 }
 
+//#####################################################################################
+
 /**
  * Parse Handlebars template and generate string
  * @param template Handlebars template string
@@ -82,8 +91,73 @@ export function parseHandlebarsTemplate(template: string, context: any): string 
 	}
 }
 
+//######################################################################################
+
 export function isDarkTheme(): boolean {
     const kind = vscode.window.activeColorTheme.kind;
     const isLight = (kind === vscode.ColorThemeKind.Light || kind === vscode.ColorThemeKind.HighContrastLight);
     return !isLight;
 }
+
+//######################################################################################
+
+export interface OSInfo {
+    platform: 'win' | 'ubuntu' | 'macos' | 'other';
+    gpu: 'cuda' | 'vulkan' | 'cpu' | 'none' | 'other';
+    cpu: 'x64' | 'arm64' | 'other';
+};
+
+let cachedOsInfo: OSInfo = {
+    platform: 'other',
+    gpu: 'none',
+    cpu: 'other',
+};
+
+let isOsInfocached = false;
+
+export async function GetOSInfo(): Promise<OSInfo> {
+    if (isOsInfocached) return cachedOsInfo;
+
+    const isWin = process.platform === 'win32';
+    const isMac = process.platform === 'darwin';
+    const isUbuntu = !isWin && !isMac;  // @todo
+    const hasNvidia = await isWindowsNvidiaGpuPresent();
+    const hasAmd = await isWindowsAmdGpuPresent();
+
+    if (isWin) cachedOsInfo.platform = 'win';
+    else if (isUbuntu) cachedOsInfo.platform = 'ubuntu';
+    else if (isMac) cachedOsInfo.platform = 'macos';
+
+    if (hasNvidia) cachedOsInfo.gpu = 'cuda';
+    else if (hasAmd) cachedOsInfo.gpu = 'vulkan';
+    else if (isUbuntu) cachedOsInfo.gpu = 'vulkan';
+
+    cachedOsInfo.cpu = 'x64';
+    
+    isOsInfocached = true;
+    return cachedOsInfo;
+}
+
+async function isWindowsNvidiaGpuPresent(): Promise<boolean> {
+    if (process.platform !== 'win32') return false;
+    try {
+        const exec = util.promisify(cp.exec);
+        const { stdout } = await exec(`powershell -NoProfile -Command "(Get-CimInstance Win32_VideoController | Where-Object Name -match 'NVIDIA' | Select-Object -First 1 -ExpandProperty Name)"`);
+        return (stdout || '').trim().length > 0;
+    } catch (_) {
+        return false;
+    }
+}
+
+async function isWindowsAmdGpuPresent(): Promise<boolean> {
+    if (process.platform !== 'win32') return false;
+    try {
+        const exec = util.promisify(cp.exec);
+        const { stdout } = await exec(`powershell -NoProfile -Command "(Get-CimInstance Win32_VideoController | Where-Object Name -match 'AMD|Radeon' | Select-Object -First 1 -ExpandProperty Name)"`);
+        return (stdout || '').trim().length > 0;
+    } catch (_) {
+        return false;
+    }
+}
+
+
