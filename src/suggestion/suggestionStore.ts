@@ -64,7 +64,9 @@ export function getMergedSuggestions(uri: vscode.Uri | string, isFullAccept: boo
 			lineGroups.set(s.line, []);
 		}
 		lineGroups.get(s.line)!.push(s);
-		if (!isFullAccept) {
+
+		// accept only first line
+		if (!isFullAccept || ! data.isStopped) {
 			break;
 		}
 	}
