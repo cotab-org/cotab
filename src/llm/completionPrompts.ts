@@ -182,7 +182,9 @@ export function buildCompletionPrompts(ctx: EditorContext,
 	const sourceCode = ctx.documentText.split('\n');
 
 	// Cached source code
-	const cachedSourceCode = getCachedSourceCode(documentUri, sourceCode, ctx);//, startEditingHereSymbol, stopEditingHereSymbol);
+	const cachedSourceCode = getCachedSourceCode(documentUri, sourceCode, ctx,
+		yamlConfigMode.isNoInsertStartStopSymbol ? undefined : startEditingHereSymbol,
+		yamlConfigMode.isNoInsertStartStopSymbol ? undefined : stopEditingHereSymbol);
 	const cachedSourceCodeWithLine = withLineNumberCodeBlock(cachedSourceCode, 0, [startEditingHereSymbol, stopEditingHereSymbol]).CodeBlock;
 	const sourceCodeBlock =
 `\`\`\`${ctx.languageId} title=${ctx.relativePath}

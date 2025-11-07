@@ -1,26 +1,34 @@
 # Cotab
 This is a VS Code extension that provides AI-powered multi-line edit suggestions. It generates multiple lines of code using AI, taking into account not only the cursor position but also the all code context, and displays the merged result with the existing code as an autocomplete suggestion.
 
+### Autocomplete
+![Autocomplete Tutorial](doc/asset/cotab-tutorial-autocomplete1.gif)
+
+### Auto Comment
+![Autocomplete Tutorial](doc/asset/cotab-tutorial-autocomplete1.gif)
+
+### Auto Translate
 ![Autocomplete Tutorial](doc/asset/cotab-tutorial-autocomplete1.gif)
 
 The programming languages supported depend on the model you use; this extension itself is language-agnostic.
 
 ## Feature
-- Provides functionality focused solely on Autocomplete
+- Provides functionality focused solely on inline suggestions
 - Suggests not only inline completion from cursor position, but also multi-line edits
 - Provides suggestions considering the entire content of target files, symbols from other files, and edit history
 - Offers fast response optimized for llama-server
+- There are also modes for Auto Comment and Auto Translate.
 - Open source ensuring transparency
 - Prioritizes privacy, operates completely offline using local LLM
 
 ## Getting started
 1. Install Cotab via the VS Code marketplace
-2. win:Click install server button. mac/linux: Configure your api.
-3. Start typing in any file - you'll see AI-powered multi-line suggestions appear
-
+2. Click "Install Local Server" button or configure your api. (for mac: Configure your api.)
+3. Start typing! - you'll see AI-powered multi-line suggestions appear
+Note: It may take a while the first time because it downloads a 2.5GB model.
 
 ## Important Notes
-- Requests may include prompts that exceed 10,000 tokens
+- Requests generally involve prompts exceeding 10,000 tokens.
 - Optimized for llama-server; we strongly recommend using llama-server
 - **Be especially careful when using pay-per-use API servers, as token consumption can be rapid**
 - When using a local server, **we strongly recommend single-user usage**
@@ -90,18 +98,21 @@ Press F5 in vscode to start debugging the plugin.
 
 Requires VsCode, Node.js(v22) and Git.
 
-Install Node.js v22 via ubuntu package manager.
+e.g., Install Node.js v22 via ubuntu package manager.
 ```bash
 url -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
 sudo apt install -y nodejs
 ```
 
+clone & configure
 ```bash
 git clone https://github.com/cotab-org/cotab.git
 cd cotab
 npm install
 code .\
 ```
+
+Press F5 in vscode to start debugging the plugin.
 
 ### Create Package
 

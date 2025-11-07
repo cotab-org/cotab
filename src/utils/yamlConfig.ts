@@ -37,6 +37,7 @@ export interface YamlConfigMode {
     isNoHighligh?: boolean;
     isForceOverlay?: boolean;
     isNoCheckStopSymbol?: boolean;
+    isNoInsertStartStopSymbol?: boolean; // insert start&stop symbol for cached code block?
     maxOutputLines?: number;
     maxTokens?: number;
     systemPrompt?: string;
@@ -359,6 +360,9 @@ modes:
         }
         if (mode.isNoCheckStopSymbol !== undefined) {
             yamlContent += `#    isNoCheckStopSymbol: ${mode.isNoCheckStopSymbol}\n`;
+        }
+        if (mode.isNoInsertStartStopSymbol !== undefined) {
+            yamlContent += `#    isNoInsertStartStopSymbol: ${mode.isNoInsertStartStopSymbol}\n`;
         }
         if (mode.maxOutputLines !== undefined) {
             yamlContent += `#    maxOutputLines: "${mode.maxOutputLines}"\n`;

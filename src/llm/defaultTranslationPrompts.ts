@@ -164,6 +164,7 @@ export function getYamlDefaultTranslatePrompt(): YamlConfigMode {
 		isDispOverwrite: true,
 		isNoHighligh: true,
 		isForceOverlay: true,
+		isNoInsertStartStopSymbol: true,
 		systemPrompt: defaultSystemPrompt,
 		userPrompt: defaultUserPrompt,
 		assistantPrompt: defaultAssistantPrompt,
