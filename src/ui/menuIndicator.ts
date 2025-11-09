@@ -472,28 +472,33 @@ async function startLlamaServer(): Promise<void> {
     // Hide immediately for best click response
     await closeCotabMenu();
     
-    const config = getConfig();
-    const url = new URL(config.apiBaseURL);
-    const host = url.hostname || 'localhost';
-    const port = url.port || '8080';
-    
-    // Check if server is already running
-    const isRunning = await isServerRunning();
-    if (isRunning) {
-        const choice = await vscode.window.showInformationMessage(
-            `Server is already running on ${host}:${port}. Do you want to restart it?`,
-            'Yes', 'No'
-        );
-        if (choice !== 'Yes') {
-            return;
+    try {
+        const config = getConfig();
+        const url = new URL(config.apiBaseURL);
+        const host = url.hostname || 'localhost';
+        const port = url.port || '8080';
+        
+        // Check if server is already running
+        const isRunning = await isServerRunning();
+        if (isRunning) {
+            const choice = await vscode.window.showInformationMessage(
+                `Server is already running on ${host}:${port}. Do you want to restart it?`,
+                'Yes', 'No'
+            );
+            if (choice !== 'Yes') {
+                return;
+            }
+            await stopLlamaServer();
         }
-        await stopLlamaServer();
-    }
-    
-    // no await
-    serverManager.startServer();
+        
+        // no await
+        serverManager.startServer();
 
-    vscode.window.showInformationMessage(`Start llama-server`);
+        vscode.window.showInformationMessage(`Start llama-server`);
+    }
+    catch (_) {
+        
+    }
 }
 
 async function stopLlamaServer(): Promise<void> {
