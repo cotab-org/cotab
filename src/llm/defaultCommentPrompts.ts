@@ -83,7 +83,7 @@ The types of actions are as follows:
 - "copy": Code was copied. "content" is the copied text. The user intends to code using this text; implement behavior consistent with the contents of this text.
 - "reject": Your completion was rejected. "content" is the text of your rejected suggestion. Do not make the same suggestion again; instead, propose different code that diverges from this content.
 And the other parameters are defined as follows:
-- "file": "current" refers to "<CODE_INPUT>", while "other" refers to edits in an external file.
+- "file": "current" refers to "<CODE_INPUT>", while "external" refers to edits in an external file.
 - "lines": the line number of the edited "<CODE_INPUT>".
 Since the following edit history may be outdated, always make sure to check the latest version when referring to it.
 \`\`\`yaml
