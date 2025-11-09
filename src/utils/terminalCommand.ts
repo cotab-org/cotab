@@ -131,12 +131,12 @@ class TerminalCommand implements vscode.Disposable {
         }
         else if (osInfo.platform === 'macos') {
             if (osInfo.cpu === 'x64' || osInfo.cpu === 'arm64') {
-                return `bin-${osInfo.platform}-${osInfo.gpu}.zip`;
+                return `bin-${osInfo.platform}-${osInfo.cpu}.zip`;
             }
         }
         else if (osInfo.platform === 'ubuntu') {
             if (osInfo.cpu === 'x64') {
-                return `bin-${osInfo.platform}-vulkan-${osInfo.gpu}.zip`;
+                return `bin-${osInfo.platform}-vulkan-${osInfo.cpu}.zip`;
             }
         }
         return '';
