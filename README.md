@@ -82,7 +82,7 @@ With this policy, you can use Cotab with complete confidence.
 
 Please install VS Code in advance.
 
-### Quick Start (Windows)
+### Windows
 
 Run this single command to automatically download and execute the setup script. Nothing is required including Git or Node.js - all portable versions are automatically downloaded and set up in ./workspace, and the project will be cloned and VS Code will launch:
 
@@ -94,17 +94,32 @@ powershell -NoProfile -Command "$f='run-vscode.bat'; (New-Object Net.WebClient).
 
 Press F5 in vscode to start debugging the plugin.
 
-### Other Platforms
+### Ubuntu / MacOS
 
-Requires VsCode, Node.js(v22) and Git.
+Requires Node.js(v22).
 
-e.g., Install Node.js v22 via ubuntu package manager.
+**Ubuntu**
+e.g., Install Node.js v22 via package manager.
 ```bash
 url -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
 sudo apt install -y nodejs
 ```
 
-clone & configure
+**MacOS**
+e.g., Install Node.js v22 on macos.
+```bash
+# install nvm
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+
+# activate nvm
+\. "$HOME/.nvm/nvm.sh"
+
+# install node.js v22
+nvm install 22
+node -v
+```
+
+**Cotab clone & configure**
 ```bash
 git clone https://github.com/cotab-org/cotab.git
 cd cotab

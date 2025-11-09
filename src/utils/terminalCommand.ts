@@ -443,7 +443,9 @@ class TerminalCommand implements vscode.Disposable {
             let cwd: string | undefined;
             
             const osInfo = await GetOSInfo();
-            if (osInfo.platform === 'win' || osInfo.platform === 'ubuntu') {
+            if (osInfo.platform === 'win' ||
+                osInfo.platform === 'ubuntu' ||
+                osInfo.platform === 'macos') {
                 // Prefer user-installed server (CUDA/Vulkan/CPU) in install dir
                 const installDir = this.getInstallBaseDir();
                 const serverPath = this.findFileRecursive(installDir, llamaServerExe);
