@@ -31,6 +31,7 @@ export interface CotabConfig {
 
     // llm
     provider: 'OpenAICompatible';
+    settingApiBaseURL: string;
     apiBaseURL: string;
     localServerArg: string;
     localServerContextSize: number;
@@ -121,6 +122,8 @@ function getConfigRaw(): CotabConfig {
     const fontSize = Number(cfg.get<number>('fontSize') || 14);
     const lineHeight = configuredLineHeight > 0 ? configuredLineHeight : Math.round(fontSize * LINE_HEIGHT_RATIO);
     const themeName = getActiveThemeName();
+    const settingApiBaseURL = cfg.get<string>('cotab.llm.apiBaseURL', '').trim();
+    const apiBaseURL = (settingApiBaseURL !== '') ? settingApiBaseURL : 'http://localhost:8080/v1';
     return {
         // editor
         documentUri: uri,
@@ -143,7 +146,8 @@ function getConfigRaw(): CotabConfig {
 
         // llm
         provider: cfg.get<'OpenAICompatible'>('cotab.llm.provider', 'OpenAICompatible'),
-        apiBaseURL: cfg.get<string>('cotab.llm.apiBaseURL', 'http://localhost:8080/v1'),
+        settingApiBaseURL,
+        apiBaseURL,
         localServerArg: cfg.get<string>('cotab.llm.localServerArg', '-hf unsloth/Qwen3-4B-Instruct-2507-GGUF --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -ctk q8_0 -ctv q8_0'),
         localServerContextSize: cfg.get<number>('cotab.llm.localServerContextSize', 32768),
         model: cfg.get<string>('cotab.llm.model', 'qwen3-4b-2507'),
@@ -155,7 +159,7 @@ function getConfigRaw(): CotabConfig {
         timeoutMs: cfg.get<number>('cotab.llm.timeoutMs', 30000),
 
         // prompt
-        commentLanguage: commentLanguage,
+        commentLanguage,
         settingCommentLanguage,
         defaultCommentLanguage,
         additionalSystemPrompt: cfg.get<string>('cotab.prompt.additionalSystemPrompt', ''),
@@ -221,8 +225,10 @@ export async function setConfigSelectedPromptMode(mode: string): Promise<void> {
 }
 
 export async function setConfigApiBaseURL(url: string): Promise<void> {
+    const trimed = url.trim();
+    const val = (trimed !== '') ? trimed : undefined;
     await vscode.workspace.getConfiguration()
-        .update('cotab.llm.apiBaseURL', url, vscode.ConfigurationTarget.Global);
+        .update('cotab.llm.apiBaseURL', val, vscode.ConfigurationTarget.Global);
 }
 
 export async function setConfigHideOnSetup(hide: boolean): Promise<void> {
