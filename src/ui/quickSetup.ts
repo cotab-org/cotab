@@ -521,7 +521,7 @@ function getHtml(params: {
         <section class="setup-card setup-card--status">
             <div class="spacer"></div>
             <div id="serverStatus" class="muted"></div>
-            <a id="serverActionButton" class="server-action-link" style="display:none;" href="#" title="server action"></a>
+            <a id="serverActionButton" class="server-action-link" style="display:none;" href="javascript:void(0)" title="server action"></a>
             <div id="context-size-container" title="Required:&#10; - set 16k (16384) or more.&#10;&#10;Recommended:&#10; - set 32k (32768) or more.&#10;&#10;Reason:&#10; - The system prompt uses about 5k, and 1,000 lines of code use about 12k more.&#10; - so please set the context window to 20k (20480) or more.&#10;&#10;The default model (qwen3-4b-2507) VRAM usage:&#10; - 16k: about 4 GB&#10; - 32k: about 5.5 GB">
                 <div class="spacer"></div>
                 <div class="row">
