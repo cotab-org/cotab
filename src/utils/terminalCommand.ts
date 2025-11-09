@@ -117,12 +117,29 @@ class TerminalCommand implements vscode.Disposable {
     }
 
     private isSupportMyInstall(osInfo: OSInfo): boolean {
-        if (osInfo.platform === 'other' ||
-            osInfo.gpu === 'other' ||
-            osInfo.cpu === 'other') {
-            return false;
+        const releaseLlamacppName = this.GetReleaseLlamacppName(osInfo);
+        return releaseLlamacppName !== '' ? true : false;
+    }
+
+    private GetReleaseLlamacppName(osInfo: OSInfo): string {
+        if (osInfo.platform === 'win') {
+            if (osInfo.cpu === 'x64') {
+                if (osInfo.gpu === 'cuda' || osInfo.gpu === 'vulkan' || osInfo.gpu === 'none') {
+                    return `bin-${osInfo.platform}-${osInfo.gpu}-${osInfo.cpu}.zip`;
+                }
+            }
         }
-        return true;
+        else if (osInfo.platform === 'macos') {
+            if (osInfo.cpu === 'x64' || osInfo.cpu === 'arm64') {
+                return `bin-${osInfo.platform}-${osInfo.gpu}.zip`;
+            }
+        }
+        else if (osInfo.platform === 'ubuntu') {
+            if (osInfo.cpu === 'x64') {
+                return `bin-${osInfo.platform}-vulkan-${osInfo.gpu}.zip`;
+            }
+        }
+        return '';
     }
     private async downloadAndInstallWindowsBinaries(osInfo: OSInfo): Promise<'success' | 'error' | 'notsupported'> {
         try {
@@ -131,14 +148,14 @@ class TerminalCommand implements vscode.Disposable {
             }
 
             // show log window for installation progress
-            try { showLogWindow(true); } catch (_) {}
+            showLogWindow(true);
             logTerminal('[Install] Fetching latest llama.cpp release information...');
             const release = await this.getLatestLlamaCppRelease();
 
             let mainBinary: any | undefined;
             let cudartBinary: any | undefined;
 
-            if (osInfo.gpu === 'cuda') {
+            if (osInfo.platform === 'win' && osInfo.gpu === 'cuda') {
                 mainBinary = release.assets.find((asset: any) =>
                     !asset.name.includes(`cudart-llama-bin-${osInfo.platform}-${osInfo.gpu}-`) &&
                     asset.name.includes('llama-b') &&
@@ -154,9 +171,10 @@ class TerminalCommand implements vscode.Disposable {
                 }
             }
             else {
+                const releaseLlamacppName = this.GetReleaseLlamacppName(osInfo);
                 mainBinary = release.assets.find((asset: any) =>
                     asset.name.includes('llama-b') &&
-                    asset.name.includes(`bin-${osInfo.platform}-${osInfo.gpu}-${osInfo.cpu}.zip`)
+                    asset.name.includes(releaseLlamacppName)
                 );
                 if (!mainBinary) {
                     throw new Error(`${osInfo.platform}-${osInfo.gpu}-${osInfo.cpu} binaries not found in latest release`);
@@ -371,7 +389,7 @@ class TerminalCommand implements vscode.Disposable {
             if (isMyInstallSupported) {
                 // Prefer removing user-installed directory first (all platforms)
                 const installDir = this.getInstallBaseDir();
-                try { showLogWindow(true); } catch (_) {}
+                showLogWindow(true);
                 if (fs.existsSync(installDir)) {
                     try {
                         logTerminal(`[Uninstall] Uninstalling llama.cpp from user install directory: ${installDir}`);

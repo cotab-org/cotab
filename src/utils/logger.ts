@@ -61,7 +61,7 @@ export function logTerminal(message: string) {
 }
 
 export function showLogWindow(preserveFocus: boolean = false) {
-	channel.show(preserveFocus);
+	try { channel.show(preserveFocus); } catch (_) {}
 }
 
 
