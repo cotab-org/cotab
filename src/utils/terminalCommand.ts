@@ -623,4 +623,24 @@ class TerminalCommand implements vscode.Disposable {
             requestUpdateCotabMenuUntilChanged();
         }
     }
+
+    public stopLocalLlamaServerSync(): void {
+        try {
+            if (process.platform === 'win32') {
+                cp.execSync('taskkill /IM llama-server.exe /F', { stdio: 'ignore' });
+            } else {
+                cp.execSync('pkill -f llama-server', { stdio: 'ignore' });
+            }
+            logInfo('Server stopped successfully');
+        }
+        catch (_) {
+            // Ignore if process does not exist
+            return;
+        }
+        finally {
+            // Note: isRunningLocalLlamaServer() is async, so we skip it in sync version
+            // Update menu until changed
+            requestUpdateCotabMenuUntilChanged();
+        }
+    }
 }

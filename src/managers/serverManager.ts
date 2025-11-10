@@ -239,7 +239,7 @@ class ServerManager implements vscode.Disposable {
         if (getConfig().serverAutoStart) {
             if (!this.keepaliveEditor!.isOtherVSCodeRunning()) {
                 logInfo('This is the last VS Code instance, stopping server...');
-                this.stopServer();
+                this.stopServerForceSync();
             }
         }
     }
@@ -260,6 +260,12 @@ class ServerManager implements vscode.Disposable {
         }
 
         await terminalCommand.stopLocalLlamaServer();
+    }
+    
+    private stopServerForceSync() {
+        this.isManualStoped = false;
+
+        terminalCommand.stopLocalLlamaServerSync();
     }
 
     public keepalive() {
