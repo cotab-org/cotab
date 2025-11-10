@@ -139,8 +139,8 @@ function getConfigRaw(): CotabConfig {
         // basic
         enabled: cfg.get<boolean>('cotab.basic.enabled', true),
         disableForExtensions: cfg.get<string>('cotab.basic.disableForExtensions', ''),
-        serverAutoStart: cfg.get<boolean>('cotab.server.autoStart', true),
-        serverAutoStopOnIdleTime: cfg.get<number>('cotab.server.autoStopOnIdleTime', 300),
+        serverAutoStart: cfg.get<boolean>('cotab.basic.autoStart', true),
+        serverAutoStopOnIdleTime: cfg.get<number>('cotab.basic.autoStopOnIdleTime', 300),
         selectedPromptMode: cfg.get<string>('cotab.basic.selectedPromptMode', 'auto'),
         hideOnStartup: cfg.get<boolean>('cotab.gettingStarted.hideOnStartup', false),
 

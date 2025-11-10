@@ -7,6 +7,7 @@ import * as https from 'https';
 import * as os from 'os';
 import axios from 'axios';
 import { getConfig } from '../utils/config';
+import { isLocalhost } from '../llm/llmUtils';
 import { OSInfo, GetOSInfo } from '../utils/cotabUtil';
 import { logInfo, logWarning, logError, logServer, logTerminal, showLogWindow } from './logger';
 import { requestUpdateCotabMenuUntilChanged } from '../ui/menuIndicator';
@@ -505,6 +506,15 @@ class TerminalCommand implements vscode.Disposable {
     }
 
     public async isRunningLocalLlamaServer(): Promise<boolean> {
+        const result = await this.isRunningLocalLlamaServerInternal();
+        // Save the result to cache
+        this.serverRunningCache = {
+            result: result,
+            timestamp: Date.now()
+        };
+        return result;
+    }
+    private async isRunningLocalLlamaServerInternal(): Promise<boolean> {
         try {
             const exec = util.promisify(cp.exec);
             if (process.platform === 'win32') {
@@ -534,24 +544,60 @@ class TerminalCommand implements vscode.Disposable {
     }
     
     public async isRunningLocalLlamaServerWithCache(): Promise<boolean> {
-        const now = Date.now();
+        const { valid, result } = this.isRunningLocalLlamaServerCache();
+
+        if (valid) {
+            return result;
+        }
+        else {
+            // If cache is invalid or not present, perform the actual check
+            return await this.isRunningLocalLlamaServer();
+        }
+    }
+    
+    private isRunningLocalLlamaServerCache(): {valid: boolean; result: boolean}  {
         const cacheTimeout = 10 * 1000; // 10 seconds
         
         // If cache is valid, return the cached result
-        if (this.serverRunningCache && (now - this.serverRunningCache.timestamp) < cacheTimeout) {
-            return this.serverRunningCache.result;
+        if (this.serverRunningCache && (Date.now() - this.serverRunningCache.timestamp) < cacheTimeout) {
+            return { valid: true, result: this.serverRunningCache.result };
         }
-        
-        // If cache is invalid or not present, perform the actual check
-        const result = await this.isRunningLocalLlamaServer();
-        
-        // Save the result to cache
-        this.serverRunningCache = {
-            result: result,
-            timestamp: now
-        };
-        
-        return result;
+        return { valid: false, result: false };
+    }
+
+    private getApiBaseURL(): string {
+        const config = getConfig();
+        if (config.provider === 'OpenAICompatible') {
+            return config.apiBaseURL;
+        } else {
+            return config.apiBaseURL;
+        }
+    }
+
+    private isEnableServerLayCache: boolean | undefined = undefined;
+
+    // get server status
+    public isEnableServerLazy(): boolean {
+        const isBaseURLLocalHost = isLocalhost(this.getApiBaseURL());
+
+        // If the API base URL is not localhost, server enabled.
+        if (!isBaseURLLocalHost) {
+            this.isEnableServerLayCache = true;
+        }
+        else {
+            // use cache result.
+            const { valid, result } = this.isRunningLocalLlamaServerCache();
+            if (valid) {
+                this.isEnableServerLayCache = result;
+            }
+            // If cache is stale, schedule a background check to refresh the server status
+            // And return the prev result.
+            else {
+                // call check for update cache.
+                setTimeout(async () => { this.isRunningLocalLlamaServer(); }, 0);
+            }
+        }
+        return this.isEnableServerLayCache ?? false;
     }
 
     public async stopLocalLlamaServer(): Promise<void> {
@@ -570,6 +616,9 @@ class TerminalCommand implements vscode.Disposable {
             return;
         }
         finally {
+            // call check for update cache.
+            this.isRunningLocalLlamaServer();
+
             // Update menu until changed
             requestUpdateCotabMenuUntilChanged();
         }

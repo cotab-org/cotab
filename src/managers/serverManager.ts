@@ -156,7 +156,11 @@ class KeepaliveServer implements vscode.Disposable {
         this.disposables.length = 0;
     }
 
+    private keepaliveTime: number = 0;
     public async keepalive(): Promise<void> {
+        const now = Date.now();
+        if ((now - this.keepaliveTime) < 1 * 1000) return;
+        this.keepaliveTime = now;
         try {
             // Check if the file exists
             try {
@@ -179,7 +183,7 @@ class KeepaliveServer implements vscode.Disposable {
         const now = Date.now();
         try {
             const stat = await fs.promises.stat(this.filePath!);
-            const alive = now - stat.mtimeMs <= getConfig().serverAutoStopOnIdleTime * 1000;
+            const alive = (now - stat.mtimeMs) <= getConfig().serverAutoStopOnIdleTime * 1000;
             return alive;
         } catch (e) {
             logDebug(`Failed to check server alive status: ${e}`);
@@ -245,6 +249,7 @@ class ServerManager implements vscode.Disposable {
             terminalCommand.runLocalLlamaServer();
         }
         this.keepaliveServer!.keepalive();
+        this.isManualStoped = false;    // clear flug
     }
     
     public async stopServer(fromManual: boolean = false) {
@@ -265,8 +270,7 @@ class ServerManager implements vscode.Disposable {
      * Auto-start during completion
      */
     public async autoStartOnCompletion() {
-        const config = getConfig();
-        if (config.serverAutoStart && !this.isManualStoped) {
+        if (getConfig().serverAutoStart && !this.isManualStoped) {
             if (!(await terminalCommand.isRunningLocalLlamaServerWithCache())) {
                 logInfo('Auto-starting server for completion...');
                 await this.startServer();
@@ -275,8 +279,10 @@ class ServerManager implements vscode.Disposable {
     }
 
     private startAutoStopServer() {
-        this.autoStopServerTimer = setTimeout(async () => {
-            if (await this.keepaliveServer!.isAlive()) {
+        this.autoStopServerTimer = setInterval(async () => {
+            if ((await terminalCommand.isRunningLocalLlamaServerWithCache()) &&
+                ! (await this.keepaliveServer!.isAlive())) {
+                logInfo('Automatically stops the server...');
                 this.stopServer();
             }
         }, 10000);

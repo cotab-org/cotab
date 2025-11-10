@@ -149,3 +149,13 @@ export function withoutLineNumber(CodeBlock: string, removeNotHaveLineNumber: bo
 		return CodeBlock;
 	}
 }
+
+export function isLocalhost(url: string): boolean {
+		return url.includes('localhost') || 
+			   url.includes('127.0.0.1') || 
+			   url.includes('::1') ||
+			   url.startsWith('http://localhost') ||
+			   url.startsWith('https://localhost') ||
+			   url.startsWith('http://127.0.0.1') ||
+			   url.startsWith('https://127.0.0.1');
+}

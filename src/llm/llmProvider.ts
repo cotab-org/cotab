@@ -68,6 +68,8 @@ async function processStreamingResponse(
 		};
 
 		stream.on('data', async (chunk: Buffer) => {
+			serverManager.keepalive(); // Start heartbeat to keep server alive
+
 			if (!firstDataReceived) {
 				const timeToFirstData = Date.now() - startTime;
 				logDebug(`Time to first data reception: ${params.streamCount}th time ${timeToFirstData}ms`);
