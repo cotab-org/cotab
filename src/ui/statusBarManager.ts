@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { getConfig } from '../utils/config';
 import { requestUpdateCotabMenu } from './menuIndicator';
+import { terminalCommand } from '../utils/terminalCommand';
 
 export function registerStatusBarManager(disposables: vscode.Disposable[]): void {
     statusBarManager = new StatusBarManager();
@@ -54,6 +55,10 @@ class StatusBarManager implements vscode.Disposable {
      * Updates the status bar item according to the given phase.
      */
     public setPhase(phase: StatusBarPhase): void {
+        if (phase !== 'disable' && ! terminalCommand.isEnableServerLazy()) {
+            phase = 'idle';
+        }
+        
         if (this.prevPhase == phase) return;
         this.prevPhase = phase;
 

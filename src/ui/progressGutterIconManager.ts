@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { getConfig } from '../utils/config';
+import { terminalCommand } from '../utils/terminalCommand';
 
 export function registerProgressGutterIcon(disposables: vscode.Disposable[]) {
     progressGutterIconManager = new ProgressGutterIconManager();
@@ -45,7 +46,7 @@ class ProgressGutterIconManager implements vscode.Disposable {
     // Public wrappers --------------------------------------------------------
     public show(pos: vscode.Position, phase: GutterIconPhase | undefined) {
         const editor = vscode.window.activeTextEditor;
-        if (!phase || !editor || !getConfig().showProgressSpinner) {
+        if (!phase || !editor || !getConfig().showProgressSpinner || ! terminalCommand.isEnableServerLazy()) {
             this.hide();
             return;
         }
