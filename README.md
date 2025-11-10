@@ -23,12 +23,12 @@ The programming languages supported depend on the model you use; this extension 
 
 ## Getting started
 1. Install Cotab via the VS Code marketplace
-   ![Getting started - install](doc/asset/github-asset/cotab-demo-install.gif)
+   ![Getting started - install](doc/github-asset/cotab-demo-install.gif)
 2. Click "Install Local Server" button or configure your api. (for mac: Configure your api.)
-   ![Getting started - setup](doc/asset/github-asset/cotab-demo-setup.gif)
+   ![Getting started - setup](doc/github-asset/cotab-demo-setup.gif)
    Note: It may take a while the first time because it downloads a 2.5GB model.
 3. Start typing! - you'll see AI-powered multi-line suggestions appear
-   ![Getting started - completion](doc/asset/github-asset/cotab-demo-completion.gif)
+   ![Getting started - completion](doc/github-asset/cotab-demo-completion.gif)
 
 ## Important Notes
 - Requests generally involve prompts exceeding 10,000 tokens.
