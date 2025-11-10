@@ -3,12 +3,15 @@ This is a VS Code extension that provides AI-powered multi-line edit suggestions
 
 ### Autocomplete
 ![Autocomplete Demo](doc/asset/cotab-tutorial-autocomplete1.gif)
+As you type code, the AI understands your code and generates suggestions accordingly. The supported programming languages depend on the AI model (default: Qwen3-4b-2507), which, despite its compact size, supports many languages effectively.
 
-### Auto Comment
+### Auto Comment Mode
 ![Comment Demo](doc/github-asset/cotab-demo-comment.gif)
+A dedicated mode that adds code comments. The AI understands the code at the cursor position and automatically adds detailed comments.
 
-### Auto Translate
+### Auto Translate Mode
 ![Translate Demo](doc/github-asset/cotab-demo-translate.gif)
+A translation-only mode. It automatically translates comments in unfamiliar languages, making code easier to understand.
 
 The programming languages supported depend on the model you use; this extension itself is language-agnostic.
 
