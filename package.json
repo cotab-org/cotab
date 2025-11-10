@@ -1,7 +1,7 @@
 {
   "name": "cotab",
   "displayName": "Cotab",
-  "description": "This is a VS Code extension that provides AI-powered multi-line edit suggestions. It generates multiple lines of code using AI, considering the entire file’s code rather than just the cursor’s surrounding context, and displays the merged result with the existing code as an autocomplete suggestion.",
+  "description": "This is a VS Code extension that provides AI-powered multi-line edit suggestions. It generates multiple lines of code using AI, considering the entire file's code rather than just the cursor’s surrounding context, and displays the merged result with the existing code as an autocomplete suggestion.",
   "version": "0.0.13",
   "publisher": "cotab",
   "license": "Apache-2.0",

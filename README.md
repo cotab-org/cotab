@@ -1,5 +1,5 @@
 # Cotab
-This is a VS Code extension that provides AI-powered multi-line edit suggestions. It generates multiple lines of code using AI, taking into account not only the cursor position but also the all code context, and displays the merged result with the existing code as an autocomplete suggestion.
+This is a VS Code extension that provides AI-powered multi-line edit suggestions. It generates multiple lines of code using AI, considering the entire file's code rather than just the cursor’s surrounding context, and displays the merged result with the existing code as an autocomplete suggestion.
 
 ### Autocomplete
 ![Autocomplete Demo](doc/asset/cotab-tutorial-autocomplete1.gif)
@@ -72,9 +72,9 @@ Cotab only communicates with the default endpoint `"http://localhost:8080/v1"` o
 - User code or input is never shared with third parties
 - No personal information is collected or stored
 - This project is open-source, and all source code is available on GitHub
-- Note: When installing llama.cpp, it communicates with its repository.
 
 With this policy, you can use Cotab with complete confidence.
+Note: If you install local server, it accesses the [llama.cpp github repository](https://github.com/ggml-org/llama.cpp/releases).
 
 ## Development / Contributions
 
@@ -102,6 +102,7 @@ Press F5 in vscode to start debugging the plugin.
 Requires Node.js(v22).
 
 **Ubuntu**
+
 e.g., Install Node.js v22 via package manager.
 ```bash
 url -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
@@ -109,6 +110,7 @@ sudo apt install -y nodejs
 ```
 
 **MacOS**
+
 e.g., Install Node.js v22 on macos.
 ```bash
 # install nvm
@@ -123,6 +125,7 @@ node -v
 ```
 
 **Cotab clone & configure**
+
 ```bash
 git clone https://github.com/cotab-org/cotab.git
 cd cotab
