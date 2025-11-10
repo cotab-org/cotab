@@ -19,7 +19,10 @@ module.exports = {
     'canvas': 'commonjs canvas'
   },
   resolve: {
-    extensions: ['.ts', '.js']
+    extensions: ['.ts', '.js'],
+    alias: {
+      'handlebars$': 'handlebars/dist/handlebars.js'
+    }
   },
   module: {
     rules: [

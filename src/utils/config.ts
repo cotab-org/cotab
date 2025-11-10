@@ -27,7 +27,7 @@ export interface CotabConfig {
     settingCommentLanguage: string; // user-specified language for comments
     defaultCommentLanguage: string; // system language (fallback)
     selectedPromptMode: string;
-    hideOnSetup: boolean;
+    hideOnStartup: boolean;
 
     // llm
     provider: 'OpenAICompatible';
@@ -142,7 +142,7 @@ function getConfigRaw(): CotabConfig {
         serverAutoStart: cfg.get<boolean>('cotab.server.autoStart', true),
         serverAutoStopOnIdleTime: cfg.get<number>('cotab.server.autoStopOnIdleTime', 300),
         selectedPromptMode: cfg.get<string>('cotab.basic.selectedPromptMode', 'auto'),
-        hideOnSetup: cfg.get<boolean>('cotab.quickSetup.hideOnSetup', false),
+        hideOnStartup: cfg.get<boolean>('cotab.gettingStarted.hideOnStartup', false),
 
         // llm
         provider: cfg.get<'OpenAICompatible'>('cotab.llm.provider', 'OpenAICompatible'),
@@ -231,9 +231,9 @@ export async function setConfigApiBaseURL(url: string): Promise<void> {
         .update('cotab.llm.apiBaseURL', val, vscode.ConfigurationTarget.Global);
 }
 
-export async function setConfigHideOnSetup(hide: boolean): Promise<void> {
+export async function setConfigHideOnStartup(hide: boolean): Promise<void> {
     await vscode.workspace.getConfiguration()
-        .update('cotab.quickSetup.hideOnSetup', hide, vscode.ConfigurationTarget.Global);
+        .update('cotab.gettingStarted.hideOnStartup', hide, vscode.ConfigurationTarget.Global);
 }
 
 export async function setConfigShowProgressSpinner(enabled: boolean): Promise<void> {

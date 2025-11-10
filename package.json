@@ -1,8 +1,8 @@
 {
   "name": "cotab",
   "displayName": "Cotab",
-  "description": "Cursor Smart Rewrites-style inline edit suggestions. OpenAI compatible API / LM Studio / Ollama support.",
-  "version": "0.0.11",
+  "description": "This is a VS Code extension that provides AI-powered multi-line edit suggestions. It generates multiple lines of code using AI, considering the entire file’s code rather than just the cursor’s surrounding context, and displays the merged result with the existing code as an autocomplete suggestion.",
+  "version": "0.0.13",
   "publisher": "cotab",
   "license": "Apache-2.0",
   "repository": {
@@ -303,10 +303,10 @@
           "description": "Show spinner icon while completing code completion",
           "order": 601
         },
-        "cotab.quickSetup.hideOnSetup": {
+        "cotab.gettingStarted.hideOnStartup": {
           "type": "boolean",
           "default": false,
-          "description": "Do not show Quick Setup on next startup",
+          "description": "Do not show Getting Started view on next startup",
           "order": 901
         }
       }
@@ -340,7 +340,7 @@
     "@types/jsdom": "^21.1.7",
     "@types/node": "^18.19.0",
     "@types/vscode": "^1.85.0",
-    "@vscode/vsce": "^3.6.2",
+    "@vscode/vsce": "^3.7.0",
     "axios": "^1.7.7",
     "handlebars": "^4.7.8",
     "jsdom": "^26.1.0",

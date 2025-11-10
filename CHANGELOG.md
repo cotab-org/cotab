@@ -1,3 +1,11 @@
+## 0.0.12
+- Support: Auto install llama.cpp on Ubuntu/MacOS
+- Support: Light theme
+- Add: Context size option on launch server
+- Add: Yes/No when uninstall
+- Update: Quick Setup view
+- Update: Completion prompt
+- Fix: Empty apiBaseURL bug.
 ## 0.0.11
 - Feat: Reject completion suggestion
 - Update: Comment prompt

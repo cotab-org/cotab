@@ -2,13 +2,13 @@
 This is a VS Code extension that provides AI-powered multi-line edit suggestions. It generates multiple lines of code using AI, taking into account not only the cursor position but also the all code context, and displays the merged result with the existing code as an autocomplete suggestion.
 
 ### Autocomplete
-![Autocomplete Tutorial](doc/asset/cotab-tutorial-autocomplete1.gif)
+![Autocomplete Demo](doc/asset/cotab-tutorial-autocomplete1.gif)
 
 ### Auto Comment
-![Autocomplete Tutorial](doc/asset/cotab-tutorial-autocomplete1.gif)
+![Comment Demo](doc/github-asset/cotab-demo-comment.gif)
 
 ### Auto Translate
-![Autocomplete Tutorial](doc/asset/cotab-tutorial-autocomplete1.gif)
+![Translate Demo](doc/github-asset/cotab-demo-translate.gif)
 
 The programming languages supported depend on the model you use; this extension itself is language-agnostic.
 
@@ -23,9 +23,12 @@ The programming languages supported depend on the model you use; this extension 
 
 ## Getting started
 1. Install Cotab via the VS Code marketplace
+   ![Getting started - install](doc/asset/github-asset/cotab-demo-install.gif)
 2. Click "Install Local Server" button or configure your api. (for mac: Configure your api.)
+   ![Getting started - setup](doc/asset/github-asset/cotab-demo-setup.gif)
+   Note: It may take a while the first time because it downloads a 2.5GB model.
 3. Start typing! - you'll see AI-powered multi-line suggestions appear
-Note: It may take a while the first time because it downloads a 2.5GB model.
+   ![Getting started - completion](doc/asset/github-asset/cotab-demo-completion.gif)
 
 ## Important Notes
 - Requests generally involve prompts exceeding 10,000 tokens.

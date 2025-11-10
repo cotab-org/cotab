@@ -1,19 +1,19 @@
 import * as vscode from 'vscode';
-import { getConfig, setConfigHideOnSetup, setConfigShowProgressSpinner, setConfigApiBaseURL, setConfigCommentLanguage, setConfigLocalServerContextSize } from '../utils/config';
+import { getConfig, setConfigHideOnStartup, setConfigShowProgressSpinner, setConfigApiBaseURL, setConfigCommentLanguage, setConfigLocalServerContextSize } from '../utils/config';
 import { terminalCommand } from '../utils/terminalCommand';
 import { getAiClient } from '../llm/llmProvider';
 import { buildLinkButtonSvgDataUri, buildNetworkServerLabelSvgDataUri } from './menuUtil';
 
-export function registerQuickSetup(disposables: vscode.Disposable[], context: vscode.ExtensionContext): void {
-    disposables.push(vscode.commands.registerCommand('cotab.quickSetup.show', async () => {
-        await showQuickSetup(context);
+export function registerGettingStartedView(disposables: vscode.Disposable[], context: vscode.ExtensionContext): void {
+    disposables.push(vscode.commands.registerCommand('cotab.gettingStarted.show', async () => {
+        await showGettingStartedView(context);
     }));
 
-    // On setup, auto-show (only if hideOnSetup is off)
-    const hide = getConfig().hideOnSetup;
+    // On setup, auto-show (only if hideOnStartup is off)
+    const hide = getConfig().hideOnStartup;
     if (!hide) {
         // Delayed display (wait for initialization to complete after setup)
-        setTimeout(() => { void showQuickSetup(context); }, 500);
+        setTimeout(() => { void showGettingStartedView(context); }, 500);
     }
 }
 
@@ -100,10 +100,10 @@ async function isServerRunning(): Promise<boolean> {
     return await client.isActive();
 }
 
-async function showQuickSetup(context: vscode.ExtensionContext): Promise<void> {
+async function showGettingStartedView(context: vscode.ExtensionContext): Promise<void> {
     // Create webview panel
     const panel = vscode.window.createWebviewPanel(
-        'cotab.quickSetup',
+        'cotab.gettingStarted',
         'Cotab Quick Setup',
         vscode.ViewColumn.Active,
         {
@@ -121,11 +121,11 @@ async function showQuickSetup(context: vscode.ExtensionContext): Promise<void> {
     // view contents
     panel.webview.html = getHtml({
         apiBaseURL: config.apiBaseURL,
-        hideOnSetup: config.hideOnSetup,
+        hideOnStartup: config.hideOnStartup,
         initial: await getServerSectionState(),
         iconUri: panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'icon.png')),
-        tutorial1Uri: panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'doc', 'asset', 'cotab-tutorial-autocomplete1.gif')),
-        tutorial2Uri: panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'doc', 'asset', 'cotab-tutorial-open-quick-setup.gif')),
+        tutorialAutocompleteUri: panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'doc', 'asset', 'cotab-tutorial-autocomplete1.gif')),
+        tutorialOpenGettingStartedUri: panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'doc', 'asset', 'cotab-tutorial-open-getting-started.gif')),
         spinnerAnalyzeUri: panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'dot-spinner-0.svg')).toString(),
         spinnerRedUri: panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'spinner-red-0.svg')).toString(),
         spinnerNormalUri: panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'spinner-0.svg')).toString(),
@@ -154,10 +154,10 @@ async function handleWebviewMessage(panel: vscode.WebviewPanel, msg: any): Promi
                 autoRefreshManager?.refresh();
             }, 500);
     }
-    else if (msg?.type === 'setHideOnSetup') {
+    else if (msg?.type === 'setHideOnStartup') {
         const value = Boolean(msg.value);
-        await setConfigHideOnSetup(value);
-        panel.webview.postMessage({ type: 'saved', key: 'hideOnSetup', value });
+        await setConfigHideOnStartup(value);
+        panel.webview.postMessage({ type: 'saved', key: 'hideOnStartup', value });
     }
     else if (msg?.type === 'setShowProgressSpinner') {
         const value = Boolean(msg.value);
@@ -195,11 +195,11 @@ async function handleWebviewMessage(panel: vscode.WebviewPanel, msg: any): Promi
 
 function getHtml(params: {
     apiBaseURL: string;
-    hideOnSetup: boolean;
+    hideOnStartup: boolean;
     initial: { kind: string; label: string; command?: string; };
     iconUri: vscode.Uri;
-    tutorial1Uri: vscode.Uri;
-    tutorial2Uri: vscode.Uri;
+    tutorialAutocompleteUri: vscode.Uri;
+    tutorialOpenGettingStartedUri: vscode.Uri;
     spinnerAnalyzeUri: string;
     spinnerRedUri: string;
     spinnerNormalUri: string;
@@ -210,7 +210,7 @@ function getHtml(params: {
 }): string {
     const nonce = String(Date.now());
     const apiBaseURL = escapeHtml(params.apiBaseURL || '');
-    const hideOnSetup = params.hideOnSetup ? 'checked' : '';
+    const hideOnStartup = params.hideOnStartup ? 'checked' : '';
     const showProgressSpinner = params.showProgressSpinner ? 'checked' : '';
     const commentLanguage = escapeHtml(params.settingCommentLanguage || '');
     const defaultCommentLanguage = escapeHtml(params.defaultCommentLanguage || '');
@@ -548,7 +548,7 @@ function getHtml(params: {
         <section class="setup-card setup-card--hero">
             <div class="setup-card__content-block">
                 <div class="setup-card__media">
-                    <img src="${params.tutorial1Uri}" class="setup-card__media-image" alt="Cotab Tutorial" />
+                    <img src="${params.tutorialAutocompleteUri}" class="setup-card__media-image" alt="Cotab Tutorial" />
                 </div>
                 <div class="setup-card__caption-group">
                     <span class="setup-card__caption">ACCEPT : TAB</span>
@@ -561,12 +561,12 @@ function getHtml(params: {
         <section class="setup-card setup-card--hero">
             <div class="setup-card__content-block">
                 <div class="setup-card__media">
-                    <img src="${params.tutorial2Uri}" class="setup-card__media-image" alt="Show progress spinner preview" />
+                    <img src="${params.tutorialOpenGettingStartedUri}" class="setup-card__media-image" alt="Show progress spinner preview" />
                 </div>
                 <div class="setup-card__caption-group">
                     <span class="setup-card__caption">Hover over the status bar. Don't click!</span>
                     <label class="setup-checkbox">
-                        <input id="hideNextInline" type="checkbox" ${hideOnSetup}/>
+                        <input id="hideNextInline" type="checkbox" ${hideOnStartup}/>
                         <span class="setup-checkbox__label">Don't show this again</span>
                     </label>
                 </div>
@@ -612,7 +612,7 @@ function getHtml(params: {
             <div class="spacer"></div>
         </section>
         <div class="floating-controls">
-            <label class="checkbox floating-label"><input id="hideNext" type="checkbox" ${hideOnSetup}/>Don't show this again</label>
+            <label class="checkbox floating-label"><input id="hideNext" type="checkbox" ${hideOnStartup}/>Don't show this again</label>
             <div class="floating-divider"></div>
             <button id="openSettingsBtn" class="floating-settings-btn" type="button" title="Open Cotab Settings">Open Settings</button>
         </div>
@@ -790,7 +790,7 @@ function getHtml(params: {
                 });
             }
 
-            function syncHideOnSetupCheckboxes(value) {
+            function syncHideOnStartupCheckboxes(value) {
                 if (hideNext instanceof HTMLInputElement) {
                     hideNext.checked = value;
                 }
@@ -799,22 +799,22 @@ function getHtml(params: {
                 }
             }
 
-            function handleHideOnSetupChange(event) {
+            function handleHideOnStartupChange(event) {
                 const target = event.currentTarget;
                 if (!(target instanceof HTMLInputElement)) {
                     return;
                 }
                 const value = target.checked;
-                syncHideOnSetupCheckboxes(value);
-                vscode.postMessage({ type: 'setHideOnSetup', value });
+                syncHideOnStartupCheckboxes(value);
+                vscode.postMessage({ type: 'setHideOnStartup', value });
             }
 
             if (hideNext instanceof HTMLInputElement) {
-                hideNext.addEventListener('change', handleHideOnSetupChange);
+                hideNext.addEventListener('change', handleHideOnStartupChange);
             }
 
             if (hideNextInline instanceof HTMLInputElement) {
-                hideNextInline.addEventListener('change', handleHideOnSetupChange);
+                hideNextInline.addEventListener('change', handleHideOnStartupChange);
             }
 
             const initialHideValue = hideNext instanceof HTMLInputElement
@@ -822,7 +822,7 @@ function getHtml(params: {
                 : hideNextInline instanceof HTMLInputElement
                     ? hideNextInline.checked
                     : false;
-            syncHideOnSetupCheckboxes(Boolean(initialHideValue));
+            syncHideOnStartupCheckboxes(Boolean(initialHideValue));
 
             if (showProgressSpinnerCheckbox instanceof HTMLInputElement) {
                 showProgressSpinnerCheckbox.addEventListener('change', () => {
