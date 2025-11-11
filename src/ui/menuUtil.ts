@@ -30,7 +30,7 @@ export function buildLinkButtonSvgDataUri(label: string, bgColor: string, fgColo
     return 'data:image/svg+xml;base64,' + base64;
 }
 
-type NetworkServerLabelTheme = 'green' | 'blue' | 'red' | 'yellow' | 'cyan' | 'purple';
+type NetworkServerLabelTheme = 'green' | 'blue' | 'red' | 'yellow' | 'cyan' | 'purple' | 'gray';
 
 const NETWORK_LABEL_GRADIENTS: Record<NetworkServerLabelTheme, { start: string; end: string }> = {
     green: { start: '#1a7032', end: '#20ab6c' },
@@ -39,6 +39,7 @@ const NETWORK_LABEL_GRADIENTS: Record<NetworkServerLabelTheme, { start: string; 
     yellow: { start: '#b8860b', end: '#d4a017' },
     cyan: { start: '#0f6674', end: '#20a2a8' },
     purple: { start: '#5a2d91', end: '#7c3aed' },
+    gray: { start: '#4b4b4bff', end: '#6e6e6eff' },
 };
 
 export function buildNetworkServerLabelSvgDataUri(

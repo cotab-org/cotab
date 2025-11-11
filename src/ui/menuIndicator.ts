@@ -9,6 +9,7 @@ import { getAiClient } from '../llm/llmProvider';
 import { serverManager } from '../managers/serverManager';
 import { getYamlConfig, onDidChangeYamlConfig, getYamlConfigPromptModes, openYamlConfig } from '../utils/yamlConfig';
 import { buildLinkButtonSvgDataUri, buildNetworkServerLabelSvgDataUri } from './menuUtil';
+import { GetOSInfo } from '../utils/cotabUtil';
 const execAsync = promisify(exec);
 
 // Singleton instance ------------------------------------------------------
@@ -240,6 +241,9 @@ async function buildMainMenuMarkdown(): Promise<vscode.MarkdownString> {
     else if (await terminalCommand.isInstalledLocalLlamaServer()) {
         serverStatus = createStartServerLabel();
     }
+    else if (! (terminalCommand.isSupportMyInstall(await GetOSInfo()))) {
+        serverStatus = createNotSupportedLabel();
+    }
     else {
         serverStatus = createInstallServerLabel();
     }
@@ -361,6 +365,10 @@ function createInstallServerLabel(): string {
     //return linkButton('Install Server', 'command:cotab.server.install', '#2ea043', '#ffffff');
 	const uri = buildNetworkServerLabelSvgDataUri('Install Server', 'green');
 	return `[![](${uri})](command:cotab.server.install)`;
+}
+function createNotSupportedLabel(): string {
+	const uri = buildNetworkServerLabelSvgDataUri('Install Not Supported', 'gray')
+	return `![](${uri})`;
 }
 
 async function setGlobalEnabledCmd(enabled: boolean) {

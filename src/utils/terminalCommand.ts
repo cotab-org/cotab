@@ -117,7 +117,7 @@ class TerminalCommand implements vscode.Disposable {
         return undefined;
     }
 
-    private isSupportMyInstall(osInfo: OSInfo): boolean {
+    public isSupportMyInstall(osInfo: OSInfo): boolean {
         const releaseLlamacppName = this.GetReleaseLlamacppName(osInfo);
         return releaseLlamacppName !== '' ? true : false;
     }

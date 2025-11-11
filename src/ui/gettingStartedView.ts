@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { getConfig, setConfigHideOnStartup, setConfigShowProgressSpinner, setConfigApiBaseURL, setConfigCommentLanguage, setConfigLocalServerContextSize } from '../utils/config';
 import { terminalCommand } from '../utils/terminalCommand';
 import { getAiClient } from '../llm/llmProvider';
+import { GetOSInfo } from '../utils/cotabUtil';
 import { buildLinkButtonSvgDataUri, buildNetworkServerLabelSvgDataUri } from './menuUtil';
 
 export function registerGettingStartedView(disposables: vscode.Disposable[], context: vscode.ExtensionContext): void {
@@ -27,7 +28,7 @@ class AutoRefreshManager {
 
     constructor(
         private panel: vscode.WebviewPanel,
-        private getStateCallback: () => Promise<{ kind: 'stop' | 'network' | 'start' | 'install'; label: string; command?: string; }>
+        private getStateCallback: () => Promise<{ kind: 'stop' | 'network' | 'start' | 'install' | 'unsupported'; label: string; command?: string; }>
     ) {
         this.setupEventListeners();
         this.startAutoRefresh();
@@ -80,7 +81,7 @@ class AutoRefreshManager {
 
 let autoRefreshManager: AutoRefreshManager | null = null;
 
-async function getServerSectionState(): Promise<{ kind: 'stop' | 'network' | 'start' | 'install'; label: string; command?: string; }> {
+async function getServerSectionState(): Promise<{ kind: 'stop' | 'network' | 'start' | 'install' | 'unsupported'; label: string; command?: string; }> {
     if (await terminalCommand.isRunningLocalLlamaServer()) {
         return { kind: 'stop', label: 'Stop Server', command: 'cotab.server.stop' };
     }
@@ -89,6 +90,9 @@ async function getServerSectionState(): Promise<{ kind: 'stop' | 'network' | 'st
     }
     else if (await terminalCommand.isInstalledLocalLlamaServer()) {
         return { kind: 'start', label: 'Start Server', command: 'cotab.server.start' };
+    }
+    else if (! (terminalCommand.isSupportMyInstall(await GetOSInfo()))) {
+        return { kind: 'unsupported', label: 'Install Not Supported' };
     }
     else {
         return { kind: 'install', label: 'Install Server', command: 'cotab.server.install' };
@@ -120,7 +124,7 @@ async function showGettingStartedView(context: vscode.ExtensionContext): Promise
 
     // view contents
     panel.webview.html = getHtml({
-        apiBaseURL: config.apiBaseURL,
+        apiBaseURL: config.settingApiBaseURL,
         hideOnStartup: config.hideOnStartup,
         initial: await getServerSectionState(),
         iconUri: panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'icon.png')),
@@ -221,7 +225,8 @@ function getHtml(params: {
         startBtn: buildNetworkServerLabelSvgDataUri('Start Local Server', 'blue'),
         stopBtn: buildNetworkServerLabelSvgDataUri('Stop Local Server', 'red'),
         installBtn: buildNetworkServerLabelSvgDataUri('Install Local Server', 'green'),
-        networkLbl: buildNetworkServerLabelSvgDataUri('Network Server Running', 'purple')
+        networkLbl: buildNetworkServerLabelSvgDataUri('Network Server Running', 'purple'),
+        unsupportedLbl: buildNetworkServerLabelSvgDataUri('Install Not Supported', 'gray')
     });
     return `<!DOCTYPE html>
 <html lang="en">
@@ -507,6 +512,31 @@ function getHtml(params: {
         .title-head::after { content: ''; display: block; width: 56px; height: 0; flex: 0 0 56px; }
         .title-head img { width: 56px; height: 56px; display: block; }
         .title-head .title-text { font-size: 48px; font-weight: bold; letter-spacing: 2px; }
+        .shortcut-table {
+            width: auto;
+            border-collapse: collapse;
+            border: 1px solid var(--vscode-foreground);
+            overflow: hidden;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+
+        .shortcut-table th {
+            background-color: #cccccc;
+            color: #222;
+            font-weight: 600;
+            text-align: left;
+            padding: 8px 12px;
+        }
+
+        .shortcut-table td {
+            text-align: left;
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--vscode-foreground);
+        }
+
+        .shortcut-table tr:last-child td {
+            border-bottom: none;
+        }
     </style>
     </head>
     <body>
@@ -550,11 +580,18 @@ function getHtml(params: {
                 <div class="setup-card__media">
                     <img src="${params.tutorialAutocompleteUri}" class="setup-card__media-image" alt="Cotab Tutorial" />
                 </div>
-                <div class="setup-card__caption-group">
-                    <span class="setup-card__caption">ACCEPT : TAB</span>
-                    <span class="setup-card__caption">ACCEPT (Only First Line) : SHIFT + TAB</span>
-                </div>
             </div>
+            <div class="spacer"></div>
+            <table class="shortcut-table" style="margin: 0 auto;">
+                <thead>
+                    <tr><th>Command</th><th>Keybinding</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>Accept All</td><td>Tab</td></tr>
+                    <tr><td>Accept First Line</td><td>Shift + Tab</td></tr>
+                    <tr><td>Reject</td><td>Esc</td></tr>
+                </tbody>
+            </table>
         </section>
         <div class="separator"></div>
         <h3 class="center">Show This Page Again</h3>
@@ -678,6 +715,10 @@ function getHtml(params: {
                     renderSvgImage(serverActionLink, assets.installBtn, 'Install Server');
                     serverActionLink.dataset.command = state.command;
                     document.getElementById('context-size-container').style.display = 'block';
+                } else if (state?.kind === 'unsupported') {
+                    renderSvgImage(serverStatusContainer, assets.unsupportedLbl, 'Install Not Supported');
+                    serverActionLink.style.display = 'none';
+                    document.getElementById('context-size-container').style.display = 'none';
                 } else {
                     serverStatusContainer.textContent = '';
                     serverActionLink.style.display = 'none';
