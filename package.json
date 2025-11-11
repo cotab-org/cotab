@@ -1,7 +1,7 @@
 {
   "name": "cotab",
   "displayName": "Cotab",
-  "description": "This is a VS Code extension that provides AI-powered multi-line edit suggestions. It generates multiple lines of code using AI, considering the entire file's code rather than just the cursor’s surrounding context, and displays the merged result with the existing code as an autocomplete suggestion.",
+  "description": "This VS Code extension is an AI-powered multi-line autocomplete tool designed with maximum privacy and security in mind by running entirely on a local LLM.",
   "version": "0.0.13",
   "publisher": "cotab",
   "license": "Apache-2.0",
@@ -149,7 +149,7 @@
         },
         "cotab.llm.apiBaseURL": {
           "type": "string",
-          "default": "http://localhost:8080/v1",
+          "default": "",
           "description": "OpenAI compatible Base URL (e.g. `http://localhost:8080/v1`) recommended llama-server",
           "order": 202
         },
