@@ -162,24 +162,27 @@ class CodeBlockBuilder {
 	private buildSymbolCodeBlock(editorContext: EditorContext): string {
 		const cachedSymbols = symbolManager.getFilesByLanguageId(editorContext.languageId);
 
-		const { maxSymbolCount } = getConfig();
+		const config = getConfig();
 		let symbolCodeBlocks: string[] = [];
 		let symbolTotalCount = 0;
 		for (const cachedSymbol of cachedSymbols) {
-			const isSourceFile = cachedSymbol.extname === 'c' ||
-				cachedSymbol.extname === 'cpp' ||
-				cachedSymbol.extname === 'cc' ||
-				cachedSymbol.extname === 'cxx';
+			if (cachedSymbol.symbols.length === 0) continue;
 
-			// Exclude self, exclude if no symbols, exclude source files
-			if (cachedSymbol.symbols.length === 0 ||
-				cachedSymbol.documentUri === editorContext.documentUri ||
-				isSourceFile) {
-				continue;
+			if (! editorContext.isTrancatedCode()) {
+				const isSourceFile = cachedSymbol.extname === 'c' ||
+					cachedSymbol.extname === 'cpp' ||
+					cachedSymbol.extname === 'cc' ||
+					cachedSymbol.extname === 'cxx';
+
+				// Exclude self, exclude if no symbols, exclude source files
+				if (cachedSymbol.documentUri === editorContext.documentUri ||
+					isSourceFile) {
+					continue;
+				}
 			}
-			const { codeBlock, count: symbolCount } = getSymbolYaml(cachedSymbol);
+			const { codeBlock, count: symbolCount } = getSymbolYaml(cachedSymbol, config.maxSymbolCount);
 
-			if (getConfig().maxSymbolCount < symbolTotalCount + symbolCount) {
+			if (config.maxSymbolCount < symbolTotalCount + symbolCount) {
 				break;
 			}
 			symbolCodeBlocks.push(codeBlock);

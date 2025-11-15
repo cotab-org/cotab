@@ -19,135 +19,29 @@ export interface CachedSymbol {
 export interface SymbolMetaInfo {
 	type: string;
 	name: string;
+	content: string;
 	line: number;
 	column: number;
 	children?: SymbolMetaInfo[];
 }
 
+export interface SymbolSignatureInfo {
+	name: string;
+	//signature?: string;
+	definition?: string;
+	//parameters?: string[];
+	//returnType?: string;
+	documentation?: string;
+	sourceLanguage?: string;
+}
+
+export type ExtendedDocumentSymbol = vscode.DocumentSymbol & {
+	signatureInfo?: SymbolSignatureInfo;
+};
+
 export class SymbolCacheManager {
 	private cache = new Map<string, CachedSymbol>();
 	private accessOrder: string[] = []; // URI list in latest access order
-
-	/**
-	 * Resolve URIs of workspace dependency files imported/included by the specified document
-	 */
-	/*
-	private async getDependencyUris(document: vscode.TextDocument): Promise<Set<string>> {
-		const specifiers = this.extractDependencySpecifiers(document);
-		const resolved = new Set<string>();
-		for (const spec of specifiers) {
-			const uris = await this.resolveSpecifierToUris(document, spec);
-			for (const u of uris) {
-				resolved.add(u.toString());
-			}
-		}
-		return resolved;
-	}
-	*/
-
-	/**
-	 * Extract import/include reference strings for each language
-	 */
-	/*
-	private extractDependencySpecifiers(document: vscode.TextDocument): string[] {
-		const text = document.getText();
-		const specs: string[] = [];
-		const lang = document.languageId;
-
-		// TS/JS family
-		if (lang === 'typescript' || lang === 'javascript' || lang === 'typescriptreact' || lang === 'javascriptreact') {
-			const importFrom = /import\s+[^'"\n;]*from\s+['"]([^'"]+)['"]/g;
-			const importOnly = /import\s+['"]([^'"]+)['"]/g;
-			const requireRe = /require\(\s*['"]([^'"]+)['"]\s*\)/g;
-			const dynamicImport = /import\(\s*['"]([^'"]+)['"]\s*\)/g;
-			let m: RegExpExecArray | null;
-			while ((m = importFrom.exec(text))) specs.push(m[1]);
-			while ((m = importOnly.exec(text))) specs.push(m[1]);
-			while ((m = requireRe.exec(text))) specs.push(m[1]);
-			while ((m = dynamicImport.exec(text))) specs.push(m[1]);
-		}
-
-		// C/C++ family
-		if (lang === 'cpp' || lang === 'c') {
-			const includeQuote = /^\s*#\s*include\s+"([^"]+)"/gm; // Only local headers
-			let m: RegExpExecArray | null;
-			while ((m = includeQuote.exec(text))) specs.push(m[1]);
-		}
-
-		return specs;
-	}
-	*/
-
-	/**
-	 * Resolve reference strings to file URIs within the workspace (relative paths only)
-	 */
-	/*
-	private async resolveSpecifierToUris(document: vscode.TextDocument, spec: string): Promise<vscode.Uri[]> {
-		const results: vscode.Uri[] = [];
-		const isRelative = spec.startsWith('./') || spec.startsWith('../');
-		if (!isRelative) return results; // External modules and <...> are excluded
-
-		const baseDir = path.dirname(document.uri.fsPath);
-		const targetNoExt = path.normalize(path.resolve(baseDir, spec));
-
-		// Candidate extensions for each language
-		const lang = document.languageId;
-		const tsJsExts = ['', '.ts', '.tsx', '.js', '.jsx', '.d.ts'];
-		const cppExts = ['', '.h', '.hpp', '.hh', '.hxx', '.c', '.cc', '.cpp', '.cxx'];
-		const exts = (lang === 'cpp' || lang === 'c') ? cppExts : tsJsExts;
-
-		// Main body candidates
-		for (const ext of exts) {
-			const filePath = targetNoExt.endsWith(ext) ? targetNoExt : targetNoExt + ext;
-			const uri = vscode.Uri.file(filePath);
-			if (await this.exists(uri)) {
-				results.push(uri);
-			}
-		}
-
-		// index.* candidates (when specifying a directory)
-		for (const ext of exts) {
-			const filePath = path.join(targetNoExt, 'index' + ext);
-			const uri = vscode.Uri.file(filePath);
-			if (await this.exists(uri)) {
-				results.push(uri);
-			}
-		}
-
-		return results;
-	}
-	*/
-
-	/*
-	private async exists(uri: vscode.Uri): Promise<boolean> {
-		try {
-			await vscode.workspace.fs.stat(uri);
-			return true;
-		} catch {
-			return false;
-		}
-	}
-	*/
-
-	/**
-	 * Returns only cached files that the specified source depends on (in latest access order)
-	 */
-	/*
-	async getCachedSymbolsForDependencies(source: vscode.Uri | vscode.TextDocument): Promise<CachedSymbol[]> {
-		const doc = (source as vscode.TextDocument).uri ? (source as vscode.TextDocument) : await vscode.workspace.openTextDocument(source as vscode.Uri);
-		const deps = await this.getDependencyUris(doc);
-		if (deps.size === 0) return [];
-
-		// Filter based on accessOrder sorted by latest access
-		const result: CachedSymbol[] = [];
-		for (const uriString of this.accessOrder) {
-			if (!deps.has(uriString)) continue;
-			const cached = this.cache.get(uriString);
-			if (cached) result.push(cached);
-		}
-		return result;
-	}
-	*/
 
 	/**
 	 * Cache document symbol information
@@ -161,6 +55,9 @@ export class SymbolCacheManager {
 			symbols = await vscode.commands.executeCommand<vscode.DocumentSymbol[]>(
 												'vscode.executeDocumentSymbolProvider',
 												uri);
+			if (symbols && 0 < symbols.length) {
+				await this.enrichSymbolsWithHover(uri, symbols, doc.languageId);
+			}
 		} catch (error) {
 			logDebug(`Failed to cache symbols for ${uriString}: ${error}`);
 		}
@@ -297,59 +194,152 @@ export class SymbolCacheManager {
 
 
 
-	/**
-	 * Create basic symbol information for C++ files
-	 */
-	private createBasicSymbolsForCpp(document: vscode.TextDocument): vscode.SymbolInformation[] {
-		const symbols: vscode.SymbolInformation[] = [];
-		const text = document.getText();
-		const lines = text.split('\n');
-		
-		// Detect symbols using basic pattern matching
-		for (let i = 0; i < lines.length; i++) {
-			const line = lines[i].trim();
-			
-			// Class definition
-			if (line.match(/^class\s+(\w+)/)) {
-				const match = line.match(/^class\s+(\w+)/);
-				if (match) {
-					symbols.push(new vscode.SymbolInformation(
-						match[1],
-						vscode.SymbolKind.Class,
-						'',
-						new vscode.Location(document.uri, new vscode.Position(i, 0))
-					));
-				}
+	private readonly functionLikeKinds = new Set<vscode.SymbolKind>([
+		vscode.SymbolKind.Function,
+		vscode.SymbolKind.Method,
+		vscode.SymbolKind.Constructor
+	]);
+
+	private async enrichSymbolsWithHover(uri: vscode.Uri, symbols: vscode.DocumentSymbol[], languageId: string): Promise<void> {
+		for (const symbol of symbols) {
+			const info = await this.fetchSignatureInfo(uri, symbol as ExtendedDocumentSymbol, languageId);
+			if (info) {
+				const extended = symbol as ExtendedDocumentSymbol;
+				extended.signatureInfo = info;
 			}
-			
-			// Function definition
-			if (line.match(/^(\w+)\s+(\w+)\s*\(/)) {
-				const match = line.match(/^(\w+)\s+(\w+)\s*\(/);
-				if (match) {
-					symbols.push(new vscode.SymbolInformation(
-						match[2],
-						vscode.SymbolKind.Function,
-						'',
-						new vscode.Location(document.uri, new vscode.Position(i, 0))
-					));
-				}
-			}
-			
-			// Struct definition
-			if (line.match(/^struct\s+(\w+)/)) {
-				const match = line.match(/^struct\s+(\w+)/);
-				if (match) {
-					symbols.push(new vscode.SymbolInformation(
-						match[1],
-						vscode.SymbolKind.Struct,
-						'',
-						new vscode.Location(document.uri, new vscode.Position(i, 0))
-					));
-				}
+			// recursible call of children
+			// function type, it does not use recursion.
+			if (! this.functionLikeKinds.has(symbol.kind) &&
+				symbol.children && symbol.children.length) {
+				await this.enrichSymbolsWithHover(uri, symbol.children, languageId);
 			}
 		}
-		
-		return symbols;
+	}
+
+	private async fetchSignatureInfo(uri: vscode.Uri, symbol: ExtendedDocumentSymbol, languageId: string): Promise<SymbolSignatureInfo | undefined> {
+		try {
+			const position = symbol.selectionRange.start;
+			const hovers = await vscode.commands.executeCommand<vscode.Hover[]>(
+				'vscode.executeHoverProvider',
+				uri,
+				position
+			);
+
+			if (!hovers || hovers.length === 0) {
+				return undefined;
+			}
+
+			const hoverData = this.extractHoverContents(hovers);
+			for (const entry of hoverData) {
+				
+				// one line function definition
+				let match: RegExpExecArray | null;
+				let definition: string | undefined = undefined;
+				const codeBlockRegex = /```[\w+-]*\n([\s\S]*?)```/g;
+				while ((match = codeBlockRegex.exec(entry.text))) {
+					definition = match[1].replace(/\r?\n/g, '\n').trim();
+					definition = definition.replace(/^\(.*?\)\s*/g, '');	// remove status in "(loading...) symbolname" format.
+					break;
+				}
+
+				if (!definition) {
+					return undefined;
+				}
+
+				const info: SymbolSignatureInfo = {
+					name: symbol.name,
+					definition,
+					documentation: entry.documentation?.trim() || undefined,
+					sourceLanguage: entry.language || languageId
+				};
+
+				return info;
+			}
+		} catch (error) {
+			logDebug(`Failed to fetch signature via hover for ${uri.toString()}#${symbol.name}: ${error}`);
+		}
+
+		return undefined;
+	}
+
+	private extractHoverContents(hovers: vscode.Hover[]): { text: string; documentation?: string; language?: string }[] {
+		const results: { text: string; documentation?: string; language?: string }[] = [];
+
+		for (const hover of hovers) {
+			for (const content of hover.contents) {
+				let value = '';
+				let language: string | undefined;
+
+				if ((content as vscode.MarkdownString).value !== undefined) {
+					const markdown = content as vscode.MarkdownString;
+					value = markdown.value ?? '';
+				}
+
+				if (!value && typeof (content as unknown as { value?: string }).value === 'string') {
+					value = (content as unknown as { value?: string }).value ?? '';
+				}
+
+				if (!value && typeof (content as unknown as { language?: string; value?: string }).value === 'string') {
+					const marked = content as unknown as { language?: string; value?: string };
+					value = marked.value ?? '';
+					language = marked.language;
+				}
+
+				if (!value && typeof content === 'string') {
+					value = content;
+				}
+
+				if (!value) {
+					continue;
+				}
+
+				const documentation = this.extractNonCodeDocumentation(value);
+				if (!language) {
+					const fenceMatch = value.match(/```(\w+)/);
+					if (fenceMatch) {
+						language = fenceMatch[1];
+					}
+				}
+
+				results.push({
+					text: value,
+					documentation,
+					language
+				});
+			}
+		}
+
+		return results;
+	}
+	
+	private extractNonCodeDocumentation(markdownText: string): string | undefined {
+		const lines = markdownText.split(/\r?\n/);
+		let inCodeBlock = false;
+		const docLines: string[] = [];
+
+		for (const line of lines) {
+			if (line.trim().startsWith('```')) {
+				inCodeBlock = !inCodeBlock;
+				continue;
+			}
+
+			if (inCodeBlock) {
+				continue;
+			}
+
+			const trimmed = line.trim();
+			if (trimmed.length === 0) {
+				continue;
+			}
+
+			docLines.push(trimmed);
+		}
+
+		if (docLines.length === 0) {
+			return undefined;
+		}
+
+		return docLines.join(' ');
 	}
 
 	/**

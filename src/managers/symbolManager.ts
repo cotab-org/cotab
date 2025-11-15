@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { SymbolCacheManager, CachedSymbol, SymbolMetaInfo } from './symbolCache';
+import { SymbolCacheManager, CachedSymbol, ExtendedDocumentSymbol, SymbolMetaInfo } from './symbolCache';
 import { logDebug, logInfo } from '../utils/logger';
 
 export function registerSymbolManager(disposables: vscode.Disposable[]) {
@@ -213,13 +213,22 @@ function convertSymbolsToMetaInfo(symbols: vscode.DocumentSymbol[]): SymbolMetaI
 		const metaInfo: SymbolMetaInfo = {
 			type: getSymbolType(symbol.kind),
 			name: symbol.name,
+			content: symbol.name,
 			line: symbol.range.start.line, // 0-based line numbers
 			column: symbol.range.start.character, // 0-based column numbers
 		};
 
-        if(symbol.children) {
-            metaInfo.children = convertSymbolsToMetaInfo(symbol.children);
-        }
+		// Function/Method argments/return by Cotab extended symbol
+		const extended = symbol as ExtendedDocumentSymbol;
+		if (extended.signatureInfo && extended.signatureInfo.definition) {
+			if (extended.signatureInfo.definition) {
+				metaInfo.content = extended.signatureInfo.definition;
+			}
+		}
+		
+		if(symbol.children && 0 < symbol.children.length) {
+			metaInfo.children = convertSymbolsToMetaInfo(symbol.children);
+		}
 		
 		result.push(metaInfo);
 	}
@@ -230,7 +239,7 @@ function convertSymbolsToMetaInfo(symbols: vscode.DocumentSymbol[]): SymbolMetaI
 	/**
 	 * Convert meta information to string format
 	 */
-function formatMetaInfoAsString(metaInfo: SymbolMetaInfo[], indent: string = ''): {
+function formatMetaInfoAsString(metaInfo: SymbolMetaInfo[], maxCount: number, indent: string = ''): {
 	yaml: string;
 	count: number;
 } {
@@ -238,12 +247,15 @@ function formatMetaInfoAsString(metaInfo: SymbolMetaInfo[], indent: string = '')
 	let count = 0;
 	
 	for (const info of metaInfo) {
+		if (maxCount <= count) break;
+
 		//result += `${indent}${info.type}: ${info.name} [${info.line}:${info.column}]\n`;
-		yaml += `${indent}- ${info.type}: ${info.name}\n`;
+		yaml += `${indent}- ${info.type}: ${info.content}\n`;
 		count++;
 		
 		if (info.children && 0 < info.children.length) {
-			const { yaml: result, count: n } = formatMetaInfoAsString(info.children, indent + '  ');
+			const leftCount = maxCount - count;
+			const { yaml: result, count: n } = formatMetaInfoAsString(info.children, leftCount, indent + '  ');
 			yaml += result + '\n';
 			count += n;
 		}
@@ -255,12 +267,12 @@ function formatMetaInfoAsString(metaInfo: SymbolMetaInfo[], indent: string = '')
 	return { yaml, count };
 }
 
-export function getSymbolYaml(cachedSymbol: CachedSymbol): {
+export function getSymbolYaml(cachedSymbol: CachedSymbol, maxCount: number): {
 	codeBlock: string;
 	count: number;
 } {
 	const metaInfo = convertSymbolsToMetaInfo(cachedSymbol.symbols);
-	const { yaml, count } = formatMetaInfoAsString(metaInfo);
+	const { yaml, count } = formatMetaInfoAsString(metaInfo, maxCount);
 	const codeBlock = `# ${cachedSymbol.relativePath}\n${yaml}`;
 	return { codeBlock, count };
 }
