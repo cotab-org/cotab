@@ -57,7 +57,7 @@ export function processDiffAndApplyEdits(
     if (!cleaned.trim()) return { originalDiffOperations: [], edits: [], trimed: false, finalLineNumber: 0 };
 
     let baseLine = editorContext.aroundFromLine;
-    const documentTexts = editorContext.documentText.split('\n');
+    const documentTexts = editorContext.documentText.fullText.split('\n');
     let origLines = documentTexts.slice(editorContext.aroundFromLine, editorContext.aroundMergeToLine);
     let newLines = cleaned.split(/\n/);
 

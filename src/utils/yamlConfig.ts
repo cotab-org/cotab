@@ -319,7 +319,7 @@ export async function openYamlConfig(): Promise<void> {
         logDebug(`Opened YAML config file: ${configPath}`);
     } catch (error) {
         logError(`Failed to open YAML config: ${error}`);
-        vscode.window.showErrorMessage(`設定ファイルを開けませんでした: ${error}`);
+        vscode.window.showErrorMessage(`Failed to open config file: ${error}`);
     }
 }
 

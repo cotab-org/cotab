@@ -5,6 +5,7 @@ import { withLineNumberCodeBlock } from './llmUtils';
 import { getYamlConfigMode, YamlConfigMode } from '../utils/yamlConfig';
 import { parseHandlebarsTemplate } from '../utils/cotabUtil';
 import { EditHistoryAction, makeYamlFromEditHistoryActions } from '../llm/codeBlockBuilder';
+import { beforeTruncatedText, afterTruncatedText } from '../managers/largeFileManager'
 
 // Surrounding code line count
 const LATEST_AROUND_CODE_LINES = 15;
@@ -14,6 +15,8 @@ interface PromptCache {
 	aroundFromLine: number;
 	aroundToLine: number;
 	inputCode: string;
+	inputCodeStartLine: number;
+	inputCodeValidLen: number; // size is trancate code if over context size
 	timestamp: number;
 }
 
@@ -25,8 +28,9 @@ const CACHE_DURATION = 5 * 60 * 1000; // Cache for 5 minutes
 // Function to get inputCode from cache
 function getCachedInputCodeInternal(
 	documentUri: string,
-	cursorLine: number
-): string | null {
+	cursorLine: number,
+	sourceCodeValidLen: number
+): PromptCache | null {
 	const cached = promptCache.get(documentUri);
 	if (!cached) {
 		logDebug(`Cache miss: Cache doesn't exist (${documentUri})`);
@@ -46,9 +50,16 @@ function getCachedInputCodeInternal(
 		logDebug(`Cache miss: Cursor is outside aroundRange (${documentUri}, cursor: ${cursorLine}, range: ${cached.aroundFromLine}-${cached.aroundToLine})`);
 		return null;
 	}
+
+	// Check equal sourceCodeValidLen
+	if (sourceCodeValidLen !== cached.inputCodeValidLen) {
+		logDebug(`Cache miss: Invalid len (${sourceCodeValidLen} !== ${cached.inputCodeValidLen})`);
+		promptCache.delete(documentUri);
+		return null;
+	}
 	
 	logDebug(`Cache hit: Got inputCode from cache (${documentUri})`);
-	return cached.inputCode;
+	return cached;
 }
 
 // Function to save inputCode to cache
@@ -56,12 +67,16 @@ function cacheInputCode(
 	documentUri: string,
 	aroundFromLine: number,
 	aroundToLine: number,
-	inputCode: string
+	inputCode: string,
+	inputCodeStartLine: number,
+	inputCodeValidLen: number,
 ): void {
 	promptCache.set(documentUri, {
 		aroundFromLine,
 		aroundToLine,
 		inputCode,
+		inputCodeStartLine,
+		inputCodeValidLen,
 		timestamp: Date.now()
 	});
 	logDebug(`Saved inputCode to cache (${documentUri})`);
@@ -117,22 +132,43 @@ function insertCursorHere(
 }
 
 function getCachedSourceCode(documentUri: string | undefined,
-	sourceCode: string[],
-	ctx: EditorContext,
+	editorContext: EditorContext,
 	startEditingHere?: string,
 	stopEditingHere?: string
-): string {
-	let cachedSourceCode: string | null = null;
+): {
+		sourceCode: string[];	// latest original
+		cachedSourceCode: string;	// cached
+		startPosition: number;
+		cachedStartPosition: number;
+		latestBeforeOutsideLines: string[];
+		latestAroundSnippetLines: string[];
+		latestAfterOutsideLines: string[];
+	} {
+	let cachedSourceCode = '';
+	let cachedSourceCodeStartPosition = 0;
 
-	const find = documentUri ? getCachedInputCodeInternal(documentUri, ctx.cursorLine) : null;
+	const {
+		sourceCode,
+		trancatedSourceCode,
+		sourceCodeStartLine,
+		sourceCodeValidLen,
+		latestBeforeOutsideLines,
+		latestAroundSnippetLines,
+		latestAfterOutsideLines
+	} = editorContext.getSurroundingCodeBlocks();
+
+	const find = documentUri ? getCachedInputCodeInternal(documentUri,
+										editorContext.cursorLine,
+										sourceCodeValidLen) : null;
 	if (find) {
-		cachedSourceCode = find;
+		cachedSourceCode = find.inputCode;
+		cachedSourceCodeStartPosition = find.inputCodeStartLine;
 	}
 	else {
 		// Source code without cursor snippet
-		const beforeOutside = sourceCode.slice(0, ctx.aroundCacheFromLine).join('\n');
-		const aroundSnippet = sourceCode.slice(ctx.aroundCacheFromLine, ctx.aroundCacheToLine).join('\n');
-		const afterOutside = sourceCode.slice(ctx.aroundCacheToLine).join('\n');
+		const beforeOutside = trancatedSourceCode.slice(0, editorContext.aroundCacheFromLine - sourceCodeStartLine).join('\n');
+		const aroundSnippet = trancatedSourceCode.slice(editorContext.aroundCacheFromLine - sourceCodeStartLine, editorContext.aroundCacheToLine - sourceCodeStartLine).join('\n');
+		const afterOutside = trancatedSourceCode.slice(editorContext.aroundCacheToLine - sourceCodeStartLine).join('\n');
 		const startSymbol = (startEditingHere)?('\n' + startEditingHere) : ''
 		const stopSymbol = (stopEditingHere)?('\n' + stopEditingHere) : '';
 		const inputCode =
@@ -140,14 +176,28 @@ function getCachedSourceCode(documentUri: string | undefined,
 ${aroundSnippet}${stopSymbol}
 ${afterOutside}`
 		if (documentUri) {
-			cacheInputCode(documentUri, ctx.aroundCacheFromLine, ctx.aroundCacheToLine, inputCode);
+			cacheInputCode(documentUri,
+							editorContext.aroundCacheFromLine,
+							editorContext.aroundCacheToLine,
+							inputCode,
+							sourceCodeStartLine,
+							sourceCodeValidLen);
 		}
 		cachedSourceCode = inputCode;
+		cachedSourceCodeStartPosition = sourceCodeStartLine;
 	}
-	return cachedSourceCode;
+	return {
+		sourceCode,
+		cachedSourceCode,
+		startPosition: sourceCodeStartLine,
+		cachedStartPosition: cachedSourceCodeStartPosition,
+		latestBeforeOutsideLines,
+		latestAroundSnippetLines,
+		latestAfterOutsideLines
+	};
 }
 
-export function buildCompletionPrompts(ctx: EditorContext,
+export function buildCompletionPrompts(editorContext: EditorContext,
 	sourceAnalysis?: string,
 	symbolCodeBlock?: string,
 	editHistoryActions?: EditHistoryAction[],
@@ -166,7 +216,7 @@ export function buildCompletionPrompts(ctx: EditorContext,
 	symbolCodeBlock = symbolCodeBlock ?? '';
 
 	// Get YAML configuration
-	const yamlConfigMode = getYamlConfigMode(ctx.relativePath);
+	const yamlConfigMode = getYamlConfigMode(editorContext.relativePath);
 	const cursorAlwaysHead = yamlConfigMode.cursorAlwaysHead !== undefined ? yamlConfigMode.cursorAlwaysHead : false;
 	placeholder = (yamlConfigMode.placeholderSymbol !== undefined) ? yamlConfigMode.placeholderSymbol : placeholder;
 	const systemPrompt = yamlConfigMode.systemPrompt || '';
@@ -178,29 +228,41 @@ export function buildCompletionPrompts(ctx: EditorContext,
 	const appendThinkPromptReject = yamlConfigMode.appendThinkPromptReject || '';
 	const appendOutputPromptReject = yamlConfigMode.appendOutputPromptReject || '';
 
-	// Code blocks
-	const sourceCode = ctx.documentText.split('\n');
-
-	// Cached source code
-	const cachedSourceCode = getCachedSourceCode(documentUri, sourceCode, ctx,
-		yamlConfigMode.isNoInsertStartStopSymbol ? undefined : startEditingHereSymbol,
-		yamlConfigMode.isNoInsertStartStopSymbol ? undefined : stopEditingHereSymbol);
-	const cachedSourceCodeWithLine = withLineNumberCodeBlock(cachedSourceCode, 0, [startEditingHereSymbol, stopEditingHereSymbol]).CodeBlock;
+	// Code blocks & Latest surrounding code blocks & Cached source code
+	const {
+		sourceCode,
+		cachedSourceCode,
+		startPosition,
+		cachedStartPosition,
+		latestBeforeOutsideLines,
+		latestAroundSnippetLines,
+		latestAfterOutsideLines
+	} = getCachedSourceCode(documentUri, editorContext,
+							yamlConfigMode.isNoInsertStartStopSymbol ? undefined : startEditingHereSymbol,
+							yamlConfigMode.isNoInsertStartStopSymbol ? undefined : stopEditingHereSymbol);
+	const cachedSourceCodeWithLine = withLineNumberCodeBlock(
+										cachedSourceCode,
+										cachedStartPosition,
+										[
+											{ key: startEditingHereSymbol },
+											{ key: stopEditingHereSymbol },
+											{ key: beforeTruncatedText, isAddSpace: true },
+											{ key: afterTruncatedText, isAddSpace: true },
+										]
+									).CodeBlock;
 	const sourceCodeBlock =
-`\`\`\`${ctx.languageId} title=${ctx.relativePath}
+`\`\`\`${editorContext.languageId} title=${editorContext.relativePath}
 ${cachedSourceCodeWithLine}
 \`\`\``
-
-	// Latest surrounding code blocks
-	const latestBeforeOutsideLines = sourceCode.slice(0, ctx.aroundFromLine);
-	const latestAroundSnippetLines = sourceCode.slice(ctx.aroundFromLine, ctx.aroundToLine);
-	const latestAfterOutsideLines = sourceCode.slice(ctx.aroundToLine);
 	
 	// Extract last 5 lines of beforeOutside
 	const latestBeforeOutsideLast = latestBeforeOutsideLines.slice(-LATEST_AROUND_CODE_LINES).join('\n');
 	const latestAfterOutsideFirst = latestAfterOutsideLines.slice(0, LATEST_AROUND_CODE_LINES).join('\n');
-	const {CodeBlock: latestBeforeOutsideLastWithLine, LastLineNumber: latestBeforeOutsideLastWithLineNumber} = withLineNumberCodeBlock(latestBeforeOutsideLast, ctx.aroundFromLine-LATEST_AROUND_CODE_LINES);
-	const latestAfterOutsideFirstWithLine = withLineNumberCodeBlock(latestAfterOutsideFirst, ctx.aroundToLine).CodeBlock;
+	const {
+		CodeBlock: latestBeforeOutsideLastWithLine,
+		LastLineNumber: latestBeforeOutsideLastWithLineNumber
+	} = withLineNumberCodeBlock(latestBeforeOutsideLast, editorContext.aroundFromLine-LATEST_AROUND_CODE_LINES);
+	const latestAfterOutsideFirstWithLine = withLineNumberCodeBlock(latestAfterOutsideFirst, editorContext.aroundToLine).CodeBlock;
 	
 	// Insert placeholder at cursor position
 	let { aroundSnippetWithPlaceholder,
@@ -209,9 +271,9 @@ ${cachedSourceCodeWithLine}
 		cursorLineAfter,
 		afterPlaceholder
 	} = insertCursorHere(latestAroundSnippetLines.join('\n'),
-						ctx.cursorLine, (cursorAlwaysHead) ? 0 :ctx.cursorCharacter, ctx.aroundFromLine,
+						editorContext.cursorLine, (cursorAlwaysHead) ? 0 :editorContext.cursorCharacter, editorContext.aroundFromLine,
 						placeholder);
-	const aroundSnippetWithPlaceholderWithLine = withLineNumberCodeBlock(aroundSnippetWithPlaceholder, ctx.aroundFromLine).CodeBlock;
+	const aroundSnippetWithPlaceholderWithLine = withLineNumberCodeBlock(aroundSnippetWithPlaceholder, editorContext.aroundFromLine).CodeBlock;
 	
 	// Whether to make code up to cursor position column already output to Assistant
 	// Note: Can guarantee characters before cursor but can't complete at positions before cursor.
@@ -242,12 +304,12 @@ ${latestAfterOutsideFirstWithLine}
 // ... existing code ...
 `;
 	const latestSourceCodeBlock =
-`\`\`\`${ctx.languageId} title=${ctx.relativePath}
+`\`\`\`${editorContext.languageId} title=${editorContext.relativePath}
 ${latestSourceCode}
 \`\`\``
 
 	const assistantSourceCodeBlockBforeCursor = 
-`\`\`\`${ctx.languageId} title=${ctx.relativePath}
+`\`\`\`${editorContext.languageId} title=${editorContext.relativePath}
 
 // ... existing code ...
 
@@ -282,8 +344,8 @@ ${cursorLineBefore}`;
 	// Create Handlebars context
 	let handlebarsContext = {
 		// Basic information
-		"languageId": ctx.languageId,
-		"relativePath": ctx.relativePath,
+		"languageId": editorContext.languageId,
+		"relativePath": editorContext.relativePath,
 		"placeholder": placeholder,
 		"startEditingHere": startEditingHereSymbol,
 		"stopEditingHere": stopEditingHereSymbol,
@@ -319,7 +381,7 @@ ${cursorLineBefore}`;
 	{
 		let appendThinkPrompt = '';
 		let appendOutputPrompt = '';
-		const cursorIndex = ctx.cursorLine - ctx.aroundFromLine;
+		const cursorIndex = editorContext.cursorLine - editorContext.aroundFromLine;
 		const cursorLineText = (0 <= cursorIndex && cursorIndex < latestAroundSnippetLines.length)
 			? latestAroundSnippetLines[cursorIndex]
 			: '';

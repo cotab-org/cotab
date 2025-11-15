@@ -6,6 +6,7 @@ import { getEditorContext } from '../utils/editorContext';
 // diff util no longer directly used here
 import { clearSuggestions, LineEdit, SuggestionData } from './suggestionStore';
 import { clearAllDecorations } from './suggestionRenderer';
+import { largeFileManager } from '../managers/largeFileManager';
 import { processDiffAndApplyEdits } from '../diff/lineDiff';
 import { updateSuggestionsAndDecorations } from './suggestionUtils';
 import { getConfig, CotabConfig } from '../utils/config';
@@ -323,7 +324,12 @@ ${assistantPrompt}
             }
 //return true; // no stream debug
 //process.stdout.write(partial);
-            const {edits, isCompletedFirstLine: firstLineComplete, isStopped, isCompletedCursorLine} = applySuggestions(partial, true);
+            const {
+                edits,
+                isCompletedFirstLine: firstLineComplete,
+                isStopped,
+                isCompletedCursorLine
+            } = applySuggestions(partial, true);
             
             // Detect if suggestions for the cursor line are ready
             if (isCompletedCursorLine) {
@@ -335,7 +341,7 @@ ${assistantPrompt}
             }
 
             // Don't stop because marker position might shift in output
-            return true;//!is_stoped;
+            return true;//!isStopped;
         };
         
         // Early exit if already canceled
@@ -369,13 +375,34 @@ ${assistantPrompt}
                 onUpdate: receiveStreamingResponse,
                 onComplete: (reason: CompletionEndReason, finalResult?: string) => {
                     logInfo(`Completion generation ended - Reason: ${reason}, ${streamCount}th time, Final result:\n${finalResult ? finalResult : 'None'}`);
-                    if (reason === 'error' || reason === 'aborted') {
+                    
+                    if (reason === 'streamEnd' || reason === 'maxLines') {
+                        const {
+                            edits,
+                            isCompletedFirstLine: firstLineComplete,
+                            isStopped,
+                            isCompletedCursorLine
+                        } = applySuggestions(finalResult ?? '', false);
+                        if (! finalResult) {
+                            clearSuggestions(document.uri);
+                            clearAllDecorations(vscode.window.activeTextEditor!);
+                        }
+                    }
+                    else if (reason === 'exceedContextSize') {
+						const obj = JSON.parse(finalResult ?? '');
+                        if (0 < obj.contextSize && obj.promptSize) {
+                            largeFileManager.setExceedContextSize(document.uri.toString(),
+                                                                    editorContext.documentText.trancatedCursor,
+                                                                    obj.contextSize,
+                                                                    obj.promptSize);
+                        }
                         clearSuggestions(document.uri);
                         clearAllDecorations(vscode.window.activeTextEditor!);
                     }
+                    // reason === 'error' || reason === 'aborted'
                     else {
-                        const { edits, isCompletedFirstLine: firstLineComplete, isStopped: is_stoped, isCompletedCursorLine } = 
-                                applySuggestions(finalResult ?? '', false);
+                        clearSuggestions(document.uri);
+                        clearAllDecorations(vscode.window.activeTextEditor!);
                     }
 
                     // Set cursor line ready flag when completion generation ends

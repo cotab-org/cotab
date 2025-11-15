@@ -39,7 +39,7 @@ async function resolveDomainToIP(hostname: string): Promise<string | null> {
 	const now = Date.now();
 	
 	if (cached && (now - cached.timestamp) < CACHE_DURATION) {
-		logDebug(`IP address retrieved from cache: ${hostname} → ${cached.ip}`);
+		//logDebug(`IP address retrieved from cache: ${hostname} → ${cached.ip}`);
 		return cached.ip;
 	}
 	
@@ -95,7 +95,7 @@ async function convertURLToIP(url: string): Promise<string> {
 		if (ip) {
 			// Replace case-insensitively
 			const newURL = url.replace(new RegExp(hostname, 'gi'), ip);
-			logDebug(`URL conversion: ${url} → ${newURL}`);
+			//logDebug(`URL conversion: ${url} → ${newURL}`);
 			return newURL;
 		}
 		
@@ -116,7 +116,7 @@ export {
 };
 
 export function withLineNumberCodeBlock(CodeBlock: string,
-	startLineNumber: number = 0, ignores: string[] = []): {
+	startLineNumber: number = 0, ignores: {key: string; isAddSpace?: boolean}[] = []): {
 		CodeBlock: string;
 		LastLineNumber: number;
 	} {
@@ -126,15 +126,19 @@ export function withLineNumberCodeBlock(CodeBlock: string,
 		const lines = CodeBlock.split('\n');
 		let counter = 1;
 		const withLine = lines.map((line, idx) => {
-								if (ignores.includes(line.trim())) {
-									return line;
-								} else {
+    							const trimmed = line.trim();
+								const hit = ignores.find(ignore => { return ignore.key === trimmed; });
+								if (hit) {
+									return (hit.isAddSpace??false) ? `\n${line}\n\n ` : line;
+								}
+								else {
 									LastLineNumber = startLineNumber + counter++;
 									return `${LastLineNumber}|${line}`;
 								}
 							});
 		return { CodeBlock: withLine.join('\n'), LastLineNumber };
-	} else {
+	}
+	else {
 		return {CodeBlock, LastLineNumber};
 	}
 }

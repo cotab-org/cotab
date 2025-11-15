@@ -30,7 +30,7 @@ export interface AiClient {
 }
 
 // Type definition for completion reason
-export type CompletionEndReason = 'maxLines' | 'streamEnd' | 'aborted' | 'error';
+export type CompletionEndReason = 'maxLines' | 'streamEnd' | 'aborted' | 'exceedContextSize' | 'error';
 
 function toAbortSignal(token?: vscode.CancellationToken): { signal?: AbortSignal; dispose: () => void } {
 	if (!token) return { signal: undefined, dispose: () => {} };
@@ -56,7 +56,6 @@ async function processStreamingResponse(
 	const startTime = Date.now();
 	let firstDataReceived = false;
 
-
 	return new Promise(async (resolve, reject) => {
 		let onCompleteCalled = false; // Flag indicating whether onComplete was called
 		
@@ -67,30 +66,39 @@ async function processStreamingResponse(
 			}
 		};
 
-		stream.on('data', async (chunk: Buffer) => {
-			serverManager.keepalive(); // Start heartbeat to keep server alive
-
-			if (!firstDataReceived) {
-				const timeToFirstData = Date.now() - startTime;
-				logDebug(`Time to first data reception: ${params.streamCount}th time ${timeToFirstData}ms`);
-				firstDataReceived = true;
+		const processLines = (lines: string[]) => {
+			const processError = (parsed: any): boolean => {
+				// exceed context size (Llama.cpp specialization)
+				if (parsed.error) {
+					const code = parsed.error.code ?? 0;
+					const type = (parsed.error?.type?? '');
+					if (code === 400 && type === 'exceed_context_size_error') {
+						const n_ctx = parsed.error?.n_ctx;
+						const n_prompt_tokens = parsed.error?.n_prompt_tokens;
+						if (0 < n_ctx && 0 < n_prompt_tokens) {
+							result = JSON.stringify({
+								contextSize: n_ctx,
+								promptSize: n_prompt_tokens,
+							});
+							callOnComplete('exceedContextSize');
+						}
+					}
+					return true;
+				}
+				else {
+					return false;
+				}
 			}
-
-			if (signal?.aborted ||
-				(params.checkAborted && params.checkAborted())) {
-				callOnComplete('aborted');
-				resolve(result);
-				stream.destroy();
-				return;
-			}
-
-			buffer += chunk.toString();
-			const lines = buffer.split('\n');
-			buffer = lines.pop() || ''; // Keep last incomplete line in buffer
 
 			for (const line of lines) {
 				if (line.trim() === '') continue;
-				if (line.startsWith('data: ')) {
+				
+				// exceed context size (Llama.cpp specialization)
+				if (line.startsWith('{"error":')) {
+					const parsed = JSON.parse(line);
+					processError(parsed);
+				}
+				else if (line.startsWith('data: ')) {
 					const data = line.slice(6);
 					if (data === '[DONE]') {
 						callOnComplete('streamEnd');
@@ -123,14 +131,46 @@ async function processStreamingResponse(
 								return;
 							}
 						}
+						// exceed context size (Llama.cpp specialization)
+						else if (processError(parsed)) {
+						}
 					} catch (e) {
 						// Ignore JSON parse errors
 					}
 				}
 			}
+		};
+
+		stream.on('data', async (chunk: Buffer) => {
+			serverManager.keepalive(); // Start heartbeat to keep server alive
+
+			if (!firstDataReceived) {
+				const timeToFirstData = Date.now() - startTime;
+				logDebug(`Time to first data reception: ${params.streamCount}th time ${timeToFirstData}ms`);
+				firstDataReceived = true;
+			}
+
+			if (signal?.aborted ||
+				(params.checkAborted && params.checkAborted())) {
+				callOnComplete('aborted');
+				resolve(result);
+				stream.destroy();
+				return;
+			}
+
+			buffer += chunk.toString();
+			const lines = buffer.split('\n');
+			buffer = lines.pop() || ''; // Keep last incomplete line in buffer
+
+			processLines(lines);
 		});
 
 		stream.on('end', () => {
+			// Process remaining buffer
+			const lines = buffer.split('\n');
+			processLines(lines);
+
+			// 
 			callOnComplete('streamEnd');
 			resolve(result);
 		});
@@ -170,7 +210,7 @@ class ContextCheckpoints {
 		params: CompletionParams,
 		signal: AbortSignal | undefined) {
 			
-		// paramsを複製
+		// Clone params
 		const checkpointParams = { ...params };
 		checkpointParams.onUpdate = (partial) => {
 			logDebug(`Context checkpoint update received: ${partial}`);
@@ -180,7 +220,7 @@ class ContextCheckpoints {
 			logDebug(`Completion reason: ${reason}, result: ${finalResult}`);
 		};
 
-		// argsを複製
+		// Clone args
 		const checkpointArgs = { ...arg };
 		checkpointArgs.max_tokens = 1;
 		
@@ -293,7 +333,7 @@ abstract class BaseAiClient implements AiClient {
 			timeout = this.timeoutMs;
 		}
 
-		logDebug(`axios.create`);
+		//logDebug(`axios.create`);
 		const http = axios.create({ baseURL: apiBaseURL, timeout });
 
 		return http;
@@ -344,7 +384,7 @@ abstract class BaseAiClient implements AiClient {
 					params,
 					signal);
 			}
-			// messageのチェックポイントを消去
+			// Remove checkpoint from messages
 			for (let message of arg.messages) {
 				message.content = message.content.split('<|CONTEXT_CHECKPOINT|>').join('');
 			}
@@ -354,7 +394,8 @@ abstract class BaseAiClient implements AiClient {
 				// If cancel signal is sent too early and communication ends, llama-server may miss task cancellation,
 				// so don't pass signal directly
 //				signal,
-				responseType: 'stream'
+				responseType: 'stream',
+				validateStatus: () => true,	// no exception for status code 400
 			});
 			logDebug(`Chat response reception started ${params.streamCount}th time`);
 			return await processStreamingResponse(res, signal, params);

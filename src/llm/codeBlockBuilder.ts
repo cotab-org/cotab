@@ -109,7 +109,7 @@ class CodeBlockBuilder {
 
         if (cachedAnalysis && cachedAnalysis.version !== editorContext.version) {
             const cachedFullSourceCode = cachedAnalysis.extraData ?? '';
-            const fullSourceCode = editorContext.documentText;
+            const fullSourceCode = editorContext.documentText.fullText;
             // Whether 5+ minutes have passed or character count differs by 10% or more
             if (cachedAnalysis.cachedTime + CACHE_EXPIRE_TIME < Date.now() &&
                 cachedFullSourceCode.length * 0.1 < Math.abs(cachedFullSourceCode.length - fullSourceCode.length)) {
@@ -118,7 +118,7 @@ class CodeBlockBuilder {
         }
 
 		if (!cachedAnalysis || isRefresh) {
-            const fullSourceCode = editorContext.documentText;
+            const fullSourceCode = editorContext.documentText.trancatedTop;
 			const lineCount = fullSourceCode.replace(/\r?\n/g, '\n').split('\n').filter(line => line.trim() !== '').length;
 			if (ANALYSIS_MIN_LINE_COUNT < lineCount) {
 				const { systemPrompt, userPrompt } = buildAnalyzePrompts(editorContext.languageId,

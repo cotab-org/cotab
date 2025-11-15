@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { registerLargeFileManager } from './managers/largeFileManager';
 import { registerSuggestionManager } from './suggestion/suggestionManager';
 import { logDebug, logInfo } from './utils/logger';
 import { registerSuggestionCommands } from './suggestion/suggestionCommands';
@@ -66,7 +67,8 @@ export function deactivate() {
 }
 
 function cotabActive() {
-		
+	registerLargeFileManager(cotabDisposables);
+
 	registerSuggestionManager(cotabDisposables);
 
 	registerSuggestionCommands(cotabDisposables);

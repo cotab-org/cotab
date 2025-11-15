@@ -251,7 +251,7 @@ function parseOsRelease(content: string): Record<string, string> {
     if (!m) continue;
     let key = m[1];
     let val = m[2];
-    // 値に引用符があれば外す
+    // Remove quotes from value if present
     if (val.startsWith('"') && val.endsWith('"')) {
       val = val.slice(1, -1);
     } else if (val.startsWith("'") && val.endsWith("'")) {

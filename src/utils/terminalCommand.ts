@@ -32,12 +32,12 @@ class TerminalCommand implements vscode.Disposable {
     private getInstallBaseDir(): string {
         if (process.platform === 'win32') {
             const localAppData = process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local');
-            return path.join(localAppData, 'Cotab', 'llama-cpp');
+            return path.join(localAppData, 'Cotab', 'llama.cpp');
         }
         if (process.platform === 'darwin') {
-            return path.join(os.homedir(), 'Library', 'Application Support', 'Cotab', 'llama-cpp');
+            return path.join(os.homedir(), 'Library', 'Application Support', 'Cotab', 'llama.cpp');
         }
-        return path.join(os.homedir(), '.local', 'share', 'Cotab', 'llama-cpp');
+        return path.join(os.homedir(), '.local', 'share', 'Cotab', 'llama.cpp');
     }
 
     private async getLatestLlamaCppRelease(): Promise<any> {
