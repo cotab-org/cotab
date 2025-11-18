@@ -255,7 +255,8 @@ export function preprocessLLMOutput(text: string): {
     let cleaned = text;
 
     // unwrap line number
-    cleaned = withoutLineNumber(cleaned);
+    const { CodeBlock: without, hasLastLineNumbers} = withoutLineNumber(cleaned);
+    cleaned = without;
 
     // Normalize line endings
     cleaned = cleaned.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
@@ -283,9 +284,11 @@ export function preprocessLLMOutput(text: string): {
     // Remove "// ... existing code"
     cleaned = cleaned.replace(new RegExp(`\n// \.\.\. existing code \.\.\.[\s\S]*`, 'g'), '');
 
-    // Remove trailing newline
-    if (cleaned.endsWith('\n')) {
-        cleaned = cleaned.slice(0, -1);
+    // Remove trailing newline, but do not remove the valid line that includes a line number.
+    if (! hasLastLineNumbers) {
+        if (cleaned.endsWith('\n')) {
+            cleaned = cleaned.slice(0, -1);
+        }
     }
 
     return { cleaned: cleaned.trim() === '' ? '' : cleaned, isStopedSymbol, isStopedExistingComment };
