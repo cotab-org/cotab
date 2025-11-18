@@ -250,10 +250,13 @@ export function buildCompletionPrompts(editorContext: EditorContext,
 											{ key: afterTruncatedText, isAddSpace: true },
 										]
 									).CodeBlock;
-	const sourceCodeBlock =
+//===============================================
+const sourceCodeBlock =
+//===============================================
 `\`\`\`${editorContext.languageId} title=${editorContext.relativePath}
 ${cachedSourceCodeWithLine}
 \`\`\``
+//===============================================
 	
 	// Extract last 5 lines of beforeOutside
 	const latestBeforeOutsideLast = latestBeforeOutsideLines.slice(-LATEST_AROUND_CODE_LINES).join('\n');
@@ -291,31 +294,41 @@ ${cachedSourceCodeWithLine}
 	//###########################
 	// latest source code block
 	//###########################
-	const latestSourceCode =
+//===============================================
+const latestSourceCode =
+//===============================================
 `
 // ... existing code ...
 
-${latestBeforeOutsideLastWithLine}
-${startEditingHereSymbol}
-${aroundSnippetWithPlaceholderWithLine}
-${stopEditingHereSymbol}
+${latestBeforeOutsideLastWithLine}${(yamlConfigMode.isNoInsertStartStopSymbolLatest) ? '' : ('\n'+startEditingHereSymbol)}
+${aroundSnippetWithPlaceholderWithLine}${(yamlConfigMode.isNoInsertStartStopSymbolLatest) ? '' : ('\n'+stopEditingHereSymbol)}
 ${latestAfterOutsideFirstWithLine}
 
 // ... existing code ...
 `;
-	const latestSourceCodeBlock =
+//===============================================
+
+//===============================================
+const latestSourceCodeBlock =
+//===============================================
 `\`\`\`${editorContext.languageId} title=${editorContext.relativePath}
 ${latestSourceCode}
-\`\`\``
+\`\`\``;
+//===============================================
 
-	const assistantSourceCodeBlockBforeCursor = 
+//===============================================
+const assistantSourceCodeBlockBforeCursor = 
+//===============================================
 `\`\`\`${editorContext.languageId} title=${editorContext.relativePath}
 
 // ... existing code ...
 
-${latestBeforeOutsideLastWithLine}
-${startEditingHereSymbol}
+${latestBeforeOutsideLastWithLine}${(yamlConfigMode.isNoInsertStartStopSymbolLatest) ? '' : ('\n'+startEditingHereSymbol)}
+\`\`\`
+All code comments will be output in Japanese from below.
+\`\`\`
 ${cursorLineBefore}`;
+//===============================================
 
 
 	let lastAction = '';
@@ -357,6 +370,8 @@ ${cursorLineBefore}`;
 		"editHistoryCodeBlock": makeYamlFromEditHistoryActions(editHistoryActions??[]),
 		"sourceAnalysis": sourceAnalysis,
 		"latestSourceCodeBlock": latestSourceCodeBlock,
+		"aroundSnippetWithPlaceholderWithLine": aroundSnippetWithPlaceholderWithLine,
+		"latestAfterOutsideFirstWithLine": latestAfterOutsideFirstWithLine,
 		"assistantSourceCodeBlockBforeCursor": assistantSourceCodeBlockBforeCursor,
 		"cursorLineBefore": orgCursorLineBefore,
 		"cursorLineBeforeWithLine": cursorLineBefore,

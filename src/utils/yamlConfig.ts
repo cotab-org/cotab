@@ -27,28 +27,84 @@ interface YamlConfigCache {
     lastModified: number;
     lastAccessed: number; // Last access time (milliseconds)
 }
-
 export interface YamlConfigMode {
+    // Represents the name of the prompt mode.
+    // This name appears in the menu
     mode: string;
+
+    // An array of strings that specify which file extensions or patterns the mode applies to.
+    // each mode's extensions list is matched against the current file name to determine the applicable configuration.
     extensions: string[];
+
+    // Whether to send the cursor position to the head when sending to AI.
+    // By setting it to the head, the AI will attempt to edit from the beginning of the line.
     cursorAlwaysHead?: boolean;
+
+    // The placeholder string inserted into the user prompt to denote where the editor should place the cursor for further input.
+    // Typical values include templated markers like <|__EDITING_HERE__|>. The string should be one that AI will not judge as part of the code.
     placeholderSymbol?: string;
+    // true: Display over the source code to be replaced
+    // false: Display at the right end without overlapping
     isDispOverwrite?: boolean;
+
+    // Determines if syntax highlighting for newly added or edited sections should be disabled.
+    // When set to true, inserted or modified code is shown without highlight.
     isNoHighligh?: boolean;
+
+    // true: Whether to display overlay from the first line without using inline suggestions
     isForceOverlay?: boolean;
+
+    // If true, the system skips checking for stop-symbol delimiters (e.g., {{stopEditingHere}}) in the assistant's output.
+    // This allows processing even when the delimiter is absent.
+    // Set to true if you want it to be displayed sequentially for translation purposes or other uses
     isNoCheckStopSymbol?: boolean;
-    isNoInsertStartStopSymbol?: boolean; // insert start&stop symbol for cached code block?
+
+    // not insert start&stop symbol for cached code block?
+    isNoInsertStartStopSymbol?: boolean;
+
+    // not insert start&stop symbol for latest code block?
+    isNoInsertStartStopSymbolLatest?: boolean;
+
+    // Limits the number of lines that the assistant may return in a response.
+    // Responses exceeding this count are truncated or cut off.
     maxOutputLines?: number;
+
+    // Sets the maximum token count for an LLM request.
+    // default: 256
     maxTokens?: number;
+
+    //
     systemPrompt?: string;
+
+    //
     userPrompt?: string;
+
+    //
     assistantPrompt?: string;
+
+    // Additional prompt material appended when a new code scope is created.
+    // Guides the assistant's internal reasoning during this action.
     appendThinkPromptNewScope?: string;
+
+    // Supplementary prompt used while the assistant is performing refactoring operations.
+    // Provides context for the assistant to adjust its output accordingly.
+    // Used when a symbol rename is detected.
     appendThinkPromptRefactoring?: string;
+
+    // Prompt added when extra code is inserted.
+    // Helps the assistant keep track of incremental changes.
     appendThinkPromptAddition?: string;
+
+    // Prompt text presented when a user rejects a prior assistant suggestion, prompting a different answer.
     appendThinkPromptReject?: string;
+
+    // Replacement prompt used to generate new output after the user has dismissed an earlier response.
     appendOutputPromptReject?: string;
+
+    // System prompt for analyzing code.
     analyzeSystemPrompt?: string;
+
+    // user prompt for analyzing code
     analyzeUserPrompt?: string;
 }
 
@@ -99,7 +155,7 @@ export function getYamlConfig(): YamlConfig {
         if (yamlConfigCache && 
             yamlConfigCache.filePath === configPath && 
             yamlConfigCache.lastModified === lastModified) {
-            logDebug('YAML config loaded from cache (file-based)');
+            //logDebug('YAML config loaded from cache (file-based)');
             yamlConfigCache.lastAccessed = now; // Update access time
             return yamlConfigCache.config;
         }
@@ -350,13 +406,13 @@ modes:
             yamlContent += `#    placeholderSymbol: "${mode.placeholderSymbol}"\n`;
         }
         if (mode.isDispOverwrite !== undefined) {
-            yamlContent += `#    isDispOverwrite: "${mode.isDispOverwrite}"\n`;
+            yamlContent += `#    isDispOverwrite: ${mode.isDispOverwrite}\n`;
         }
         if (mode.isNoHighligh !== undefined) {
-            yamlContent += `#    isNoHighligh: "${mode.isNoHighligh}"\n`;
+            yamlContent += `#    isNoHighligh: ${mode.isNoHighligh}\n`;
         }
         if (mode.isForceOverlay !== undefined) {
-            yamlContent += `#    isForceOverlay: "${mode.isForceOverlay}"\n`;
+            yamlContent += `#    isForceOverlay: ${mode.isForceOverlay}\n`;
         }
         if (mode.isNoCheckStopSymbol !== undefined) {
             yamlContent += `#    isNoCheckStopSymbol: ${mode.isNoCheckStopSymbol}\n`;
@@ -364,11 +420,14 @@ modes:
         if (mode.isNoInsertStartStopSymbol !== undefined) {
             yamlContent += `#    isNoInsertStartStopSymbol: ${mode.isNoInsertStartStopSymbol}\n`;
         }
+        if (mode.isNoInsertStartStopSymbolLatest !== undefined) {
+            yamlContent += `#    isNoInsertStartStopSymbolLatest: ${mode.isNoInsertStartStopSymbolLatest}\n`;
+        }
         if (mode.maxOutputLines !== undefined) {
-            yamlContent += `#    maxOutputLines: "${mode.maxOutputLines}"\n`;
+            yamlContent += `#    maxOutputLines: ${mode.maxOutputLines}\n`;
         }
         if (mode.maxTokens !== undefined) {
-            yamlContent += `#    maxTokens: "${mode.maxTokens}"\n`;
+            yamlContent += `#    maxTokens: ${mode.maxTokens}\n`;
         }
         
         if (mode.systemPrompt) {

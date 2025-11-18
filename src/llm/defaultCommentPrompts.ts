@@ -42,7 +42,7 @@ A single formatting change outside comments can cause issues; preserve original 
 2. Refer to the edit history to understand recent changes that may need clarification.
 3. Around "{{placeholder}}", focus on the code that comes after this insertion point within the edit block. Reason deeply about what is non-obvious in the following lines and insert comments there. Do not annotate code that is entirely above the insertion point unless it is essential context for the lines below. Do not modify existing characters; only insert comments using the correct syntax.
 4. Prefer comments that explain purpose, pre/post-conditions, edge cases, complexity, side-effects, and rationale behind tricky parts.
-5. Keep comments concise (1-2 lines each) and avoid restating obvious code.
+5. Keep comments concise (1-2 lines each) and avoid restating obvious code, and ensure comments are properly line-broken — use separate comment lines rather than long single-line blocks.
 6. Confirm your comments do not contradict the user's intent and do not alter behavior.
 7. You must always output "{{stopEditingHere}}" exactly as is.
 8. If helpful, you may insert additional comments within the "{{startEditingHere}}" block, but nowhere else.
@@ -83,7 +83,7 @@ The types of actions are as follows:
 - "copy": Code was copied. "content" is the copied text. The user intends to code using this text; implement behavior consistent with the contents of this text.
 - "reject": Your completion was rejected. "content" is the text of your rejected suggestion. Do not make the same suggestion again; instead, propose different code that diverges from this content.
 And the other parameters are defined as follows:
-- "file": "current" refers to "<CODE_INPUT>", while "external" refers to edits in an external file.
+- "file": "current" refers to "<CODE_INPUT>", while "other" refers to edits in an external file.
 - "lines": the line number of the edited "<CODE_INPUT>".
 Since the following edit history may be outdated, always make sure to check the latest version when referring to it.
 \`\`\`yaml
@@ -105,6 +105,7 @@ const defaultAssistantPrompt =
 `<think>
 Okey, I will carefully review the code and insert explanatory comments without changing behavior. I will only modify the content within the "{{startEditingHere}}" ... "{{stopEditingHere}}" block and I will not output anything outside that block. After finishing within the allowed range I will always output "{{stopEditingHere}}" to indicate the end. I will preserve all whitespace and formatting of existing code exactly. I MUST insert comments at "{{placeholder}}" exactly where required, using the correct comment syntax for "{{languageId}}" and writing in "{{commentLanguage}}".
 I will not add any executable statements. I will avoid renaming or redefining identifiers. I will prioritize annotating code located after the insertion point within the edit block, preferring the nearest statements immediately following the cursor. I will not add comments about code that is entirely above the insertion point unless it is necessary context for understanding subsequent lines. I will prefer high-signal, concise comments that explain purpose, preconditions, edge cases, complexity, side-effects, and rationale behind non-obvious logic. When appropriate, I will use idiomatic documentation forms (e.g., docstrings, JSDoc/TSDoc) and otherwise line comments near the relevant code. I will proactively reference external symbols defined in "SYMBOL_CONTEXT" to ensure accurate commentary.
+I must ensure that all inserted comments are properly line-broken, meaning they must be split at natural sentence boundaries or punctuation rather than written as long uninterrupted lines.
 As the provided edit history and source code may be outdated, I will obtain the latest information before making any edits.
 The retrieved latest edit history is as follows:
 <EDIT_HISTORY>
@@ -127,14 +128,18 @@ Here is the complete edited code block:
 {{assistantSourceCodeBlockBforeCursor}}`;
 
 const defaultAppendThinkPromptNewScope = `Okey, I have checked the latest source code. The editing position is within an empty scope. Instead of adding new executable code, I will add a concise high-level comment block that documents the intended behavior, inputs/outputs, and edge cases.`;
+
 const defaultAppendThinkPromptRefactoring = `Okey, I have checked the latest source code and edit history. Since some code has been deleted or modified, I will insert comments that explain the refactoring rationale, behavioral invariants, and migration notes.`;
+
 const defaultAppendThinkPromptAddition = `Okey, I have checked the latest source code and edit history. Since some code has been added or modified, I will add comments after \`\`\`{{cursorLineBefore}}\`\`\` to describe remaining TODOs, assumptions, and potential pitfalls.`;
+
 const defaultAppendThinkPromptReject = 
 `And the user rejected the following comments:
 \`\`\`
 {{rejectContent}}
 \`\`\`
 so I must provide improved, different comments.`
+
 const defaultAppendOutputPromptReject = 
 `The user rejected the following comments:
 \`\`\`
@@ -193,11 +198,12 @@ export function getYamlDefaultCommentPrompt(): YamlConfigMode {
 	return {
 		mode: 'Comment',
 		extensions: ['*'],
+    	placeholderSymbol: "<|INSERT_EXPLANATION_OF_THE_BELOW_CODE_HERE|>",
 		isDispOverwrite: true,
 		isNoHighligh: true,
 		isForceOverlay: true,
 		isNoCheckStopSymbol: true,
-		isNoInsertStartStopSymbol: true,
+//		isNoInsertStartStopSymbol: true,
 		maxOutputLines: 30,	// default lines x2
 		maxTokens: 512,	// default tokens x2
 		systemPrompt: defaultSystemPrompt,
@@ -208,7 +214,7 @@ export function getYamlDefaultCommentPrompt(): YamlConfigMode {
 		appendThinkPromptAddition: defaultAppendThinkPromptAddition,
 		appendThinkPromptReject: defaultAppendThinkPromptReject,
 		appendOutputPromptReject: defaultAppendOutputPromptReject,
-		analyzeSystemPrompt: defaultAnalyzeSystemPrompt,
-		analyzeUserPrompt: defaultAnalyzeUserPrompt
+//		analyzeSystemPrompt: defaultAnalyzeSystemPrompt,
+//		analyzeUserPrompt: defaultAnalyzeUserPrompt
 	};
 }

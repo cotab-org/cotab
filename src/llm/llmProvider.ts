@@ -412,7 +412,7 @@ abstract class BaseAiClient implements AiClient {
 	}
 
 	async getModels(): Promise<string[]> {
-		logDebug(`call llmprovider:getModels`);
+		//logDebug(`call llmprovider:getModels`);
 
 		const http = await this.createHttp(500);
 		
@@ -485,7 +485,7 @@ export function getAiClient(): AiClient {
 	}
 	
 	// Convert URL to IP address (async processing, actual conversion done in each client)
-	logDebug(`Configured baseURL: ${baseURL}`);
+	//logDebug(`Configured baseURL: ${baseURL}`);
 	
 	if (config.provider === 'OpenAICompatible') {
 		return new OpenAICompatibleClient(baseURL, config.model, config.maxTokens,
