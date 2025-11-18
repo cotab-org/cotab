@@ -124,34 +124,36 @@ class CodeBlockBuilder {
 				const { systemPrompt, userPrompt } = buildAnalyzePrompts(editorContext.languageId,
 																editorContext.relativePath, fullSourceCode);
 	
-				try {
-					showProgress('analyzing', new vscode.Position(currentCursorLine, 0));
-					lockProgress(true);
-					logInfo(`Source analysis started ${editorContext.documentUri}`);
-					let sourceAnalysis = await client.chatCompletions({
-						systemPrompt,
-						userPrompt,
-						maxTokens: 2048,
-						maxLines: 128,
-						// Don't cancel analysis as it's infrequent.
-						// abortSignal: token,
-						checkAborted,
-					});
-					sourceAnalysis = sourceAnalysis.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-					const cacheData: CacheData = {
-						data: sourceAnalysis,
-						cachedTime: Date.now(),
-						version: editorContext.version
-					};
-					this.sourceAnalysisCache.set(editorContext.documentUri, cacheData);
-					logInfo(`Source analysis completed ${editorContext.documentUri} Result:\n${sourceAnalysis}`);
-				}
-				catch (error) {
-					logError(`Error occurred during source analysis: ${error}`);
-				}
-				finally {
-					lockProgress(false);
-					hideProgress();
+				if (systemPrompt || userPrompt) {
+					try {
+						showProgress('analyzing', new vscode.Position(currentCursorLine, 0));
+						lockProgress(true);
+						logInfo(`Source analysis started ${editorContext.documentUri}`);
+						let sourceAnalysis = await client.chatCompletions({
+							systemPrompt,
+							userPrompt,
+							maxTokens: 2048,
+							maxLines: 128,
+							// Don't cancel analysis as it's infrequent.
+							// abortSignal: token,
+							checkAborted,
+						});
+						sourceAnalysis = sourceAnalysis.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+						const cacheData: CacheData = {
+							data: sourceAnalysis,
+							cachedTime: Date.now(),
+							version: editorContext.version
+						};
+						this.sourceAnalysisCache.set(editorContext.documentUri, cacheData);
+						logInfo(`Source analysis completed ${editorContext.documentUri} Result:\n${sourceAnalysis}`);
+					}
+					catch (error) {
+						logError(`Error occurred during source analysis: ${error}`);
+					}
+					finally {
+						lockProgress(false);
+						hideProgress();
+					}
 				}
 			}
 		}
