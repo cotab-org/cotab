@@ -41,13 +41,26 @@ function getOverlayColors() {
 	}
 }
 
-const svgOverlayDecorationType = vscode.window.createTextEditorDecorationType({
-	before: { margin: '0 0 0 0' },
-	rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed,
-});
-
-const simpleLocker = new SimpleLocker();
+let svgOverlayDecorationType: vscode.TextEditorDecorationType;
+let simpleLocker: SimpleLocker;
 let renderTimer: NodeJS.Timeout | null = null;
+
+export function setupSvgRenderer(): void {
+	svgOverlayDecorationType = vscode.window.createTextEditorDecorationType({
+		before: { margin: '0 0 0 0' },
+		rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed,
+	});
+	
+	simpleLocker = new SimpleLocker();
+}
+
+export function disposeSvgRenderer(): void {
+	svgOverlayDecorationType.dispose();
+	if (renderTimer) {
+		clearTimeout(renderTimer);
+		renderTimer = null;
+	}
+}
 
 export function renderSvgOverlays(
 	editor: vscode.TextEditor,
@@ -132,14 +145,6 @@ async function renderSvgOverlaysInternal(
 
 export function clearSvgOverlays(editor: vscode.TextEditor): void {
 	editor.setDecorations(svgOverlayDecorationType, []);
-	if (renderTimer) {
-		clearTimeout(renderTimer);
-		renderTimer = null;
-	}
-}
-
-export function disposeSvgDecorationTypes(): void {
-	svgOverlayDecorationType.dispose();
 	if (renderTimer) {
 		clearTimeout(renderTimer);
 		renderTimer = null;

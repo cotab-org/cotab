@@ -5,7 +5,7 @@ import { codeBlockBuilder } from '../llm/codeBlockBuilder';
 import { getEditorContext } from '../utils/editorContext';
 // diff util no longer directly used here
 import { clearSuggestions, LineEdit, SuggestionData } from './suggestionStore';
-import { clearAllDecorations } from './suggestionRenderer';
+import { clearAllDecorations, setupRenderer, disposeRenderer } from './suggestionRenderer';
 import { largeFileManager } from '../managers/largeFileManager';
 import { processDiffAndApplyEdits } from '../diff/lineDiff';
 import { updateSuggestionsAndDecorations } from './suggestionUtils';
@@ -43,6 +43,8 @@ export class SuggestionManager implements vscode.Disposable {
     public streamCount = 0;
 
     constructor() {
+        setupRenderer();
+        
         // Support Untitled/new files
         const selector: vscode.DocumentSelector = [
             { scheme: 'file' },
@@ -68,10 +70,16 @@ export class SuggestionManager implements vscode.Disposable {
     }
 
     dispose(): void {
+        this.cancelCurrentRequest();
+        if (vscode.window.activeTextEditor) {
+            clearAllDecorations(vscode.window.activeTextEditor);
+        }
+        disposeRenderer();
         this.disposables.forEach((d) => d.dispose());
         this.disposables = [];
     }
 
+    // 
     private isMultiSelection(): boolean {
         const activeEditor = vscode.window.activeTextEditor;
         if (! activeEditor) return false;

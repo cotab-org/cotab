@@ -4,27 +4,48 @@ import { computeCharDiff } from '../diff/charDiff';
 import { logInfo, logDebug } from '../utils/logger';
 import { getVisualWidth } from './suggestionUtils';
 import { isDarkTheme } from '../utils/cotabUtil';
-import { renderSvgOverlays, clearSvgOverlays, disposeSvgDecorationTypes, OverlaySegment } from './suggestionSvgRenderer';
+import { renderSvgOverlays, clearSvgOverlays, setupSvgRenderer, disposeSvgRenderer, OverlaySegment } from './suggestionSvgRenderer';
 
 let renderTimer: NodeJS.Timeout | null = null;
 
-const inlineDecorationTypeDark = vscode.window.createTextEditorDecorationType({
-	after: { color: '#ffffffb5'/*, fontStyle: 'italic'*/, backgroundColor: '#eeff0022' },
-	rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed,
-});
-const inlineDecorationTypeLight = vscode.window.createTextEditorDecorationType({
-	after: { color: '#000000b5'/*, fontStyle: 'italic'*/, backgroundColor: '#bbff0033' },
-	rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed,
-});
+// Decoration instance
+let inlineDecorationTypeDark: vscode.TextEditorDecorationType;
+let inlineDecorationTypeLight: vscode.TextEditorDecorationType;
+let deleteDecorationType: vscode.TextEditorDecorationType;
+
+export function setupRenderer() {
+	inlineDecorationTypeDark = vscode.window.createTextEditorDecorationType({
+		after: { color: '#ffffffb5'/*, fontStyle: 'italic'*/, backgroundColor: '#eeff0022' },
+		rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed,
+	});
+	
+	inlineDecorationTypeLight = vscode.window.createTextEditorDecorationType({
+		after: { color: '#000000b5'/*, fontStyle: 'italic'*/, backgroundColor: '#bbff0033' },
+		rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed,
+	});
+
+	deleteDecorationType = vscode.window.createTextEditorDecorationType({
+		backgroundColor: '#ff000050',
+		border: 'none'
+	});
+
+	setupSvgRenderer();
+}
+
+export function disposeRenderer() {
+	inlineDecorationTypeDark.dispose();
+	inlineDecorationTypeLight.dispose();
+	deleteDecorationType.dispose();
+	disposeSvgRenderer();
+	if (renderTimer) {
+		clearTimeout(renderTimer);
+		renderTimer = null;
+	}
+}
 
 function getInlineDecorationType() {
 	return isDarkTheme() ? inlineDecorationTypeDark : inlineDecorationTypeLight;
 }
-
-const deleteDecorationType = vscode.window.createTextEditorDecorationType({
-	backgroundColor: '#ff000050',
-	border: 'none'
-});
 
 function makeOverlaySuggestions(editor: vscode.TextEditor,
 	suggestionList: LineEdit[],
@@ -307,15 +328,19 @@ export function renderSuggestions(editor: vscode.TextEditor): {
 					if (isInlineCompletionItem) {
 						if (firstAddPos != 0) {
 							// VSCode's default inline completion only works after the cursor position.
+							// VSCodeのデフォルトインライン補完はカーソル位置以降でのみ動作する。
 							if (firstAddPos < activeCharacter) {
 								isInlineCompletionItem = false;
 							}
-							// Enable inline completion when completion position is at the end of the line
+
+							// 補完位置が行末の場合にはインライン補完を有効にする
 							else if (firstAddPos == origLine.length) {
 								// nop
 							}
-							// Disable inline completion if the cursor is before the insertion point
-							// Because VSCode's default inline completion changes text color but not background color, which reduces readability.
+
+
+							// カーソルが挿入位置より前である場合、インライン補完を無効にする
+							// VSCodeのデフォルトインライン補完はテキストの色は変更するが背景色は変更しないため、可読性が低下するため。
 							else if (activeCharacter < firstAddPos) {
 								isInlineCompletionItem = false;
 							}
@@ -431,17 +456,6 @@ function renderSuggestionsInternal(editor: vscode.TextEditor,
 			|| renderData.inlineCompletionItems.length > 0;
 		vscode.commands.executeCommand('setContext', 'cotab.dispSuggestions', hasSuggestions);
 	}, 0);
-}
-
-export function disposeDecorationTypes() {
-	inlineDecorationTypeDark.dispose();
-	inlineDecorationTypeLight.dispose();
-	deleteDecorationType.dispose();
-	disposeSvgDecorationTypes();
-	if (renderTimer) {
-		clearTimeout(renderTimer);
-		renderTimer = null;
-	}
 }
 
 	// Clear all decorations immediately and reset context
