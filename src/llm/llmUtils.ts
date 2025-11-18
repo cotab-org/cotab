@@ -142,15 +142,15 @@ export function withLineNumberCodeBlock(CodeBlock: string,
 		return {CodeBlock, LastLineNumber};
 	}
 }
-
-export function withoutLineNumber(CodeBlock: string, removeNotHaveLineNumber: boolean = false): string {
+export function withoutLineNumber(CodeBlock: string, removeNotHaveLineNumber: boolean = false): { CodeBlock: string; hasLastLineNumbers: boolean } {
 	if (getConfig().withLineNumber) {
 		const lines = CodeBlock.split('\n');
-		const filterdLines = (removeNotHaveLineNumber) ? lines.filter((line) => line.match(/^\d+\|/)) : lines;
-		const withoutLine = filterdLines.map((line, idx) => line.replace(/^\d+\|/, ''));
-		return withoutLine.join('\n');
+		const hasLastLineNumbers = (lines.length > 0 && lines[lines.length - 1].match(/^\d+\|/)) ? true : false;
+		const filteredLines = (removeNotHaveLineNumber) ? lines.filter((line) => line.match(/^\d+\|/)) : lines;
+		const withoutLine = filteredLines.map((line, idx) => line.replace(/^\d+\|/, ''));
+		return { CodeBlock: withoutLine.join('\n'), hasLastLineNumbers };
 	} else {
-		return CodeBlock;
+		return { CodeBlock, hasLastLineNumbers: false };
 	}
 }
 

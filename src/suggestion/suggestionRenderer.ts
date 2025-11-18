@@ -394,6 +394,10 @@ export function renderSuggestions(editor: vscode.TextEditor): {
 		renderData.invisibleOptions.length = 0;
 		renderData.inlineCompletionItems.length = 0;
 	}
+	// Don't show delete highlight if overlay that original text is behind.
+	if (mergedData.isForceOverlay) {
+		renderData.deleteOptions.length = 0;
+	}
 	renderData.noFinished = isOnlyCursorLine;
 	renderSuggestionsInternal(editor, renderData);
 	prevRenderData = renderData;
