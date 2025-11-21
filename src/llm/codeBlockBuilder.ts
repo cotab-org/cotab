@@ -7,6 +7,7 @@ import { getSymbolYaml, symbolManager } from '../managers/symbolManager';
 import { EditorContext } from '../utils/editorContext';
 import { getConfig } from '../utils/config';
 import { showProgress, hideProgress, lockProgress } from '../utils/cotabUtil';
+import { diagnosticsManager } from '../managers/diagnosticsManager';
 
 const ANALYSIS_MIN_LINE_COUNT = 10;
 const CACHE_EXPIRE_TIME = 1000 * 60 * 5;
@@ -27,6 +28,7 @@ export interface CodeBlocks {
 	sourceAnalysis: string;
 	symbolCodeBlock: string;
 	editHistoryActions: EditHistoryAction[];
+	diagnosticsCodeBlock: string;
 }
 
 export interface EditHistoryAction {
@@ -88,10 +90,14 @@ class CodeBlockBuilder {
 		// Build edit history code block
 		const editHistoryActions = this.buildEditHistoryCodeBlock(editorContext, currentCursorLine);
 
+		// Build diagnostics code block
+		const diagnosticsCodeBlock = this.buildDiagnosticsCodeBlock(editorContext, currentCursorLine);
+
 		return {
 			sourceAnalysis,
 			symbolCodeBlock,
 			editHistoryActions,
+			diagnosticsCodeBlock
 		};
 	}
 
@@ -273,6 +279,54 @@ ${block.replace(/```/g, '\\`\\`\\`')}
 
 		return editHistoryActions;
 	}
+
+	private buildDiagnosticsCodeBlock(editorContext: EditorContext, currentCursorLine: number): string {
+		const diagnosticsMap = diagnosticsManager.getErrors(editorContext.document, currentCursorLine);
+		if (!diagnosticsMap || diagnosticsMap.size === 0) return '';
+
+		let yaml = '';
+		for(const [uri, diagnostics] of diagnosticsMap) {
+			const isCurrent = editorContext.documentUri === uri.toString();
+			for (const diag of diagnostics) {
+				
+				// ignore cannot open source file. because referencing libraries etc. always causes this.
+				if (diag.message.includes('cannot open source file')) continue;
+
+				yaml += `- file: ${isCurrent ? 'current' : 'other'}\n`;
+				yaml += `  message: ${diag.message}\n`;
+				if (isCurrent) {
+					yaml += `  line: ${diag.range.start.line + 1}\n`;
+				}
+			};
+		}
+		if (yaml === '') return '';
+		
+const yamlBlock =
+`\`\`\`yaml
+# Here is a list of error diagnostics:
+${yaml.replace(/```/g, '\\`\\`\\`')}
+\`\`\``;
+		return yamlBlock;
+	}
+
+	private severityToString(sev: vscode.DiagnosticSeverity): string {
+		switch (sev) {
+			case vscode.DiagnosticSeverity.Error:
+				return 'Error';
+			case vscode.DiagnosticSeverity.Warning:
+				return 'Warning';
+			case vscode.DiagnosticSeverity.Information:
+				return 'Information';
+			case vscode.DiagnosticSeverity.Hint:
+				return 'Hint';
+			default:
+				return 'Unknown';
+		}
+	}
 }
 
 export const codeBlockBuilder = new CodeBlockBuilder();
+
+
+
+

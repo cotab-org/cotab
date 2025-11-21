@@ -6,6 +6,7 @@ import { registerSuggestionCommands } from './suggestion/suggestionCommands';
 import { registerAutoSuggestionTrigger } from './suggestion/suggestionTriggerRegister';
 import { registerSymbolManager } from './managers/symbolManager';
 import { registerEditHistory } from './managers/editHistoryManager';
+import { registerDiagnosticsManager } from './managers/diagnosticsManager';
 import { registerConfigWatcher, getConfig } from './utils/config';
 import { registerClipboardDetection } from './managers/clipboardManager';
 import { registerTabHistory } from './managers/TabHistoryManager';
@@ -76,6 +77,8 @@ function cotabActive() {
 	registerAutoSuggestionTrigger(cotabDisposables);
 
 	registerEditHistory(cotabDisposables);
+
+	registerDiagnosticsManager(cotabDisposables);
 
 	// Start clipboard detection
 	registerClipboardDetection(cotabDisposables);

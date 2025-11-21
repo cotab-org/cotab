@@ -279,11 +279,23 @@
           "description": "End line of surrounding code for cache utilization.\nIf cursor position doesn't exceed this line, source code in User Prompt won't be updated, enabling effective Prompt Cache usage.",
           "order": 408
         },
+        "cotab.promptDetail.aroundLatestAddBeforeLines": {
+          "type": "number",
+          "default": 15,
+          "description": "Start line of surrounding code for latest utilization.\nfinal latest lins is aroundBeforeLines + aroundLatestAddBeforeLines",
+          "order": 409
+        },
+        "cotab.promptDetail.aroundLatestAddAfterLines": {
+          "type": "number",
+          "default": 15,
+          "description": "End line of surrounding code for latest utilization.\nfinal latest lins is aroundAfterLines + aroundLatestAddAfterLines",
+          "order": 410
+        },
         "cotab.promptDetail.maxSymbolCount": {
           "type": "number",
           "default": 300,
           "description": "Maximum number of symbols to include in symbol code blocks",
-          "order": 409
+          "order": 411
         },
         "cotab.detail.logLevel": {
           "type": "string",
