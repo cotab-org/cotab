@@ -1,5 +1,7 @@
 import { getConfig } from '../utils/config';
 import { withoutLineNumber } from '../llm/llmUtils'
+import { EditorContext } from '../utils/editorContext';
+import { YamlConfigMode } from '../utils/yamlConfig';
 
 export interface LineDiff {
     type: 'keep' | 'add' | 'delete' | 'change';
@@ -242,15 +244,15 @@ export function processMaxLinesDiffOperations(diffOperations: LineDiff[], origLi
 /**
  * Preprocesses LLM output text and formats it for difference calculation.
  */
-export function preprocessLLMOutput(text: string): {
+export function preprocessLLMOutput(yamlConfigMode: YamlConfigMode, text: string): {
     cleaned: string;
     isStopedSymbol: boolean;
     isStopedExistingComment: boolean;
 } {
-    const config = getConfig();
-    const startEditingHereSymbol = config.startEditingHereSymbol;
-    const stopEditingHereSymbol = config.stopEditingHereSymbol;
-    const completeHereSymbol = config.completeHereSymbol;
+	const config = getConfig();
+    const completeHereSymbol = (yamlConfigMode.placeholderSymbol !== undefined) ? yamlConfigMode.placeholderSymbol : config.completeHereSymbol;
+	const startEditingHereSymbol = config.startEditingHereSymbol;
+	const stopEditingHereSymbol = config.stopEditingHereSymbol;
 
     let cleaned = text;
 

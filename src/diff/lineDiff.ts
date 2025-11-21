@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { EditorContext } from '../utils/editorContext';
+import { YamlConfigMode } from '../utils/yamlConfig';
 import { LineDiff, computeLineDiff, diffOperationsToLineEdits, processMaxLinesDiffOperations } from './lineDiffUtils';
 import { preprocessLLMOutput } from './lineDiffUtils';
 import { LineEdit } from '../suggestion/suggestionStore';
@@ -48,15 +49,17 @@ export function processDiffAndApplyEdits(
     llmOutputText: string,
     beforePlaceholderWithLF: string,
     editorContext: EditorContext,
+    yamlConfigMode: YamlConfigMode,
     documentUri: vscode.Uri,
     checkCompleteLine: boolean,
 ): DiffProcessResult {
     //test();
     const withPrefix = beforePlaceholderWithLF + llmOutputText;
-    const { cleaned, isStopedSymbol, isStopedExistingComment } = preprocessLLMOutput(withPrefix);
+    const { cleaned, isStopedSymbol, isStopedExistingComment } = preprocessLLMOutput(yamlConfigMode, withPrefix);
     if (!cleaned.trim()) return { originalDiffOperations: [], edits: [], trimed: false, finalLineNumber: 0 };
 
     let baseLine = editorContext.aroundFromLine;
+    let lastLineLine = editorContext.aroundToLine;
     const documentTexts = editorContext.documentText.fullText.split('\n');
     let origLines = documentTexts.slice(editorContext.aroundFromLine, editorContext.aroundMergeToLine);
     let newLines = cleaned.split(/\n/);
@@ -69,7 +72,7 @@ export function processDiffAndApplyEdits(
         for(let i = editorContext.aroundFromLine - 1; i >= 0; i--) {
             if (documentTexts[i].trim() !== '') {
                 orgUpperHeadIdx = i;
-                orgUpperHead = documentTexts[i].replace(/^\s+/, '');
+                orgUpperHead = documentTexts[i];//.replace(/^\s+/, '');
                 break;
             }
         }
@@ -197,7 +200,12 @@ export function processDiffAndApplyEdits(
         trimmedOps = [];
     }
 
-    const edits = diffOperationsToLineEdits(trimmedOps, baseLine);
+    const preEdits = diffOperationsToLineEdits(trimmedOps, baseLine);
+    
+    // ignore if out of range that first edit line
+    const isValidFirstLines = lastLineLine + editorContext.aroundLatestAddAfterLines;
+    const isValidEdits = (0 < preEdits.length && preEdits[0].line < isValidFirstLines);
+    const edits = isValidEdits ? preEdits : [];
 
     const originalIndexedOps = diffOpsNoChecked.map(op => ({
         ...op,
