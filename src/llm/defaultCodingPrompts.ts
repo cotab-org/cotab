@@ -72,7 +72,7 @@ Unless explicitly instructed to modify other parts, output the input code exactl
 </CODE_SUMMARY>
 
 <EDIT_HISTORY>
-The "<EDIT_HISTORY>" section encodes a list of edit operations in YAML format. The latest edit is at the bottom.
+This section encodes a list of edit operations in YAML format. The latest edit is at the bottom.
 The types of actions are as follows:
 - "add": Code was added. "after" is the text after the insertion. The user is actively writing new code, so you must continue by completing the code that follows.
 - "delete": Code was removed. "after" is the text after the deletion. The user is refactoring; do not restore the deleted code. Instead, rewrite the code by moving or refactoring what was removed.
@@ -90,9 +90,16 @@ Since the following edit history may be outdated, always make sure to check the 
 </EDIT_HISTORY>
 
 <CODE_INPUT>
-Since the following source code may be outdated, always make sure to check the latest version when referring to it.
+# Since the following source code may be outdated, always make sure to check the latest version when referring to it.
 {{sourceCodeBlock}}
 </CODE_INPUT>
+      
+<ERROR_LIST>
+Please always make sure to check the latest version when referring to it.
+\`\`\`yaml
+# You must always verify the latest state when referring to it.
+\`\`\`
+</ERROR_LIST>
 
 When you reach "{{stopEditingHere}}", end your output immediately without adding extra text.
 Follow typical coding style conventions for "{{languageId}}".
@@ -105,18 +112,21 @@ Okey, I will carefully review the code and provide a minimal inline edit to impr
 I will complete partially written symbol names with the names you are likely to write and I will predict and write the implementation or definition that you are likely to write in the case of a blank line. I will never modify existing characters and no matter how incomplete the code below is I will not treat characters as deleted. I will only output characters that can be inferred from the existing characters. I will actively infer and complete the remaining characters on the cursor line because it is likely the user is in the middle of typing a word, and I will perform autocomplete treating the cursor position as being within a partially typed word so I complete that incomplete word and ensure extremely high output quality. I will avoid redefining or redeclaring the same symbol name to prevent compilation errors. I will proactively reference external symbols defined in "SYMBOL_CONTEXT".
 I will improve output quality by using context-aware completions. For example, where "{{placeholder}}" appears in a scope with several classes, structs, or functions already declared, I will output an appropriate declaration such as "class Child" if the surrounding code implies a Parent/Child relationship. The same context-driven reasoning applies to variable names, control structures like if and for, and language keywords. I will treat a blank line as an intention to write new code and use the surrounding or immediately preceding code as the primary signal. For example, if an undefined variable appears nearby, I will output code that defines that variable to improve the result.
 Because "{{stopEditingHere}}" is a critical merging marker, I will take the utmost care to never output code that comes after "{{stopEditingHere}}" before emitting this marker itself. I will also prefer to use unused variables from surrounding or previous code where doing so improves quality, and even if no unused variables exist I will prioritize using variables or symbols defined immediately prior or recently used, since surrounding code is always informative. The same principle governs functions, classes, and structs. I will always check the entire source code when defining function, variable, class, or struct symbol names to ensure there are no duplicates and to avoid accidentally copying an existing definition.
+I will write program comments in "{{commentLanguage}}".
+{{thinkErrorPrompt}}
+
 As the provided edit history and source code may be outdated, we will obtain the latest information before making any edits.
 The retrieved latest edit history is as follows:
 <EDIT_HISTORY>
 {{editHistoryCodeBlock}}
 </EDIT_HISTORY>
-The provided source code may also be outdated, so I must retrieve the latest version. I am required to always refer to this latest source code.
+
+The retrieved latest source code is as follows:
 <CODE_INPUT>
 {{latestSourceCodeBlock}}
-This latest code must be referenced, and any lines outside this range must be referenced to the original code provided by the user.
+# This latest code must be referenced, and any lines outside this range must be referenced to the original code provided by the user.
 </CODE_INPUT>
 {{appendThinkPrompt}}{{additionalAssistantThinkPrompt}}
-I will write program comments in "{{commentLanguage}}".
 </think>
 
 Sure! I will output only the code block. and I will not forget to also output "{{stopEditingHere}}".{{appendOutputPrompt}}{{additionalAssistantOutputPrompt}}
@@ -126,18 +136,29 @@ Here is the complete edited code block:
 const defaultAppendThinkPromptNewScope = `Okey, I have checked the latest source code. The editing position is within an empty scope, and it is highly likely that the user intends to write new code.Therefore, I implement the new code inferred from the surrounding implementation at the editing position, without including comments. The user always wants to insert some new code.`;
 const defaultAppendThinkPromptRefactoring = `Okey, I have checked the latest source code and edit history. Since some code has been deleted or modified, I will determine the necessary refactoring based on those changes and update the existing code accordingly.`;
 const defaultAppendThinkPromptAddition = `Okey, I have checked the latest source code and edit history. Since some code has been added or modified, I will implement the remaining necessary code after \`\`\`{{cursorLineBefore}}\`\`\`.`;
+/*
 const defaultAppendThinkPromptReject = 
 `And the user rejected the following code:
 \`\`\`
 {{rejectContent}}
 \`\`\`
 so I must output a different piece of code.`
+
 const defaultAppendOutputPromptReject = 
 `The user rejected the following code:
 \`\`\`
 {{rejectContent}}
 \`\`\`
 so I must output a different piece of code.`
+*/
+
+const defaultAppendThinkPromptError =
+`
+I also need to check whether there are any errors. The latest error status is as follows:
+<ERROR_LIST>
+{{errorCodeBlock}}
+</ERROR_LIST>
+Okey, I need to fix this error.`;
 
 //#######################################################################################
 // Analysis Prompts
@@ -196,8 +217,9 @@ export function getYamlDefaultCodingPrompt(): YamlConfigMode {
 		appendThinkPromptNewScope: defaultAppendThinkPromptNewScope,
 		appendThinkPromptRefactoring: defaultAppendThinkPromptRefactoring,
 		appendThinkPromptAddition: defaultAppendThinkPromptAddition,
-		appendThinkPromptReject: defaultAppendThinkPromptReject,
-		appendOutputPromptReject: defaultAppendOutputPromptReject,
+//		appendThinkPromptReject: defaultAppendThinkPromptReject,		// Qwen3:4b-Instruct-2507 does not react to rejection almost, so omitted.
+		appendThinkPromptError: defaultAppendThinkPromptError,
+//		appendOutputPromptReject: defaultAppendOutputPromptReject,
 		analyzeSystemPrompt: defaultAnalyzeSystemPrompt,
 		analyzeUserPrompt: defaultAnalyzeUserPrompt
 	};
