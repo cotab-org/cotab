@@ -116,6 +116,8 @@ export class SuggestionManager implements vscode.Disposable {
         token: vscode.CancellationToken,
     ): Promise<vscode.InlineCompletionItem[]> {
         logDebug(`called: provideInlineCompletionItems`);
+        
+	    const startTime = Date.now();
 
         // Cancel if there's an existing request
         this.cancelCurrentRequest();
@@ -179,6 +181,7 @@ export class SuggestionManager implements vscode.Disposable {
                 token,
                 cancellationTokenSource,
                 checkAborted,
+                startTime,
             );
             return result;
         } finally {
@@ -197,6 +200,7 @@ export class SuggestionManager implements vscode.Disposable {
         token: vscode.CancellationToken,
         cancellationTokenSource: vscode.CancellationTokenSource,
         checkAborted: () => boolean,
+        startTime: number,
     ): Promise<vscode.InlineCompletionItem[]> {
         const client = getAiClient();
 
@@ -249,23 +253,18 @@ export class SuggestionManager implements vscode.Disposable {
             clearAllDecorations(vscode.window.activeTextEditor!);
             hideProgress();
         }
-        const { sourceAnalysis, symbolCodeBlock, editHistoryActions } =
-                await codeBlockBuilder.buildCodeBlocks(
-                                        client,
-                                        editorContext,
-                                        currentCursorLine,
-                                        cancellationAnalysisTokenSource.token,
-                                        () : boolean => { return false; }
-                                    );
+        const codeBlocks = await codeBlockBuilder.buildCodeBlocks(
+                            client,
+                            editorContext,
+                            currentCursorLine,
+                            cancellationAnalysisTokenSource.token,
+                            () : boolean => { return false; }
+                        );
 
         // 
 
         const { systemPrompt, userPrompt, assistantPrompt, beforePlaceholderWithLF, yamlConfigMode } =
-                        buildCompletionPrompts(editorContext,
-                                                sourceAnalysis,
-                                                symbolCodeBlock,
-                                                editHistoryActions,
-                                                document.uri.toString());
+                        buildCompletionPrompts(editorContext, codeBlocks, document.uri.toString());
         
         const isOutput = true;
         if (isOutput) {
@@ -298,6 +297,7 @@ ${assistantPrompt}
                 llmOutputText,
                 beforePlaceholderWithLF,
                 editorContext,
+                yamlConfigMode,
                 document.uri,
                 checkCompleteLine,
             );
@@ -312,7 +312,9 @@ ${assistantPrompt}
 				isDispOverwrite: yamlConfigMode.isDispOverwrite ?? false,
                 isNoHighligh: yamlConfigMode.isNoHighligh ?? false,
                 isForceOverlay: yamlConfigMode.isForceOverlay ?? false,
+                isNoItalic: yamlConfigMode.isNoItalic ?? false,
 			};
+            
 			const {isCompletedFirstLine, inlineCompletionItems} = updateSuggestionsAndDecorations(
                 document.uri,
                 suggestionData);
@@ -320,10 +322,14 @@ ${assistantPrompt}
             if (inlineCompletionItems.length) {
                 cursorLineInlineCompletions = inlineCompletionItems;
             }
-            return { edits, isCompletedFirstLine, isStopped: !trimed, isCompletedCursorLine: currentCursorLine <= finalLineNumber };
+            return {
+                edits,
+                isCompletedFirstLine,
+                isStopped: !trimed,
+                isCompletedCursorLine: currentCursorLine <= finalLineNumber };
         }
 
-        const startTime = Date.now();
+        const completionStartTime = Date.now();
         const receiveStreamingResponse = (partial: string): boolean => {
             // Clear existing suggestions on first response
             if (firstUpdate) {
@@ -344,7 +350,7 @@ ${assistantPrompt}
                 if (!cursorLineReady) {
                     cursorLineReady = true;
                     showProgress('secondGenerating', position);
-                    logInfo(`Time to first line suggestion: ${Date.now() - startTime}ms`);
+                    logInfo(`Time to first line suggestion: ${Date.now() - completionStartTime}ms`);
                 }
             }
 
@@ -362,10 +368,15 @@ ${assistantPrompt}
         }
 
         let streamCount = this.streamCount + 1;
+		logDebug(`Time to pre process reception: ${streamCount}th time ${Date.now() - startTime}ms`);
         try {
             this.streamCount++;
-            const maxOutputLines = (yamlConfigMode.maxOutputLines !== undefined) ? yamlConfigMode.maxOutputLines : config.maxOutputLines;
-            const maxTokens = (yamlConfigMode.maxTokens !== undefined) ? yamlConfigMode.maxTokens : config.maxTokens;
+            const maxOutputLines = yamlConfigMode.maxOutputLines ?? config.maxOutputLines;
+            const maxTokens = yamlConfigMode.maxTokens ?? config.maxTokens;
+            const model = yamlConfigMode.model ?? config.model;
+            const temperature = yamlConfigMode.temperature ?? config.temperature;
+            const top_p = yamlConfigMode.topP ?? config.top_p;
+            const top_k = yamlConfigMode.topK ?? config.top_k;
             
             // Start LLM call in background
             logInfo(`Completion generation started - Output up to ${maxOutputLines} lines (${streamCount}th time)`);
@@ -378,7 +389,11 @@ ${assistantPrompt}
                 abortSignal: cancellationTokenSource.token,
                 checkAborted,
                 maxLines: maxOutputLines,
-                maxTokens: maxTokens,
+                maxTokens,
+                model,
+                temperature,
+                top_p,
+                top_k,
                 stops: ['```', '... existing code ...'],	// this.stopEditingHereSymbol
                 onUpdate: receiveStreamingResponse,
                 onComplete: (reason: CompletionEndReason, finalResult?: string) => {

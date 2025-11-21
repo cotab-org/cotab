@@ -64,7 +64,7 @@ export function makeYamlFromEditHistoryActions(editHistoryActions: EditHistoryAc
 		codeBlocks.push(codeBlock);
 	}
 	const text = (0 < codeBlocks.length) ? codeBlocks.join('\n') : '# There are no edit histories.';
-	return `\`\`\`yaml\n${text}\n\`\`\``;
+	return `\`\`\`yaml\n${text.replace(/```/g, '\\`\\`\\`')}\n\`\`\``;
 }
 
 class CodeBlockBuilder {	
@@ -76,7 +76,7 @@ class CodeBlockBuilder {
 		editorContext: EditorContext,
 		currentCursorLine: number,
 		token: vscode.CancellationToken,
-		checkAborted?: () => boolean
+		checkAborted?: () => boolean,
 	): Promise<CodeBlocks> {
 
 		// Build source analysis
@@ -197,7 +197,7 @@ class CodeBlockBuilder {
 			.map(block =>
 `<SYMBOL_CONTEXT>
 \`\`\`yaml
-${block}
+${block.replace(/```/g, '\\`\\`\\`')}
 \`\`\`
 </SYMBOL_CONTEXT>`).join('\n');
 		const cacheData: CacheData = {
@@ -250,12 +250,15 @@ ${block}
 				});
 			}
 			else if (edit.type === 'reject') {
-				editHistoryActions.push({
-					action: edit.type,
-					file: fileContent,
-					lines: isCurrent ? lines : undefined,
-					content: newContent,
-				});
+				if (newContent !== '') {
+					editHistoryActions.push({
+						action: edit.type,
+						file: fileContent,
+						lines: isCurrent ? lines : undefined,
+						// content: newContent,
+						content: edit.newText.split('\n').filter(text => 0 < text.length).slice(0, 1).join('\n'),
+					});
+				}
 			}
 			else {
 				editHistoryActions.push({

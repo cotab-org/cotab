@@ -58,6 +58,8 @@ export interface CotabConfig {
     aroundMergeAfterLines: number;   // Number of lines around cursor used during merge
     aroundCacheBeforeLines: number;  // Number of lines around cursor for cache utilization
     aroundCacheAfterLines: number;   // Number of lines around cursor for cache utilization
+    aroundLatestAddBeforeLines: number;
+    aroundLatestAddAfterLines: number;
 
     // Code block
     maxSymbolCount: number; // Maximum number of symbols to include in symbol code blocks
@@ -176,6 +178,8 @@ function getConfigRaw(): CotabConfig {
         aroundMergeAfterLines: cfg.get<number>('cotab.promptDetail.aroundMergeAfterLines', 20),
         aroundCacheBeforeLines: cfg.get<number>('cotab.promptDetail.aroundCacheBeforeLines', 5),
         aroundCacheAfterLines: cfg.get<number>('cotab.promptDetail.aroundCacheAfterLines', 15),
+        aroundLatestAddBeforeLines: cfg.get<number>('cotab.promptDetail.aroundLatestAddBeforeLines', 15),
+        aroundLatestAddAfterLines: cfg.get<number>('cotab.promptDetail.aroundLatestAddAfterLines', 15),
         maxSymbolCount: cfg.get<number>('cotab.promptDetail.maxSymbolCount', 300),
         withLineNumber: true,   // line number for code block
 

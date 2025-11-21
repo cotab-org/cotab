@@ -36,6 +36,21 @@ export interface YamlConfigMode {
     // each mode's extensions list is matched against the current file name to determine the applicable configuration.
     extensions: string[];
 
+    localServerArg?: string;
+    localServerContextSize?: number;
+    model?: string;
+    temperature?: number;
+    topP?: number;
+    topK?: number;
+
+    // Sets the maximum token count for an LLM request.
+    // default: 256
+    maxTokens?: number;
+
+    // Limits the number of lines that the assistant may return in a response.
+    // Responses exceeding this count are truncated or cut off.
+    maxOutputLines?: number;
+
     // Whether to send the cursor position to the head when sending to AI.
     // By setting it to the head, the AI will attempt to edit from the beginning of the line.
     cursorAlwaysHead?: boolean;
@@ -65,13 +80,8 @@ export interface YamlConfigMode {
     // not insert start&stop symbol for latest code block?
     isNoInsertStartStopSymbolLatest?: boolean;
 
-    // Limits the number of lines that the assistant may return in a response.
-    // Responses exceeding this count are truncated or cut off.
-    maxOutputLines?: number;
-
-    // Sets the maximum token count for an LLM request.
-    // default: 256
-    maxTokens?: number;
+    // not display italic when overlay
+    isNoItalic?: boolean;
 
     //
     systemPrompt?: string;
@@ -97,6 +107,9 @@ export interface YamlConfigMode {
 
     // Prompt text presented when a user rejects a prior assistant suggestion, prompting a different answer.
     appendThinkPromptReject?: string;
+
+    // Prompt text when existing errors.
+    appendThinkPromptError?: string;
 
     // Replacement prompt used to generate new output after the user has dismissed an earlier response.
     appendOutputPromptReject?: string;
@@ -195,6 +208,7 @@ export function getYamlConfig(): YamlConfig {
             mode.appendThinkPromptRefactoring = mode.appendThinkPromptRefactoring?.replace(/\n+$/, '');
             mode.appendThinkPromptAddition = mode.appendThinkPromptAddition?.replace(/\n+$/, '');
             mode.appendThinkPromptReject = mode.appendThinkPromptReject?.replace(/\n+$/, '');
+            mode.appendThinkPromptError = mode.appendThinkPromptError?.replace(/\n+$/, '');
             mode.appendOutputPromptReject = mode.appendOutputPromptReject?.replace(/\n+$/, '');
             mode.analyzeSystemPrompt = mode.analyzeSystemPrompt?.replace(/\n+$/, '');
             mode.analyzeUserPrompt = mode.analyzeUserPrompt?.replace(/\n+$/, '');
@@ -399,6 +413,30 @@ modes:
         const mode = config.modes[i];
         yamlContent += `#  - mode: "${mode.mode}"\n`;
         yamlContent += `#    extensions: [${mode.extensions.map(ext => `"${ext}"`).join(', ')}]\n`;
+        if (mode.localServerArg !== undefined) {
+            yamlContent += `#    localServerArg: "${mode.localServerArg}"\n`;
+        }
+        if (mode.localServerContextSize !== undefined) {
+            yamlContent += `#    localServerContextSize: ${mode.localServerContextSize}\n`;
+        }
+        if (mode.model !== undefined) {
+            yamlContent += `#    model: "${mode.model}"\n`;
+        }
+        if (mode.temperature !== undefined) {
+            yamlContent += `#    temperature: ${mode.temperature}\n`;
+        }
+        if (mode.topP !== undefined) {
+            yamlContent += `#    topP: ${mode.topP}\n`;
+        }
+        if (mode.topK !== undefined) {
+            yamlContent += `#    topK: ${mode.topK}\n`;
+        }
+        if (mode.maxTokens !== undefined) {
+            yamlContent += `#    maxTokens: ${mode.maxTokens}\n`;
+        }
+        if (mode.maxOutputLines !== undefined) {
+            yamlContent += `#    maxOutputLines: ${mode.maxOutputLines}\n`;
+        }
         if (mode.cursorAlwaysHead !== undefined) {
             yamlContent += `#    cursorAlwaysHead: ${mode.cursorAlwaysHead}\n`;
         }
@@ -423,11 +461,8 @@ modes:
         if (mode.isNoInsertStartStopSymbolLatest !== undefined) {
             yamlContent += `#    isNoInsertStartStopSymbolLatest: ${mode.isNoInsertStartStopSymbolLatest}\n`;
         }
-        if (mode.maxOutputLines !== undefined) {
-            yamlContent += `#    maxOutputLines: ${mode.maxOutputLines}\n`;
-        }
-        if (mode.maxTokens !== undefined) {
-            yamlContent += `#    maxTokens: ${mode.maxTokens}\n`;
+        if (mode.isNoItalic !== undefined) {
+            yamlContent += `#    isNoItalic: ${mode.isNoItalic}\n`;
         }
         
         if (mode.systemPrompt) {
@@ -463,6 +498,11 @@ modes:
         if (mode.appendThinkPromptReject) {
             yamlContent += `#    appendThinkPromptReject: |\n`;
             yamlContent += `#      ${mode.appendThinkPromptReject.replace(/\n/g, '\n#      ')}\n`;
+        }
+
+        if (mode.appendThinkPromptError) {
+            yamlContent += `#    appendThinkPromptError: |\n`;
+            yamlContent += `#      ${mode.appendThinkPromptError.replace(/\n/g, '\n#      ')}\n`;
         }
 
         if (mode.appendOutputPromptReject) {

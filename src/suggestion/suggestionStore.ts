@@ -18,6 +18,7 @@ export interface SuggestionData {
 	isDispOverwrite: boolean;
 	isNoHighligh: boolean;
 	isForceOverlay: boolean;
+	isNoItalic: boolean;
 }
 
 export interface MergedSuggestionData {
@@ -28,6 +29,7 @@ export interface MergedSuggestionData {
 	isDispOverwrite: boolean;
 	isNoHighligh: boolean;
 	isForceOverlay: boolean;
+	isNoItalic: boolean;
 }
 
 const store = new Map<string, SuggestionData>();
@@ -40,6 +42,7 @@ const defaultSuggestionData: SuggestionData = {
 	isDispOverwrite: false,
 	isNoHighligh: false,
 	isForceOverlay: false,
+	isNoItalic: false,
 };
 
 function toKey(uri: vscode.Uri | string): string {
@@ -79,6 +82,7 @@ export function getMergedSuggestions(uri: vscode.Uri | string, isFullAccept: boo
 		isDispOverwrite: data.isDispOverwrite,
 		isNoHighligh: data.isNoHighligh,
 		isForceOverlay: data.isForceOverlay,
+		isNoItalic: data.isNoItalic,
 	};
 }
 

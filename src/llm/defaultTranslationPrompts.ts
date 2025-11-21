@@ -67,6 +67,7 @@ export function getYamlDefaultTranslatePrompt(): YamlConfigMode {
 		isForceOverlay: true,
 		isNoCheckStopSymbol: true,
 		isNoInsertStartStopSymbolLatest: true,
+		isNoItalic: true,
 		maxTokens: 512,	// default tokens x2
 		systemPrompt: defaultSystemPrompt,
 		userPrompt: defaultUserPrompt,

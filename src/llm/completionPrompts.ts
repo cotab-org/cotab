@@ -4,11 +4,8 @@ import { logDebug } from '../utils/logger';
 import { withLineNumberCodeBlock } from './llmUtils';
 import { getYamlConfigMode, YamlConfigMode } from '../utils/yamlConfig';
 import { parseHandlebarsTemplate } from '../utils/cotabUtil';
-import { EditHistoryAction, makeYamlFromEditHistoryActions } from '../llm/codeBlockBuilder';
+import { CodeBlocks, EditHistoryAction, makeYamlFromEditHistoryActions } from '../llm/codeBlockBuilder';
 import { beforeTruncatedText, afterTruncatedText } from '../managers/largeFileManager'
-
-// Surrounding code line count
-const LATEST_AROUND_CODE_LINES = 15;
 
 // Prompt cache type definition
 interface PromptCache {
@@ -143,6 +140,7 @@ function getCachedSourceCode(documentUri: string | undefined,
 		latestBeforeOutsideLines: string[];
 		latestAroundSnippetLines: string[];
 		latestAfterOutsideLines: string[];
+		latestFirstLineCode: string;
 	} {
 	let cachedSourceCode = '';
 	let cachedSourceCodeStartPosition = 0;
@@ -154,7 +152,8 @@ function getCachedSourceCode(documentUri: string | undefined,
 		sourceCodeValidLen,
 		latestBeforeOutsideLines,
 		latestAroundSnippetLines,
-		latestAfterOutsideLines
+		latestAfterOutsideLines,
+		latestFirstLineCode
 	} = editorContext.getSurroundingCodeBlocks();
 
 	const find = documentUri ? getCachedInputCodeInternal(documentUri,
@@ -193,14 +192,13 @@ ${afterOutside}`
 		cachedStartPosition: cachedSourceCodeStartPosition,
 		latestBeforeOutsideLines,
 		latestAroundSnippetLines,
-		latestAfterOutsideLines
+		latestAfterOutsideLines,
+		latestFirstLineCode
 	};
 }
 
 export function buildCompletionPrompts(editorContext: EditorContext,
-	sourceAnalysis?: string,
-	symbolCodeBlock?: string,
-	editHistoryActions?: EditHistoryAction[],
+	codeBlocks: CodeBlocks,
 	documentUri?: string): {
 		systemPrompt: string;
 		userPrompt: string;
@@ -212,8 +210,6 @@ export function buildCompletionPrompts(editorContext: EditorContext,
 	let placeholder = config.completeHereSymbol;
 	const startEditingHereSymbol = config.startEditingHereSymbol;
 	const stopEditingHereSymbol = config.stopEditingHereSymbol;
-	sourceAnalysis = sourceAnalysis ?? '';
-	symbolCodeBlock = symbolCodeBlock ?? '';
 
 	// Get YAML configuration
 	const yamlConfigMode = getYamlConfigMode(editorContext.relativePath);
@@ -226,6 +222,7 @@ export function buildCompletionPrompts(editorContext: EditorContext,
 	const appendThinkPromptRefactoring = yamlConfigMode.appendThinkPromptRefactoring || '';
 	const appendThinkPromptAddition = yamlConfigMode.appendThinkPromptAddition || '';
 	const appendThinkPromptReject = yamlConfigMode.appendThinkPromptReject || '';
+	const appendThinkPromptError = yamlConfigMode.appendThinkPromptError || '';
 	const appendOutputPromptReject = yamlConfigMode.appendOutputPromptReject || '';
 
 	// Code blocks & Latest surrounding code blocks & Cached source code
@@ -236,7 +233,8 @@ export function buildCompletionPrompts(editorContext: EditorContext,
 		cachedStartPosition,
 		latestBeforeOutsideLines,
 		latestAroundSnippetLines,
-		latestAfterOutsideLines
+		latestAfterOutsideLines,
+		latestFirstLineCode
 	} = getCachedSourceCode(documentUri, editorContext,
 							yamlConfigMode.isNoInsertStartStopSymbol ? undefined : startEditingHereSymbol,
 							yamlConfigMode.isNoInsertStartStopSymbol ? undefined : stopEditingHereSymbol);
@@ -259,12 +257,12 @@ ${cachedSourceCodeWithLine}
 //===============================================
 	
 	// Extract last 5 lines of beforeOutside
-	const latestBeforeOutsideLast = latestBeforeOutsideLines.slice(-LATEST_AROUND_CODE_LINES).join('\n');
-	const latestAfterOutsideFirst = latestAfterOutsideLines.slice(0, LATEST_AROUND_CODE_LINES).join('\n');
+	const latestBeforeOutsideLast = latestBeforeOutsideLines.slice(-editorContext.aroundLatestAddBeforeLines).join('\n');
+	const latestAfterOutsideFirst = latestAfterOutsideLines.slice(0, editorContext.aroundLatestAddAfterLines).join('\n');
 	const {
 		CodeBlock: latestBeforeOutsideLastWithLine,
 		LastLineNumber: latestBeforeOutsideLastWithLineNumber
-	} = withLineNumberCodeBlock(latestBeforeOutsideLast, editorContext.aroundFromLine-LATEST_AROUND_CODE_LINES);
+	} = withLineNumberCodeBlock(latestBeforeOutsideLast, editorContext.aroundFromLine-editorContext.aroundLatestAddBeforeLines);
 	const latestAfterOutsideFirstWithLine = withLineNumberCodeBlock(latestAfterOutsideFirst, editorContext.aroundToLine).CodeBlock;
 	
 	// Insert placeholder at cursor position
@@ -324,9 +322,6 @@ const assistantSourceCodeBlockBforeCursor =
 // ... existing code ...
 
 ${latestBeforeOutsideLastWithLine}${(yamlConfigMode.isNoInsertStartStopSymbolLatest) ? '' : ('\n'+startEditingHereSymbol)}
-\`\`\`
-All code comments will be output in Japanese from below.
-\`\`\`
 ${cursorLineBefore}`;
 //===============================================
 
@@ -334,17 +329,20 @@ ${cursorLineBefore}`;
 	let lastAction = '';
 	let lastActionWithoutReject = '';
 	let rejectContent = '';
-	if (editHistoryActions && 0 < editHistoryActions.length) {
-		lastAction = editHistoryActions[editHistoryActions.length - 1].action;
-		for (let i = editHistoryActions.length - 1; i >= 0; i--) {
-			const action = editHistoryActions[i];
+	if (codeBlocks.editHistoryActions && 0 < codeBlocks.editHistoryActions.length) {
+		lastAction = codeBlocks.editHistoryActions[codeBlocks.editHistoryActions.length - 1].action;
+		for (let i = codeBlocks.editHistoryActions.length - 1; i >= 0; i--) {
+			const action = codeBlocks.editHistoryActions[i];
 			if (action.action === 'reject') {
 				if (action.content) {
 					let line = '';
 					if (action.lines && 0 < action.lines.length) {
 						line = `${action.lines[0]}|`;
 					}
-					rejectContent = line + action.content;
+					if (rejectContent !== '') {
+						rejectContent += '\n';
+					}
+					rejectContent += line + action.content;
 				}
 			}
 			else {
@@ -366,15 +364,16 @@ ${cursorLineBefore}`;
 		
 		// Code blocks
 		"sourceCodeBlock": sourceCodeBlock,
-		"symbolCodeBlock": symbolCodeBlock,
-		"editHistoryCodeBlock": makeYamlFromEditHistoryActions(editHistoryActions??[]),
-		"sourceAnalysis": sourceAnalysis,
+		"symbolCodeBlock": codeBlocks.symbolCodeBlock,
+		"editHistoryCodeBlock": makeYamlFromEditHistoryActions(codeBlocks.editHistoryActions??[]),
+		"sourceAnalysis": codeBlocks.sourceAnalysis,
 		"latestSourceCodeBlock": latestSourceCodeBlock,
 		"aroundSnippetWithPlaceholderWithLine": aroundSnippetWithPlaceholderWithLine,
 		"latestAfterOutsideFirstWithLine": latestAfterOutsideFirstWithLine,
 		"assistantSourceCodeBlockBforeCursor": assistantSourceCodeBlockBforeCursor,
 		"cursorLineBefore": orgCursorLineBefore,
 		"cursorLineBeforeWithLine": cursorLineBefore,
+		"firstLineCode": latestFirstLineCode,
 		
 		// Additional prompts
 		"additionalSystemPrompt": config.additionalSystemPrompt ? '\n' + config.additionalSystemPrompt : '',
@@ -383,14 +382,23 @@ ${cursorLineBefore}`;
 		"additionalAssistantOutputPrompt": config.additionalAssistantOutputPrompt ? '\n' + config.additionalAssistantOutputPrompt : '',
 		
 		// Thinking prompt
+		"thinkErrorPrompt": "",
 		"appendThinkPrompt": "",
 		"rejectContent": rejectContent,
+		"errorCodeBlock": codeBlocks.diagnosticsCodeBlock,
 
 		// Output
 		"appendOutputPrompt": "",
 	};
 	
 	// Decide appendThinkPrompt by simple rules
+	let parsedThinkErrorPrompt = '';
+	{
+		// error prompt
+		if (codeBlocks.diagnosticsCodeBlock !== '') {
+			parsedThinkErrorPrompt = parseHandlebarsTemplate(appendThinkPromptError, handlebarsContext);
+		}
+	}
 	let parsedAppendThinkPrompt = '';
 	let parsedAppendOutputPrompt = '';
 	{
@@ -414,17 +422,19 @@ ${cursorLineBefore}`;
 			} else {
 				appendThinkPrompt = appendThinkPromptAddition;
 			}
-			// Append reject prompt if the last action was 'reject'
-			if (lastAction === 'reject') {
-				appendThinkPrompt += '\n' + appendThinkPromptReject;
-				appendOutputPrompt += appendOutputPromptReject;
-			}
 		}
+		// Append reject prompt if the last action was 'reject'
+		if (lastAction === 'reject') {
+			appendThinkPrompt += '\n' + appendThinkPromptReject;
+			appendOutputPrompt += appendOutputPromptReject;
+		}
+
 		parsedAppendThinkPrompt = parseHandlebarsTemplate(appendThinkPrompt, handlebarsContext);
 		parsedAppendOutputPrompt = parseHandlebarsTemplate(appendOutputPrompt, handlebarsContext);
 	}
 
 	// Thinking prompt
+	handlebarsContext.thinkErrorPrompt = parsedThinkErrorPrompt;
 	handlebarsContext.appendThinkPrompt = parsedAppendThinkPrompt;
 	handlebarsContext.appendOutputPrompt = parsedAppendOutputPrompt;
 	
@@ -441,4 +451,5 @@ ${cursorLineBefore}`;
 		yamlConfigMode,
 	};
 }
+
 

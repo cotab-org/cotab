@@ -18,6 +18,7 @@ export interface CompletionParams {
 	onComplete?: (reason: CompletionEndReason, finalResult?: string) => void; // Callback that returns completion reason
 	streamCount?: number; // Streaming count
 
+	model?: string;
 	temperature?: number;
 	top_p?: number;
 	top_k?: number;
@@ -361,7 +362,7 @@ abstract class BaseAiClient implements AiClient {
 			];
 			logDebug(`Chat request sending started ${params.streamCount}th time`);
 			const arg: any = {
-				model: this.model,
+				model: params.model ?? this.model,
 				messages,
 				max_tokens: params.maxTokens ?? this.maxTokens,
 				stream: true,

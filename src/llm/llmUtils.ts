@@ -136,10 +136,10 @@ export function withLineNumberCodeBlock(CodeBlock: string,
 									return `${LastLineNumber}|${line}`;
 								}
 							});
-		return { CodeBlock: withLine.join('\n'), LastLineNumber };
+		return { CodeBlock: withLine.join('\n').replace(/```/g, '\\`\\`\\`'), LastLineNumber };
 	}
 	else {
-		return {CodeBlock, LastLineNumber};
+		return {CodeBlock: CodeBlock.replace(/```/g, '\\`\\`\\`'), LastLineNumber};
 	}
 }
 export function withoutLineNumber(CodeBlock: string, removeNotHaveLineNumber: boolean = false): { CodeBlock: string; hasLastLineNumbers: boolean } {

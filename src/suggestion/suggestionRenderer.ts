@@ -186,6 +186,7 @@ interface RenderData {
 
 	// option
 	isNoHighligh: boolean;
+	isNoItalic: boolean;
 };
 
 let prevRenderData: RenderData;
@@ -206,6 +207,7 @@ export function renderSuggestions(editor: vscode.TextEditor): {
 		deleteOptions: [],
 		noFinished: false,
 		isNoHighligh: mergedData.isNoHighligh,
+		isNoItalic: mergedData.isNoItalic,
 	};
 
 	// test
@@ -446,7 +448,12 @@ function renderSuggestionsInternal(editor: vscode.TextEditor,
 		//logDebug(`updateDecorations: ${renderData.inlineCompletionItems.length} ${renderData.inlineOptions.length} ${renderData.deleteOptions.length} ${renderData.invisibleOptions.length}`);
 		editor.setDecorations(getInlineDecorationType(), renderData.inlineOptions);
 
-		renderSvgOverlays(editor, renderData.overlaySegments, { unfinished: renderData.noFinished, dispIdx, isNoHighligh: renderData.isNoHighligh });
+		// Do not apply italic styling if specified; set finish state accordingly.
+		let unfinished = renderData.noFinished;
+		if (renderData.isNoItalic) {
+			unfinished = false;
+		}
+		renderSvgOverlays(editor, renderData.overlaySegments, { unfinished, dispIdx, isNoHighligh: renderData.isNoHighligh });
 		editor.setDecorations(deleteDecorationType, renderData.deleteOptions);
 		
 		//logDebug('cotab.dispSuggestions true');

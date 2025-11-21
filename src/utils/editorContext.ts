@@ -19,12 +19,15 @@ export interface EditorContext {
 	documentUri: string;	// document uri
 	languageId: string;	// language id
 	version: number;	// document version
+	document: vscode.TextDocument; // Reference to the original text document for context and diagnostics
 	documentText: EditorDocumentText;	// document text
 	aroundFromLine: number;	// Number of lines to retrieve before cursor position (LLM inference target range)\n Recommended: 0 (Setting to 0 makes LLM output start from cursor line to stabilize completion)
 	aroundToLine: number;		// End line of surrounding code
 	aroundMergeToLine: number;	// End line of surrounding code used during merge (edit target range)\nRecommended: cotab.aroundAfterLines + LLM output lines (~10) + about 5 lines
 	aroundCacheFromLine: number;	// Start line of surrounding code for cache utilization.\nIf cursor position doesn't exceed this line, source code in User Prompt won't be updated, enabling effective Prompt Cache usage.
 	aroundCacheToLine: number;	// End line of surrounding code for cache utilization.\nIf cursor position doesn't exceed this line, source code in User Prompt won't be updated, enabling effective Prompt Cache usage.
+	aroundLatestAddBeforeLines: number;
+	aroundLatestAddAfterLines: number;
 	cursorLine: number;    // Cursor line number (0-based)
 	cursorCharacter: number; // Cursor character position (0-based)
 	isTrancatedCode(): boolean;	// Code truncated for length
@@ -36,6 +39,7 @@ export interface EditorContext {
 		latestBeforeOutsideLines: string[];
 		latestAroundSnippetLines: string[];
 		latestAfterOutsideLines: string[];
+		latestFirstLineCode: string;
 	};
 }
 
@@ -57,12 +61,15 @@ export function getEditorContext(
 			documentUri: document.uri.toString(),
 			languageId: document.languageId,
 			version: document.version,
+			document: document,
 			documentText: largeFileManager.getDocumentText(document, position),
 			aroundFromLine: toLine(-config.aroundBeforeLines),
 			aroundToLine: toLine(config.aroundAfterLines),
 			aroundMergeToLine: toLine(config.aroundMergeAfterLines),
 			aroundCacheFromLine: toLine(-config.aroundCacheBeforeLines),
 			aroundCacheToLine: toLine(config.aroundCacheAfterLines),
+			aroundLatestAddBeforeLines: config.aroundLatestAddBeforeLines,
+			aroundLatestAddAfterLines: config.aroundLatestAddAfterLines,
 			cursorLine: position.line,
 			cursorCharacter: position.character,
 			isTrancatedCode(): boolean {
@@ -76,9 +83,17 @@ export function getEditorContext(
 				latestBeforeOutsideLines: string[];
 				latestAroundSnippetLines: string[];
 				latestAfterOutsideLines: string[];
+				latestFirstLineCode: string;
 			} {
 				const sourceCode = this.documentText.fullText.split('\n');
 				const trancatedSourceCode = this.documentText.trancatedCursor.split('\n');
+				let latestFirstLineCode = '';
+				for(let i = 0; i < 5; i++) {
+					latestFirstLineCode = sourceCode[Math.min(this.cursorLine + i, sourceCode.length - 1)].trim();
+					if (latestFirstLineCode !== '') {
+						break;
+					}
+				}
 				return {
 					sourceCode,
 					trancatedSourceCode,
@@ -87,6 +102,7 @@ export function getEditorContext(
 					latestBeforeOutsideLines: sourceCode.slice(0, this.aroundFromLine),
 					latestAroundSnippetLines: sourceCode.slice(this.aroundFromLine, this.aroundToLine),
 					latestAfterOutsideLines: sourceCode.slice(this.aroundToLine),
+					latestFirstLineCode,
 				};
 			}
 		};
