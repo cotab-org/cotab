@@ -325,7 +325,7 @@ function formatMetaInfoAsString(
 				// Append one line
 				yaml += typesLine;
 				yaml += line;
-				useCharCount += line.length;
+				useCharCount += typesLine.length + line.length;
 
 				// If child nodes exist, process them recursively
 				if (node.children && node.children.length > 0) {
@@ -382,7 +382,8 @@ const KEYWORDS = [
 	'extends', 'implements', 'interface',
 	'package', 'protected', 'private',
 	'public', 'abstract', 'final',
-	'static', 'synchronized', 'volatile'
+	'static', 'synchronized', 'volatile',
+	'inline',
 ];
 
 // remove head keyword
@@ -421,11 +422,12 @@ function removeOuterScope(outerContents: string[], content: string): string {
     // Build a regex that matches the outer‑scope prefix at the start of the string.
     // It allows any combination of "." or "::" between each segment and an optional
     // trailing connector after the last segment.
-    const prefixPattern = '^' + escaped.join(sep) + '(?:' + sep + ')?';
+    const prefixPattern = `(^|\\s)${escaped.join(sep)}${sep}?`;
     const regex = new RegExp(prefixPattern);
 
     // Remove the outer scope prefix if present
-    return content.replace(regex, '');
+	const removed = content.replace(regex, '$1');
+    return removed;
 }
 
 /**

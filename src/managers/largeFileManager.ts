@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 import { logDebug, logInfo } from '../utils/logger';
 import { EditorDocumentText } from '../utils/editorContext';
+import { CodeBlocks } from '../llm/codeBlockBuilder';
+import { getConfig } from '../utils/config';
 
 export function registerLargeFileManager(disposables: vscode.Disposable[]) {
     largeFileManager = new LargeFileManager();
@@ -13,11 +15,11 @@ export let largeFileManager: LargeFileManager;
 
 export interface LargeFileEntry {
     contextSize: number;
+    systemPromptSize: number;
     textToPromptScale: number;
     adjustScale: number;
 }
 
-const systemPromptSize = 5*1024;
 export const beforeTruncatedText = '### CODE TRUNCATED FOR LENGTH: PREVIOUS PART NOT INCLUDED ###';
 export const afterTruncatedText  = '### CODE TRUNCATED FOR LENGTH: REMAINING PART NOT INCLUDED ###';
 
@@ -51,7 +53,7 @@ class LargeFileManager implements vscode.Disposable {
 
         const entry = this.fileMap.get(document.uri.toString());
         if (entry) {
-            const budgetContextSize = Math.max(entry.contextSize - systemPromptSize, 8192) * entry.adjustScale;
+            const budgetContextSize = (entry.contextSize - entry.systemPromptSize) * entry.adjustScale;
             const requirePromptSize = editorDocument.fullText.length * entry.textToPromptScale;
 
             // If the required prompt size exceeds the available context budget, truncate the document text
@@ -99,9 +101,33 @@ class LargeFileManager implements vscode.Disposable {
         return editorDocument;
     }
 
-    public setExceedContextSize(documentUri: string, documentText: string, contextSize: number, promptSize: number) {        
-        const codePromptSize = Math.max(promptSize - systemPromptSize, 8192);
-        let textToPromptScale = (codePromptSize / documentText.length) || 1;
+    public setExceedContextSize(
+        documentUri: string,
+        documentText: string,
+        codeBlocks: CodeBlocks,
+        messages: string[],
+        handlebarsContext: any,
+        contextSize: number,
+        promptSize: number,
+    ) {
+        const config = getConfig();
+        let totalTextLength = 0;
+        for (const message of messages) {
+            totalTextLength += message.length;
+        }
+        
+        // without symbol block
+        totalTextLength -= (codeBlocks.symbolCodeBlock?.length || 0);
+        contextSize -= config.maxSymbolCharNum * 0.266;  // Qwen3:4b-Instruct-2507 case, token count is approximately 1/4
+
+        if (totalTextLength < 1024) {
+            totalTextLength = 1024;
+        }
+        let sourceRatio = (handlebarsContext.sourceCodeBlock?.length || totalTextLength) / totalTextLength;
+        sourceRatio = Math.min(Math.max(sourceRatio, 0), 1);
+        const codePromptSize = promptSize * sourceRatio;
+        const systemPromptSize = promptSize * (1 - sourceRatio);
+        let textToPromptScale = (codePromptSize / totalTextLength) || 1;
         let adjustScale = 0.9;
 
         const entry = this.fileMap.get(documentUri);
@@ -111,6 +137,7 @@ class LargeFileManager implements vscode.Disposable {
         }
         this.fileMap.set(documentUri, {
             contextSize,
+            systemPromptSize,
             textToPromptScale,
             adjustScale,
         });

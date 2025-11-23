@@ -213,6 +213,7 @@ export function buildCompletionPrompts(editorContext: EditorContext,
 		assistantPrompt: string;
 		beforePlaceholderWithLF: string;
 		yamlConfigMode: YamlConfigMode;
+		handlebarsContext: any;
 	} {
 	const config = getConfig();
 	let placeholder = config.completeHereSymbol;
@@ -510,6 +511,7 @@ ${cursorLineBefore}`;
 		assistantPrompt: parsedAssistantPrompt,
 		beforePlaceholderWithLF: cursorLineBefore,
 		yamlConfigMode,
+		handlebarsContext,
 	};
 }
 

@@ -263,8 +263,14 @@ export class SuggestionManager implements vscode.Disposable {
 
         // 
 
-        const { systemPrompt, userPrompt, assistantPrompt, beforePlaceholderWithLF, yamlConfigMode } =
-                        buildCompletionPrompts(editorContext, codeBlocks, document.uri.toString());
+        const {
+            systemPrompt,
+            userPrompt,
+            assistantPrompt,
+            beforePlaceholderWithLF,
+            yamlConfigMode,
+            handlebarsContext,
+        } = buildCompletionPrompts(editorContext, codeBlocks, document.uri.toString());
         
         const isOutput = true;
         if (isOutput) {
@@ -416,6 +422,9 @@ ${assistantPrompt}
                         if (0 < obj.contextSize && obj.promptSize) {
                             largeFileManager.setExceedContextSize(document.uri.toString(),
                                                                     editorContext.documentText.trancatedCursor,
+                                                                    codeBlocks,
+                                                                    [systemPrompt, userPrompt, assistantPrompt,],
+                                                                    handlebarsContext,
                                                                     obj.contextSize,
                                                                     obj.promptSize);
                         }

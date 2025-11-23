@@ -62,7 +62,10 @@ export interface CotabConfig {
     aroundLatestAddAfterLines: number;
 
     // Code block
-    maxSymbolCharNum: number; // Maximum character number of symbols to include in symbol code blocks
+    // Maximum number of characters for symbols to include in symbol code blocks.
+    // Approximately 1000 characters allow for 20 symbol inputs.
+    // In Qwen3:4b-Instruct-2507, approximately 1000 characters use about 250 tokens.
+    maxSymbolCharNum: number;
     enableCodeSummary: boolean; // Enable source code summary feature
     withLineNumber: boolean; // The number of lines to include in the line number so that llm can determine
 
@@ -181,7 +184,8 @@ function getConfigRaw(): CotabConfig {
         aroundCacheAfterLines: cfg.get<number>('cotab.promptDetail.aroundCacheAfterLines', 15),
         aroundLatestAddBeforeLines: cfg.get<number>('cotab.promptDetail.aroundLatestAddBeforeLines', 15),
         aroundLatestAddAfterLines: cfg.get<number>('cotab.promptDetail.aroundLatestAddAfterLines', 15),
-        maxSymbolCharNum: cfg.get<number>('cotab.promptDetail.maxSymbolCharNum', 3000),
+        maxSymbolCharNum: cfg.get<number>('cotab.promptDetail.maxSymbolCharNum', 12000),
+        enableCodeSummary: cfg.get<boolean>('cotab.promptDetail.enableCodeSummary', false),
         withLineNumber: true,   // line number for code block
 
         // ui

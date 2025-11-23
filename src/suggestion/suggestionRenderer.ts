@@ -330,19 +330,18 @@ export function renderSuggestions(editor: vscode.TextEditor): {
 					if (isInlineCompletionItem) {
 						if (firstAddPos != 0) {
 							// VSCode's default inline completion only works after the cursor position.
-							// VSCodeのデフォルトインライン補完はカーソル位置以降でのみ動作する。
 							if (firstAddPos < activeCharacter) {
 								isInlineCompletionItem = false;
 							}
 
-							// 補完位置が行末の場合にはインライン補完を有効にする
+							// Enable inline completion when the completion position is at the end of the line
 							else if (firstAddPos == origLine.length) {
 								// nop
 							}
 
 
-							// カーソルが挿入位置より前である場合、インライン補完を無効にする
-							// VSCodeのデフォルトインライン補完はテキストの色は変更するが背景色は変更しないため、可読性が低下するため。
+							// Disable inline completion when the cursor is before the insertion position
+							// VSCode's default inline completion changes text color but not background color, which reduces readability.
 							else if (activeCharacter < firstAddPos) {
 								isInlineCompletionItem = false;
 							}

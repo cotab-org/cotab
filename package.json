@@ -1,7 +1,7 @@
 {
   "name": "cotab",
   "displayName": "Cotab",
-  "description": "This VS Code extension is an AI-powered multi-line autocomplete tool designed with maximum privacy and security in mind by running entirely on a local LLM.",
+  "description": "This VS Code extension is an AI-powered multi-line autocomplete plugin designed with maximum privacy and security in mind by running entirely on a local LLM.",
   "version": "0.0.13",
   "publisher": "cotab",
   "license": "Apache-2.0",
@@ -293,8 +293,8 @@
         },
         "cotab.promptDetail.maxSymbolCharNum": {
           "type": "number",
-          "default": 3000,
-          "description": "Maximum character number of symbols to include in symbol code blocks",
+          "default": 12000,
+          "description": "Maximum number of characters for symbols to include in symbol code blocks.\nApproximately 1000 characters allow for 20 symbol inputs.\nIn Qwen3:4b-Instruct-2507, approximately 1000 characters use about 250 tokens.",
           "order": 411
         },
         "cotab.promptDetail.enableCodeSummary": {
