@@ -1,7 +1,7 @@
 # Cotab
-This VS Code extension is an AI-powered multi-line autocomplete tool designed with maximum privacy and security in mind by running entirely on a local LLM. 
+This VS Code extension is an AI-powered multi-line autocomplete plugin designed with maximum privacy and security in mind by running entirely on a local LLM.
 
-It generates multiple lines of code based on the entire file’s context—rather than just the code around the cursor—and seamlessly integrates the AI-generated edits as autocomplete suggestions.
+It generates multiple lines of code using AI based not only on the entire file’s context but also on external symbols, errors, and prior edits, and presents them as autocomplete suggestions.
 
 ## Autocomplete
 ![Autocomplete Demo](doc/asset/cotab-tutorial-autocomplete1.gif)
@@ -85,6 +85,9 @@ A translation-only mode. It automatically translates comments in unfamiliar lang
   llama-server has a mechanism enabled by default that caches prompts from previous requests. Prompt cache is effective up to the part that matches the previous prompt, allowing prompt processing to be skipped up to that part.
   
   To make the most of this mechanism, the original source code  in prompt remains unchanged as users type. Instead, a minimal block of modified surrounding code is appended to the bottom of the prompt.
+
+  Prompt is fully customizable, and you can switch between prepared modes with a single click.
+  This allows you to perform completions with the optimal prompt for each purpose.
   
 - Edit History
 
@@ -95,10 +98,18 @@ A translation-only mode. It automatically translates comments in unfamiliar lang
 - Symbols from Other Files
 
   Uses symbols obtainable from VSCode's language providers and utilizes them in suggestions. These symbols allow LLM to understand class structures and improve the accuracy of member function suggestions.
-  
-- Analysis source code
 
-  By analyzing the source code in advance and incorporating the results into the prompt, we enable a deeper level of understanding.
+  Note: Symbols are input in the order of files viewed in VS Code.
+
+- Error Problems
+
+  Uses diagnostic errors as input to generate code to fix errors.
+  Even with a small AI model, it learns to correct errors, so the quality of proposals is further improved.
+  
+- Code Summary
+
+  By summarizing the source code in advance and incorporating the results into the prompt, we enable a deeper level of understanding.
+  This feature is disabled by default. Because the quality of completion is guaranteed even without summary, as the entire code is input.
 
 - Progress Icon Description
 
@@ -196,6 +207,11 @@ A translation-only mode. It automatically translates comments in unfamiliar lang
 ```bash
 npx vsce package
 ```
+
+## FAQ
+
+### Why does the window flicker briefly when starting to use Cotab?
+The brief window flicker occurs because Cotab calculates font size during initialization. VS Code doesn't provide a direct API to get character size, so Cotab uses a Webview to calculate the font size. This causes the brief flicker when starting to use Cotab.
 
 ## License
 Copyright (c) 2025 cotab
