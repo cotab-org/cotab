@@ -21,7 +21,7 @@ Your task is to complete the code at the "{{placeholder}}" location in the given
 - The completed code must compile or run without errors in "{{languageId}}".
 - All whitespace and formatting must remain identical to the original, except for your changes within the edit block.
 - Do not output explanations, comments, or extra text outside of code.
-- Respond with only the full edited code block.{{additionalSystemPrompt}}
+- Respond with only the full edited code block.
 </RULES>
 
 <TASK>
@@ -34,15 +34,15 @@ Your task is to complete the code at the "{{placeholder}}" location in the given
 </TASK>
 
 <INSTRUCTIONS>
-0. Get the latest source code and don't reference the old source code.
-1. Carefully examine the input code block and understand what it is intended to do.
-2. Refer to the edit history to understand what the user has recently done.
-3. Pay close attention to the area around "{{placeholder}}" and, while considering the edit history to the fullest, deeply reason about and predict what should be written at the "{{placeholder}}" location. You must not modify already existing characters. Continue from them as they are.
-4. Re-check whether your output contradicts the user's intention, whether the program will be complete, and whether it introduces errors.
-5. Output the flawless and complete code you verified, continuing from "{{placeholder}}".
-6. Finally, confirm that the output code does not cause errors and does not contradict the user's intent. If there are no issues, finalize it.
-7. You must always output "{{stopEditingHere}}" exactly as is.
-8. If necessary, you may also complete sections outside of "{{placeholder}}".
+1. Get the latest source code and don't reference the old source code.
+2. Carefully examine the input code block and understand what it is intended to do.
+3. Refer to the edit history to understand what the user has recently done.
+4. Pay close attention to the area around "{{placeholder}}" and, while considering the edit history to the fullest, deeply reason about and predict what should be written at the "{{placeholder}}" location. You must not modify already existing characters. Continue from them as they are.
+5. Re-check whether your output contradicts the user's intention, whether the program will be complete, and whether it introduces errors.
+6. Output the flawless and complete code you verified, continuing from "{{placeholder}}".
+7. Finally, confirm that the output code does not cause errors and does not contradict the user's intent. If there are no issues, finalize it.
+8. You must always output "{{stopEditingHere}}" exactly as is.
+9. If necessary, you may also complete sections outside of "{{placeholder}}".
 </INSTRUCTIONS>
 
 <SYMBOL_RULES>
@@ -103,7 +103,7 @@ Please always make sure to check the latest version when referring to it.
 
 When you reach "{{stopEditingHere}}", end your output immediately without adding extra text.
 Follow typical coding style conventions for "{{languageId}}".
-Program comments must be written in "{{commentLanguage}}".{{additionalUserPrompt}}`;
+Program comments must be written in "{{commentLanguage}}".{{additionalSystemPrompt}}`;
 
 // User Prompt for completion
 const defaultUserPrompt =
@@ -126,8 +126,8 @@ The retrieved latest source code is as follows:
 # This latest code must be referenced, and any lines outside this range must be referenced to the original code provided by the user.
 </LATEST_CODE_INPUT>
 
-Okey, You have checked the latest source code and edit history. You MUST consult the latest source code only. If any line number matches, You MUST NOT reference or use any older version. {{additionalAssistantThinkPrompt}}
-You will output only the code block. and You will not forget to also output "{{stopEditingHere}}".{{appendOutputPrompt}}{{additionalAssistantOutputPrompt}}
+Okey, You have checked the latest source code and edit history. You MUST consult the latest source code only. If any line number matches, You MUST NOT reference or use any older version.
+You will output only the code block. and You will not forget to also output "{{stopEditingHere}}".{{appendOutputPrompt}}
 
 {{thinkErrorPrompt}}
 
@@ -141,29 +141,30 @@ The latest cursor line is as follows:
 {{latestCursorLineText}}
 </LATEST_CODE_INPUT>
 
-{{appendThinkPrompt}}`;
+{{appendThinkPrompt}}{{additionalUserPrompt}}`;
 
 // Assistant thinking output Prompt for completion
 const defaultAssistantPrompt =
-`{{assistantSourceCodeBlockBforeCursor}}`;
+`{{additionalAssistantThinkPrompt}}{{additionalAssistantOutputPrompt}}{{assistantSourceCodeBlockBforeCursor}}`;
 
 const defaultAppendThinkPromptNewScope = `Okey, The editing position is within an empty scope, and it is highly likely that the user intends to write new code.Therefore, You implement the new code inferred from the surrounding implementation at the editing position, without including comments. The user always wants to insert some new code.`;
 const defaultAppendThinkPromptRefactoring = `Okey, Since some code has been deleted or modified, You will determine the necessary refactoring based on those changes and update the existing code accordingly.`;
 const defaultAppendThinkPromptAddition = `Okey, Since some code has been added or modified, You will implement the remaining necessary code after \`\`\`{{cursorLineBefore}}\`\`\``;
-/*
-const defaultAppendThinkPromptReject = 
-`And the user rejected the following code:
-\`\`\`
-{{rejectContent}}
-\`\`\`
-so I must output a different piece of code.`
 
-const defaultAppendOutputPromptReject = 
-`The user rejected the following code:
+const defaultAppendThinkPromptReject = 
+`<PROHIBITED_OUTPUT_RULES>
+The following block contains prohibited output.
+It is provided only so you can avoid producing anything similar.
+You must NOT quote, copy, reuse, transform, summarize, or paraphrase any portion of it.
+You must generate completely new and different comments.
+If your output resembles the content below, it is considered a failure.
 \`\`\`
 {{rejectContent}}
 \`\`\`
-so I must output a different piece of code.`
+</PROHIBITED_OUTPUT_RULES>`
+
+/*
+const defaultAppendOutputPromptReject = '';
 */
 
 const defaultAppendThinkPromptError =
@@ -233,7 +234,7 @@ export function getYamlDefaultCodingPrompt(): YamlConfigMode {
 		appendThinkPromptNewScope: defaultAppendThinkPromptNewScope,
 		appendThinkPromptRefactoring: defaultAppendThinkPromptRefactoring,
 		appendThinkPromptAddition: defaultAppendThinkPromptAddition,
-//		appendThinkPromptReject: defaultAppendThinkPromptReject,		// Qwen3:4b-Instruct-2507 does not react to rejection almost, so omitted.
+		appendThinkPromptReject: defaultAppendThinkPromptReject,		// Qwen3:4b-Instruct-2507 does not react to rejection almost, so omitted.
 		appendThinkPromptError: defaultAppendThinkPromptError,
 //		appendOutputPromptReject: defaultAppendOutputPromptReject,
 		analyzeSystemPrompt: defaultAnalyzeSystemPrompt,

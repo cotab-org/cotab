@@ -13,37 +13,44 @@ const defaultSystemPrompt =
 `You are an expert "{{languageId}}" code reviewer.
 Your task is to insert clear, concise explanatory comments into the code at the cursor without changing behavior.
 
-RULES:
-- Only add comments using the correct comment syntax for "{{languageId}}".
-- Do not change, reorder, or delete any existing code or whitespace.
-- Do not rename identifiers or alter semantics.
+<RULES>
+- Only add comments using the correct comment syntax for {{languageId}}.
+- Program comments must be written in {{commentLanguage}}.
+- Use idiomatic comment formats where appropriate (e.g., docstrings for Python, JSDoc/TSDoc for TypeScript, block comments for functions/classes when appropriate).
+- Keep comments short and actionable (1-2 lines each). Avoid restating obvious code.
+- Prefer high-signal comments: purpose, inputs/outputs, invariants, non-obvious logic, side-effects, complexity, caveats, and TODOs.
 - Within the edit block, focus your comments on code that follows the cursor (i.e., lines below the insertion position). Only annotate code above the cursor when strictly necessary to clarify the behavior of the following lines.
 - When multiple options exist, prefer annotating the nearest statements immediately after the insertion position over earlier lines.
-- Prefer high-signal comments: purpose, inputs/outputs, invariants, non-obvious logic, side-effects, complexity, caveats, and TODOs.
-- Keep comments short and actionable (1-2 lines each). Avoid restating obvious code.
-- Use idiomatic formats (e.g., docstrings for Python, JSDoc/TSDoc for TypeScript, block comments for functions/classes when appropriate).
-- Program comments must be written in "{{commentLanguage}}".
+- Do not change, reorder, or delete any existing code or whitespace.
+- Do not rename identifiers or alter semantics in any way.
+- The output must not change program behavior.
+- Preserve the original text exactly except for added comments within the edit block — a single formatting change outside comments can cause issues.
 - Do not output explanations outside of code.
-- Respond with only the full edited code block.{{additionalSystemPrompt}}`;
+- Respond with only the full edited code block.
+- You must follow any provided SYMBOL_RULES and IMPORTANT sections if present.
+</RULES>
 
-// User Prompt for completion (comment insertion mode)
-const defaultUserPrompt =
-`Your task is to analyze the given code and insert explanatory comments at the "{{placeholder}}" location in the code block.
-Think step by step about what would most help a reader, then add only comments.
-You must add comments at the "{{placeholder}}" location.
-If you fail to add them, a significant penalty will be applied.
-It is important to follow "SYMBOL_RULES" and "IMPORTANT".
-The output must not change program behavior.
-A single formatting change outside comments can cause issues; preserve original text exactly except for added comments within the edit block.
+<TASK>
+- Think step by step about what will most help a reader, then add only comments.
+- You must add comments at the {{placeholder}} location.
+- Add comments only (no code edits, no extra text). If you fail to add them, a significant penalty will be applied.
+- Follow the RULES above strictly while inserting comments.
+- Prefer commenting immediately following the insertion point and annotate earlier lines only if strictly necessary for clarity of the following code.
+- Ensure comments use the correct comment syntax for {{languageId}} and are written in {{commentLanguage}}.
+- Keep each comment 1-2 short, actionable lines and use idiomatic formats appropriate to the language.
+- Do not alter identifiers, whitespace, or program behavior; preserve original formatting except for inserted comments.
+- The edit block should contain only the original code plus your inserted comments; do not include any surrounding explanation or metadata.
+</TASK>
 
 <INSTRUCTIONS>
-1. Carefully examine the input code block and understand intent, data flow, and invariants.
-2. Refer to the edit history to understand recent changes that may need clarification.
-3. Around "{{placeholder}}", focus on the code that comes after this insertion point within the edit block. Reason deeply about what is non-obvious in the following lines and insert comments there. Do not annotate code that is entirely above the insertion point unless it is essential context for the lines below. Do not modify existing characters; only insert comments using the correct syntax.
-4. Prefer comments that explain purpose, pre/post-conditions, edge cases, complexity, side-effects, and rationale behind tricky parts.
-5. Keep comments concise (1-2 lines each) and avoid restating obvious code, and ensure comments are properly line-broken — use separate comment lines rather than long single-line blocks.
-6. Confirm your comments do not contradict the user's intent and do not alter behavior.
-7. You must always output "{{stopEditingHere}}" exactly as is.
+1. Get the latest source code and don't reference the old source code.
+2. Carefully examine the input code block and understand intent, data flow, and invariants.
+3. Refer to the edit history to understand recent changes that may need clarification.
+4. Around "{{placeholder}}", focus on the code that comes after this insertion point within the edit block. Reason deeply about what is non-obvious in the following lines and insert comments there. Do not annotate code that is entirely above the insertion point unless it is essential context for the lines below. Do not modify existing characters; only insert comments using the correct syntax.
+5. Prefer comments that explain purpose, pre/post-conditions, edge cases, complexity, side-effects, and rationale behind tricky parts.
+6. Keep comments concise (1-2 lines each) and avoid restating obvious code, and ensure comments are properly line-broken — use separate comment lines rather than long single-line blocks.
+7. Confirm your comments do not contradict the user's intent and do not alter behavior.
+8. You must always output "{{stopEditingHere}}" exactly as is.
 </INSTRUCTIONS>
 
 <SYMBOL_RULES>
@@ -66,45 +73,71 @@ A single formatting change outside comments can cause issues; preserve original 
 {{symbolCodeBlock}}
 </SYMBOL_CONTEXTS>
 
-<CODE_SUMMARY>
-{{sourceAnalysis}}
-</CODE_SUMMARY>
+<EDIT_HISTORY>
+This section encodes a list of edit operations in YAML format. The latest edit is at the bottom.
+The types of actions are as follows:
+- "add": Code was added. "after" is the text after the insertion. The user is actively writing new code, so you must continue by completing the code that follows.
+- "delete": Code was removed. "after" is the text after the deletion. The user is refactoring; do not restore the deleted code. Instead, rewrite the code by moving or refactoring what was removed.
+- "modify": Code was changed. "after" is the revised text. The user is refactoring; understand the change and rewrite the code accordingly to perform any necessary refactoring.
+- "rename": A symbol was renamed. "after" is the new name. The user is performing a rename refactor; propagate the rename to all dependent locations.
+- "copy": Code was copied. "content" is the copied text. The user intends to code using this text; implement behavior consistent with the contents of this text.
+- "reject": Your completion was rejected. "content" is the text of your rejected suggestion. Do not make the same suggestion again; instead, propose different code that diverges from this content.
+And the other parameters are defined as follows:
+- "file": "current" refers to "<CODE_INPUT>", while "external" refers to edits in an external file.
+- "lines": the line number of the edited "<CODE_INPUT>".
+Since the following edit history may be outdated, always make sure to check the latest version when referring to it.
+\`\`\`yaml
+# Since this may be outdated, you must always verify the latest state when referring to it.
+\`\`\`
+</EDIT_HISTORY>
 
-<CODE_INPUT>
-Since the following source code may be outdated, always make sure to check the latest version when referring to it.
+<OLD_CODE_INPUT>
+# VERSION: 1
+# Since the following source code may be outdated, always make sure to check the latest version when referring to it.
 {{sourceCodeBlock}}
-</CODE_INPUT>
+</OLD_CODE_INPUT>
 
 When you reach "{{stopEditingHere}}", end your output immediately without adding extra text.
 Follow typical coding style conventions for "{{languageId}}".
-Program comments must be written in "{{commentLanguage}}".{{additionalUserPrompt}}`;
+Program comments must be written in "{{commentLanguage}}".{{additionalSystemPrompt}}`;
+
+// User Prompt for completion (comment insertion mode)
+const defaultUserPrompt =
+`You will carefully review the code and insert explanatory comments without changing behavior. You will preserve all whitespace and formatting of existing code exactly. You MUST insert comments at "{{placeholder}}" exactly where required, using the correct comment syntax for "{{languageId}}" and writing in "{{commentLanguage}}".
+You will not add any executable statements. You will avoid renaming or redefining identifiers. You will prioritize annotating code located after the insertion point within the edit block, preferring the nearest statements immediately following the cursor. You will not add comments about code that is entirely above the insertion point unless it is necessary context for understanding subsequent lines. You will prefer high-signal, concise comments that explain purpose, preconditions, edge cases, complexity, side-effects, and rationale behind non-obvious logic. When appropriate, You will use idiomatic documentation forms (e.g., docstrings, JSDoc/TSDoc) and otherwise line comments near the relevant code. You will proactively reference external symbols defined in "SYMBOL_CONTEXT" to ensure accurate commentary.
+You must ensure that all inserted comments are properly line-broken, meaning they must be split at natural sentence boundaries or punctuation rather than written as long uninterrupted lines.
+You will write program comments in "{{commentLanguage}}".
+
+The provided source code may also be outdated, so You must retrieve the latest version. You am required to always refer to this latest source code.
+The retrieved latest source code is as follows:
+<LATEST_CODE_INPUT>
+# VERSION: 2
+{{latestSourceCodeBlockWithCache}}
+This latest code must be referenced, and any lines outside this range must be referenced to the original code provided by the user.
+</LATEST_CODE_INPUT>
+
+Okey, You have checked the latest source code. You MUST consult the latest source code only. If any line number matches, You MUST NOT reference or use any older version.
+You will Replace “{{placeholder}}” and insert a comment about \`\`\`{{firstLineCode}}\`\`\` immediately after it.
+You will also keep all non-comment code exactly as it is in the original.
+Each line will always be prefixed with a line number.
+You will output only the code block. {{appendOutputPrompt}}
+
+The latest cursor line is as follows:
+<LATEST_EDIT_HISTORY>
+{{lastEditHistoryCodeBlock}}
+</LATEST_EDIT_HISTORY>
+
+<LATEST_CODE_INPUT>
+# VERSION: 3
+{{latestCursorLineText}}
+</LATEST_CODE_INPUT>
+
+{{appendThinkPrompt}}{{additionalUserPrompt}}`;
 
 // Assistant thinking output Prompt for completion (comment insertion mode)
 const defaultAssistantPrompt =
-`<think>
-Okey, I will carefully review the code and insert explanatory comments without changing behavior. I will preserve all whitespace and formatting of existing code exactly. I MUST insert comments at "{{placeholder}}" exactly where required, using the correct comment syntax for "{{languageId}}" and writing in "{{commentLanguage}}".
-I will not add any executable statements. I will avoid renaming or redefining identifiers. I will prioritize annotating code located after the insertion point within the edit block, preferring the nearest statements immediately following the cursor. I will not add comments about code that is entirely above the insertion point unless it is necessary context for understanding subsequent lines. I will prefer high-signal, concise comments that explain purpose, preconditions, edge cases, complexity, side-effects, and rationale behind non-obvious logic. When appropriate, I will use idiomatic documentation forms (e.g., docstrings, JSDoc/TSDoc) and otherwise line comments near the relevant code. I will proactively reference external symbols defined in "SYMBOL_CONTEXT" to ensure accurate commentary.
-I must ensure that all inserted comments are properly line-broken, meaning they must be split at natural sentence boundaries or punctuation rather than written as long uninterrupted lines.
-I will write program comments in "{{commentLanguage}}".
+`{{additionalAssistantThinkPrompt}}{{additionalAssistantOutputPrompt}}{{assistantSourceCodeBlockBforeCursor}}`;
 
-The provided source code may also be outdated, so I must retrieve the latest version. I am required to always refer to this latest source code.
-The retrieved latest source code is as follows:
-<CODE_INPUT>
-{{latestSourceCodeBlock}}
-This latest code must be referenced, and any lines outside this range must be referenced to the original code provided by the user.
-</CODE_INPUT>
-Okey, I have checked the latest source code. Replace “{{placeholder}}” and insert a comment about {{firstLineCode}} immediately after it.
-{{appendThinkPrompt}}{{additionalAssistantThinkPrompt}}
-</think>
-
-Sure! I will output only the code block.
-I will always keep "{{stopEditingHere}}" in the same position as in the original code.
-I will also keep all non-comment code exactly as it is in the original.
-Each line will always be prefixed with a line number. {{appendOutputPrompt}}{{additionalAssistantOutputPrompt}}
-Here is the complete edited code block:
-{{assistantSourceCodeBlockBforeCursor}}`;
-
-/*
 const defaultAppendThinkPromptReject = 
 `<PROHIBITED_OUTPUT_RULES>
 The following block contains prohibited output.
@@ -117,6 +150,7 @@ If your output resembles the content below, it is considered a failure.
 \`\`\`
 </PROHIBITED_OUTPUT_RULES>`
 
+/*
 const defaultAppendOutputPromptReject = "";
 */
 
@@ -184,7 +218,7 @@ export function getYamlDefaultCommentPrompt(): YamlConfigMode {
 		systemPrompt: defaultSystemPrompt,
 		userPrompt: defaultUserPrompt,
 		assistantPrompt: defaultAssistantPrompt,
-//	appendThinkPromptReject: defaultAppendThinkPromptReject,	// Qwen3:4b-Instruct-2507 does not react to rejection almost, so omitted.
+		appendThinkPromptReject: defaultAppendThinkPromptReject,	// Qwen3:4b-Instruct-2507 does not react to rejection almost, so omitted.
 //	appendOutputPromptReject: defaultAppendOutputPromptReject,
 //	analyzeSystemPrompt: defaultAnalyzeSystemPrompt,
 //	analyzeUserPrompt: defaultAnalyzeUserPrompt
