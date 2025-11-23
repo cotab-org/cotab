@@ -11,9 +11,9 @@ import { YamlConfigMode } from '../utils/yamlConfig';
 // System Prompt for completion
 const defaultSystemPrompt =
 `You are an expert "{{languageId}}" code editor.
-Your task is to propose a minimal inline edit to improve or continue the code at the cursor.
+Your task is to complete the code at the "{{placeholder}}" location in the given code block.
 
-RULES:
+<RULES>
 - Only write code valid in "{{languageId}}".
 - Never declare or redefine any type (struct/class/enum/etc.) that already exists in the code.
 - Do not remove or rename any existing identifier.
@@ -21,21 +21,20 @@ RULES:
 - The completed code must compile or run without errors in "{{languageId}}".
 - All whitespace and formatting must remain identical to the original, except for your changes within the edit block.
 - Do not output explanations, comments, or extra text outside of code.
-- Respond with only the full edited code block.{{additionalSystemPrompt}}`;
+- Respond with only the full edited code block.{{additionalSystemPrompt}}
+</RULES>
 
-// User Prompt for completion
-const defaultUserPrompt =
-`Your task is to complete the code at the "{{placeholder}}" location in the given code block.
-Follow the instructions and write the code the user intends to write.
-Think step by step when writing the code.
-You must add code at the "{{placeholder}}" location.
-If you fail to add it, a significant penalty will be applied.
-It is important to follow "SYMBOL_RULES" and "IMPORTANT".
-The completed code must be exact and error-free.
-A single typo or formatting change can cause compilation or runtime errors.
-Unless explicitly instructed to modify other parts, output the input code exactly as provided.
+<TASK>
+- You must add code at the "{{placeholder}}" location. If you fail to add it, a significant penalty will be applied.
+- Follow the instructions and write the code the user intends to write.
+- Think step by step when writing the code.
+- It is important to follow "SYMBOL_RULES" and "IMPORTANT" (as provided by the user where applicable).
+- The completed code must be exact and error-free. A single typo or formatting change can cause compilation or runtime errors.
+- Unless explicitly instructed to modify other parts, output the input code exactly as provided.
+</TASK>
 
 <INSTRUCTIONS>
+0. Get the latest source code and don't reference the old source code.
 1. Carefully examine the input code block and understand what it is intended to do.
 2. Refer to the edit history to understand what the user has recently done.
 3. Pay close attention to the area around "{{placeholder}}" and, while considering the edit history to the fullest, deeply reason about and predict what should be written at the "{{placeholder}}" location. You must not modify already existing characters. Continue from them as they are.
@@ -89,10 +88,11 @@ Since the following edit history may be outdated, always make sure to check the 
 \`\`\`
 </EDIT_HISTORY>
 
-<CODE_INPUT>
+<OLD_CODE_INPUT>
+# VERSION: 1
 # Since the following source code may be outdated, always make sure to check the latest version when referring to it.
 {{sourceCodeBlock}}
-</CODE_INPUT>
+</OLD_CODE_INPUT>
       
 <ERROR_LIST>
 Please always make sure to check the latest version when referring to it.
@@ -105,37 +105,51 @@ When you reach "{{stopEditingHere}}", end your output immediately without adding
 Follow typical coding style conventions for "{{languageId}}".
 Program comments must be written in "{{commentLanguage}}".{{additionalUserPrompt}}`;
 
-// Assistant thinking output Prompt for completion
-const defaultAssistantPrompt =
-`<think>
-Okey, I will carefully review the code and provide a minimal inline edit to improve it. I will only modify the code within the "{{startEditingHere}}" ... "{{stopEditingHere}}" block provided in the code snippet and I will not output anything outside that block. After finishing edits within the allowed range I will always output "{{stopEditingHere}}" to indicate the end, and I will exercise maximum care to ensure I do not output outside the editable range. I will ensure the output is valid "{{languageId}}" code and free of compilation or runtime errors, and I will preserve all whitespace and formatting exactly as in the original source. That means I will not change any spaces, tabs, or line breaks when outputting the original code. I will keep indentation consistent and pay the utmost attention to the spaces, tabs, and line breaks I output. I MUST replace code with "{{placeholder}}" exactly where required.
-I will complete partially written symbol names with the names you are likely to write and I will predict and write the implementation or definition that you are likely to write in the case of a blank line. I will never modify existing characters and no matter how incomplete the code below is I will not treat characters as deleted. I will only output characters that can be inferred from the existing characters. I will actively infer and complete the remaining characters on the cursor line because it is likely the user is in the middle of typing a word, and I will perform autocomplete treating the cursor position as being within a partially typed word so I complete that incomplete word and ensure extremely high output quality. I will avoid redefining or redeclaring the same symbol name to prevent compilation errors. I will proactively reference external symbols defined in "SYMBOL_CONTEXT".
-I will improve output quality by using context-aware completions. For example, where "{{placeholder}}" appears in a scope with several classes, structs, or functions already declared, I will output an appropriate declaration such as "class Child" if the surrounding code implies a Parent/Child relationship. The same context-driven reasoning applies to variable names, control structures like if and for, and language keywords. I will treat a blank line as an intention to write new code and use the surrounding or immediately preceding code as the primary signal. For example, if an undefined variable appears nearby, I will output code that defines that variable to improve the result.
-Because "{{stopEditingHere}}" is a critical merging marker, I will take the utmost care to never output code that comes after "{{stopEditingHere}}" before emitting this marker itself. I will also prefer to use unused variables from surrounding or previous code where doing so improves quality, and even if no unused variables exist I will prioritize using variables or symbols defined immediately prior or recently used, since surrounding code is always informative. The same principle governs functions, classes, and structs. I will always check the entire source code when defining function, variable, class, or struct symbol names to ensure there are no duplicates and to avoid accidentally copying an existing definition.
-I will write program comments in "{{commentLanguage}}".
-{{thinkErrorPrompt}}
+// User Prompt for completion
+const defaultUserPrompt =
+`You will carefully review the code and provide a minimal inline edit to improve it. You will only modify the code within the "{{startEditingHere}}" ... "{{stopEditingHere}}" block provided in the code snippet and You will not output anything outside that block. After finishing edits within the allowed range You will always output "{{stopEditingHere}}" to indicate the end, and You will exercise maximum care to ensure You do not output outside the editable range. You will ensure the output is valid "{{languageId}}" code and free of compilation or runtime errors, and You will preserve all whitespace and formatting exactly as in the original source. That means You will not change any spaces, tabs, or line breaks when outputting the original code. You will keep indentation consistent and pay the utmost attention to the spaces, tabs, and line breaks You output. You MUST replace code with "{{placeholder}}" exactly where required.
+You will complete partially written symbol names with the names you are likely to write and You will predict and write the implementation or definition that you are likely to write in the case of a blank line. You will never modify existing characters and no matter how incomplete the code below is You will not treat characters as deleted. You will only output characters that can be inferred from the existing characters. You will actively infer and complete the remaining characters on the cursor line because it is likely the user is in the middle of typing a word, and You will perform autocomplete treating the cursor position as being within a partially typed word so You complete that incomplete word and ensure extremely high output quality. You will avoid redefining or redeclaring the same symbol name to prevent compilation errors. You will proactively reference external symbols defined in "SYMBOL_CONTEXT".
+You will improve output quality by using context-aware completions. For example, where "{{placeholder}}" appears in a scope with several classes, structs, or functions already declared, You will output an appropriate declaration such as "class Child" if the surrounding code implies a Parent/Child relationship. The same context-driven reasoning applies to variable names, control structures like if and for, and language keywords. You will treat a blank line as an intention to write new code and use the surrounding or immediately preceding code as the primary signal. For example, if an undefined variable appears nearby, You will output code that defines that variable to improve the result.
+Because "{{stopEditingHere}}" is a critical merging marker, You will take the utmost care to never output code that comes after "{{stopEditingHere}}" before emitting this marker itself. You will also prefer to use unused variables from surrounding or previous code where doing so improves quality, and even if no unused variables exist You will prioritize using variables or symbols defined immediately prior or recently used, since surrounding code is always informative. The same principle governs functions, classes, and structs. You will always check the entire source code when defining function, variable, class, or struct symbol names to ensure there are no duplicates and to avoid accidentally copying an existing definition.
+You will write program comments in "{{commentLanguage}}".
 
 As the provided edit history and source code may be outdated, we will obtain the latest information before making any edits.
 The retrieved latest edit history is as follows:
 <EDIT_HISTORY>
-{{editHistoryCodeBlock}}
+{{oldEditHistoryCodeBlock}}
 </EDIT_HISTORY>
 
 The retrieved latest source code is as follows:
-<CODE_INPUT>
-{{latestSourceCodeBlock}}
+<LATEST_CODE_INPUT>
+# VERSION: 2
+{{latestSourceCodeBlockWithCache}}
 # This latest code must be referenced, and any lines outside this range must be referenced to the original code provided by the user.
-</CODE_INPUT>
-{{appendThinkPrompt}}{{additionalAssistantThinkPrompt}}
-</think>
+</LATEST_CODE_INPUT>
 
-Sure! I will output only the code block. and I will not forget to also output "{{stopEditingHere}}".{{appendOutputPrompt}}{{additionalAssistantOutputPrompt}}
-Here is the complete edited code block:
-{{assistantSourceCodeBlockBforeCursor}}`;
+Okey, You have checked the latest source code and edit history. You MUST consult the latest source code only. If any line number matches, You MUST NOT reference or use any older version. {{additionalAssistantThinkPrompt}}
+You will output only the code block. and You will not forget to also output "{{stopEditingHere}}".{{appendOutputPrompt}}{{additionalAssistantOutputPrompt}}
 
-const defaultAppendThinkPromptNewScope = `Okey, I have checked the latest source code. The editing position is within an empty scope, and it is highly likely that the user intends to write new code.Therefore, I implement the new code inferred from the surrounding implementation at the editing position, without including comments. The user always wants to insert some new code.`;
-const defaultAppendThinkPromptRefactoring = `Okey, I have checked the latest source code and edit history. Since some code has been deleted or modified, I will determine the necessary refactoring based on those changes and update the existing code accordingly.`;
-const defaultAppendThinkPromptAddition = `Okey, I have checked the latest source code and edit history. Since some code has been added or modified, I will implement the remaining necessary code after \`\`\`{{cursorLineBefore}}\`\`\`.`;
+{{thinkErrorPrompt}}
+
+The latest cursor line is as follows:
+<LATEST_EDIT_HISTORY>
+{{lastEditHistoryCodeBlock}}
+</LATEST_EDIT_HISTORY>
+
+<LATEST_CODE_INPUT>
+# VERSION: 3
+{{latestCursorLineText}}
+</LATEST_CODE_INPUT>
+
+{{appendThinkPrompt}}`;
+
+// Assistant thinking output Prompt for completion
+const defaultAssistantPrompt =
+`{{assistantSourceCodeBlockBforeCursor}}`;
+
+const defaultAppendThinkPromptNewScope = `Okey, The editing position is within an empty scope, and it is highly likely that the user intends to write new code.Therefore, You implement the new code inferred from the surrounding implementation at the editing position, without including comments. The user always wants to insert some new code.`;
+const defaultAppendThinkPromptRefactoring = `Okey, Since some code has been deleted or modified, You will determine the necessary refactoring based on those changes and update the existing code accordingly.`;
+const defaultAppendThinkPromptAddition = `Okey, Since some code has been added or modified, You will implement the remaining necessary code after \`\`\`{{cursorLineBefore}}\`\`\``;
 /*
 const defaultAppendThinkPromptReject = 
 `And the user rejected the following code:
@@ -154,11 +168,11 @@ so I must output a different piece of code.`
 
 const defaultAppendThinkPromptError =
 `
-I also need to check whether there are any errors. The latest error status is as follows:
+You also need to check whether there are any errors. The latest error status is as follows:
 <ERROR_LIST>
 {{errorCodeBlock}}
 </ERROR_LIST>
-Okey, I need to fix this error.`;
+Okey, You need to fix this error`;
 
 //#######################################################################################
 // Analysis Prompts
