@@ -41,17 +41,26 @@ export function registerSuggestionCommands(disposables: vscode.Disposable[]) {
 // }
 
 function addRejectHistory(editor: vscode.TextEditor) {
+    if (! editHistoryManager) return;
+
     logDebug('******************* addRejectHistory');
 	const suggestions = getSuggestions(editor.document.uri);
-	const firstEdit = suggestions.edits[0];
-	if (editHistoryManager && firstEdit) {
+	let firstEdit = suggestions.edits[0];
+
+    // second edit if first edit void for e.g."/**"
+    if (! (/[\p{L}]/u.test(firstEdit.newText) || /[\p{L}]/u.test(firstEdit.newText)) &&
+        1 < suggestions.edits.length) {
+	    firstEdit = suggestions.edits[1];
+    }
+        
+	if (firstEdit) {
 		const document = editor.document;
 		const targetLine = firstEdit.line;
 		let originalLineText = '';
 		if (0 <= targetLine && targetLine < document.lineCount) {
 			originalLineText = document.lineAt(targetLine).text;
 		}
-		const newLineText = (firstEdit.newText ?? '').split('\n')[0] ?? '';
+		const newLineText = firstEdit.newText.split('\n')[0] ?? '';
 		const rangeLine = document.lineCount === 0
 			? 0
 			: Math.min(Math.max(targetLine, 0), Math.max(document.lineCount - 1, 0));
