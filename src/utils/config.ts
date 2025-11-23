@@ -62,7 +62,7 @@ export interface CotabConfig {
     aroundLatestAddAfterLines: number;
 
     // Code block
-    maxSymbolCount: number; // Maximum number of symbols to include in symbol code blocks
+    maxSymbolCharNum: number; // Maximum character number of symbols to include in symbol code blocks
     withLineNumber: boolean; // The number of lines to include in the line number so that llm can determine
 
     // ui
@@ -180,7 +180,7 @@ function getConfigRaw(): CotabConfig {
         aroundCacheAfterLines: cfg.get<number>('cotab.promptDetail.aroundCacheAfterLines', 15),
         aroundLatestAddBeforeLines: cfg.get<number>('cotab.promptDetail.aroundLatestAddBeforeLines', 15),
         aroundLatestAddAfterLines: cfg.get<number>('cotab.promptDetail.aroundLatestAddAfterLines', 15),
-        maxSymbolCount: cfg.get<number>('cotab.promptDetail.maxSymbolCount', 300),
+        maxSymbolCharNum: cfg.get<number>('cotab.promptDetail.maxSymbolCharNum', 3000),
         withLineNumber: true,   // line number for code block
 
         // ui

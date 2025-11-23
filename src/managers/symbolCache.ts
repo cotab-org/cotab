@@ -18,6 +18,8 @@ export interface CachedSymbol {
 
 export interface SymbolMetaInfo {
 	type: string;
+	types: string; // plural form of the word "type"
+	hasChildType: boolean;
 	name: string;
 	content: string;
 	line: number;
@@ -38,6 +40,16 @@ export interface SymbolSignatureInfo {
 export type ExtendedDocumentSymbol = vscode.DocumentSymbol & {
 	signatureInfo?: SymbolSignatureInfo;
 };
+
+function sortSymbolsRecursively(symbols: any[]): any[] {
+    const sorted = symbols.sort((a, b) => a.range.start.line - b.range.start.line);
+    for (const symbol of sorted) {
+        if (Array.isArray(symbol.children) && symbol.children.length > 0) {
+            symbol.children = sortSymbolsRecursively(symbol.children);
+        }
+    }
+    return sorted;
+}
 
 export class SymbolCacheManager {
 	private cache = new Map<string, CachedSymbol>();
@@ -65,7 +77,11 @@ export class SymbolCacheManager {
 		if (symbols && 0 < symbols.length) {				
 			logDebug(`Cached ${symbols.length} symbols for ${uriString} (${doc.languageId})`);
 		}
-		const basicSymbol: CachedSymbol = {
+		
+		// sort line
+		const sortedSymbols = sortSymbolsRecursively(symbols);
+
+		const cachedSymbol: CachedSymbol = {
 			filePath: uri.fsPath,
 			fileName: path.basename(uri.fsPath),
 			extname: path.extname(uri.fsPath).slice(1),
@@ -73,11 +89,11 @@ export class SymbolCacheManager {
 			documentUri: uriString,
 			languageId: doc.languageId,
 			version: doc.version,
-			symbols: (symbols && 0 < symbols.length) ? symbols : [],
+			symbols: (sortedSymbols && 0 < sortedSymbols.length) ? sortedSymbols : [],
 			cachedAt: Date.now(),
 			lastAccessed: Date.now()
 		};
-		this.cache.set(uriString, basicSymbol);
+		this.cache.set(uriString, cachedSymbol);
 		this.updateAccessOrder(uriString);
 	}
 
@@ -238,7 +254,7 @@ export class SymbolCacheManager {
 				const codeBlockRegex = /```[\w+-]*\n([\s\S]*?)```/g;
 				while ((match = codeBlockRegex.exec(entry.text))) {
 					definition = match[1].replace(/\r?\n/g, '\n').trim();
-					definition = definition.replace(/^\(.*?\)\s*/g, '');	// remove status in "(loading...) symbolname" format.
+					definition = definition.replace(/^(\(.*?\)\s*)+/g, '');	// remove status in "(loading...) symbolname" format.
 					break;
 				}
 

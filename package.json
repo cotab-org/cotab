@@ -291,10 +291,10 @@
           "description": "End line of surrounding code for latest utilization.\nfinal latest lins is aroundAfterLines + aroundLatestAddAfterLines",
           "order": 410
         },
-        "cotab.promptDetail.maxSymbolCount": {
+        "cotab.promptDetail.maxSymbolCharNum": {
           "type": "number",
-          "default": 300,
-          "description": "Maximum number of symbols to include in symbol code blocks",
+          "default": 3000,
+          "description": "Maximum character number of symbols to include in symbol code blocks",
           "order": 411
         },
         "cotab.detail.logLevel": {

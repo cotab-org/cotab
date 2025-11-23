@@ -211,6 +211,8 @@ export function getYamlDefaultCodingPrompt(): YamlConfigMode {
 	return {
 		mode: 'Coding',
 		extensions: ['*'],
+		placeholderSymbol: "<|INSERT_CODE_COMPLETION_STARTING|>",
+		isNoInsertStartStopSymbol: true,
 		systemPrompt: defaultSystemPrompt,
 		userPrompt: defaultUserPrompt,
 		assistantPrompt: defaultAssistantPrompt,

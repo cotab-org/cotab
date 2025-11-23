@@ -212,6 +212,8 @@ function convertSymbolsToMetaInfo(symbols: vscode.DocumentSymbol[]): SymbolMetaI
 	for (const symbol of symbols) {
 		const metaInfo: SymbolMetaInfo = {
 			type: getSymbolType(symbol.kind),
+			types: getSymbolTypes(symbol.kind),
+			hasChildType: hasSymbolChild(symbol.kind),
 			name: symbol.name,
 			content: symbol.name,
 			line: symbol.range.start.line, // 0-based line numbers
@@ -235,46 +237,195 @@ function convertSymbolsToMetaInfo(symbols: vscode.DocumentSymbol[]): SymbolMetaI
 	
 	return result;
 }
+// type definition for meta information tree structure
+type MetaTreeNode = {
+	content: string;
+	children?: MetaTree;
+};
+type MetaTreeEntry = {
+	type: string;
+	nodes: MetaTreeNode[];
+};
+type MetaTree = MetaTreeEntry[];
 
-	/**
-	 * Convert meta information to string format
-	 */
-function formatMetaInfoAsString(metaInfo: SymbolMetaInfo[], maxCount: number, indent: string = ''): {
-	yaml: string;
-	count: number;
-} {
-	let yaml = '';
-	let count = 0;
-	
-	for (const info of metaInfo) {
-		if (maxCount <= count) break;
-
-		//result += `${indent}${info.type}: ${info.name} [${info.line}:${info.column}]\n`;
-		yaml += `${indent}- ${info.type}: ${info.content}\n`;
-		count++;
-		
-		if (info.children && 0 < info.children.length) {
-			const leftCount = maxCount - count;
-			const { yaml: result, count: n } = formatMetaInfoAsString(info.children, leftCount, indent + '  ');
-			yaml += result + '\n';
-			count += n;
-		}
+// Version of sortMetaInfo corrected
+function makeMetaTree(metaInfo?: SymbolMetaInfo[]): MetaTree | undefined {
+	if (!metaInfo || metaInfo.length === 0) {
+		return undefined;
 	}
 
-			// Remove final newline
-	yaml = yaml.replace(/\n$/, '');
+	const metaTree: MetaTree = [];
 
-	return { yaml, count };
+	for (const info of metaInfo) {
+		if (info.content === '') continue;
+
+		// find or create entry
+		let typeEntry = metaTree.find((entry) => entry.type === info.types);
+		if (!typeEntry) {
+			typeEntry = {
+				type: info.types,
+				nodes: []
+			};
+			metaTree.push(typeEntry);
+		}
+
+		// check existing
+		if (typeEntry.nodes.some(node => node.content === info.content)) {
+			continue;
+		}
+
+		typeEntry.nodes.push({
+			content: info.content,
+			children: info.hasChildType ? makeMetaTree(info.children) : undefined // Recursive call to create child nodes
+		});
+	}
+
+	return (0 < metaTree.length) ? metaTree : undefined;
 }
 
-export function getSymbolYaml(cachedSymbol: CachedSymbol, maxCount: number): {
+// Revised version of formatMetaInfoAsString
+function formatMetaInfoAsString(
+	metaInfo: SymbolMetaInfo[],
+	remaining: number,
+	indent: string = ''
+): { yaml: string; useCharCount: number } {
+
+	const metaTree = makeMetaTree(metaInfo);
+	if (!metaTree) return { yaml: '', useCharCount: 0 };
+
+	// Recursively traverse the tree to generate YAML helper
+	const traverse = (
+		metaTree: MetaTree | undefined,
+		outerContents: string[],
+		indent: string,
+		remaining: number
+	): { yaml: string; useCharCount: number } => {
+		let yaml = '';
+		let useCharCount = 0;
+
+		if (!metaTree) return { yaml, useCharCount };
+		for (const { type, nodes } of metaTree) {
+			let isFirst = true;
+			for (const node of nodes) {
+				let typesLine = '';
+				if (isFirst) {
+					isFirst = false;
+					typesLine = `${indent}${type}:\n`;
+				}
+
+				const memberIndent = `  ${indent}`;
+
+				const removedHeadkeyword = removeHeadKeyword(node.content.replace(/\r?\n/g, ''));
+				const lineContent = removeOuterScope(outerContents, removedHeadkeyword);
+				const line = `${memberIndent}- ${lineContent}\n`;
+				if (remaining < useCharCount + line.length + typesLine.length) {
+					continue;
+				}
+
+				// Append one line
+				yaml += typesLine;
+				yaml += line;
+				useCharCount += line.length;
+
+				// If child nodes exist, process them recursively
+				if (node.children && node.children.length > 0) {
+					const left = remaining - useCharCount;
+					const { yaml: childYaml, useCharCount: childCnt } =
+						traverse(node.children,
+							[...outerContents, lineContent],
+							memberIndent + '  ',
+							left);
+					yaml += childYaml;
+					useCharCount += childCnt;
+				}
+			}
+		}
+
+		return { yaml, useCharCount };
+	};
+
+	const result = traverse(metaTree, [], indent, remaining);
+
+	// Remove trailing whitespace newline
+	const finalYaml = result.yaml.replace(/\n$/, '');
+
+	return { yaml: finalYaml, useCharCount: result.useCharCount };
+}
+
+export function getSymbolYaml(cachedSymbol: CachedSymbol, maxCharCount: number): {
 	codeBlock: string;
-	count: number;
+	useCharCount: number;
 } {
 	const metaInfo = convertSymbolsToMetaInfo(cachedSymbol.symbols);
-	const { yaml, count } = formatMetaInfoAsString(metaInfo, maxCount);
+	const { yaml, useCharCount } = formatMetaInfoAsString(metaInfo, maxCharCount);
 	const codeBlock = `# ${cachedSymbol.relativePath}\n${yaml}`;
-	return { codeBlock, count };
+	return { codeBlock, useCharCount: useCharCount };
+}
+
+// Language specific leading keywords to strip (case-insensitive)
+const KEYWORDS = [
+	'export', 'declare', 'default',
+	'interface', 'type', 'enum', 'class',
+	'function', 'namespace', 'module',
+	'var', 'let', 'const',
+	'import', 'from', 'as',
+	'const', 'let', 'var',
+	'public', 'private', 'protected',
+	'static', 'async', 'await',
+	'get', 'set',
+	'yield', 'break', 'continue',
+	'throw', 'try', 'catch', 'finally',
+	'if', 'else', 'for', 'while',
+	'switch', 'case', 'default',
+	'do', 'with', 'typeof',
+	'new', 'this', 'super',
+	'extends', 'implements', 'interface',
+	'package', 'protected', 'private',
+	'public', 'abstract', 'final',
+	'static', 'synchronized', 'volatile'
+];
+
+// remove head keyword
+const LEADING_KEYWORD_REGEX = new RegExp(`^(?:${KEYWORDS.join('|')})\\b`, 'i');
+
+function removeHeadKeyword(content: string): string {
+	// Trim whitespace at both ends
+	let result = content.trim();
+
+	while (true) {
+		const match = result.match(LEADING_KEYWORD_REGEX);
+		if (!match) {
+			break;
+		}
+
+		result = result.slice(match[0].length).trimStart();
+	}
+
+	return result;
+}
+
+function removeOuterScope(outerContents: string[], content: string): string {
+    // Return unchanged if there is no parent scope information
+    if (!outerContents || outerContents.length === 0) {
+        return content;
+    }
+
+    // Escape RegExp meta‑characters in each parent scope string to safely build a pattern
+    const escaped = outerContents.map(name =>
+        name.replace(/[\\^$.*+?()\[\]{}|]/g, '\\$&')
+    );
+
+    // Separator pattern that matches a dot (.) or double colon (::)
+    const sep = '(?:\\.|::)';
+
+    // Build a regex that matches the outer‑scope prefix at the start of the string.
+    // It allows any combination of "." or "::" between each segment and an optional
+    // trailing connector after the last segment.
+    const prefixPattern = '^' + escaped.join(sep) + '(?:' + sep + ')?';
+    const regex = new RegExp(prefixPattern);
+
+    // Remove the outer scope prefix if present
+    return content.replace(regex, '');
 }
 
 /**
@@ -309,6 +460,51 @@ function getSymbolType(kind: vscode.SymbolKind): string {
 		case vscode.SymbolKind.Operator: return 'Operator';
 		case vscode.SymbolKind.TypeParameter: return 'TypeParameter';
 		default: return 'Unknown';
+	}
+}
+function hasSymbolChild(kind: vscode.SymbolKind): boolean {
+	switch (kind) {
+		case vscode.SymbolKind.Class:
+		case vscode.SymbolKind.Interface:
+		case vscode.SymbolKind.Namespace:
+		case vscode.SymbolKind.Module:
+		case vscode.SymbolKind.Package:
+		case vscode.SymbolKind.Struct:
+		case vscode.SymbolKind.Enum:
+			return true;
+		default:
+			return false;
+	}
+}
+function getSymbolTypes(kind: vscode.SymbolKind): string {
+	switch (kind) {
+		case vscode.SymbolKind.File: return 'files';
+		case vscode.SymbolKind.Module: return 'modules';
+		case vscode.SymbolKind.Namespace: return 'namespaces';
+		case vscode.SymbolKind.Package: return 'packages';
+		case vscode.SymbolKind.Class: return 'classes';
+		case vscode.SymbolKind.Method: return 'methods';
+		case vscode.SymbolKind.Property: return 'properties';
+		case vscode.SymbolKind.Field: return 'fields';
+		case vscode.SymbolKind.Constructor: return 'constructors';
+		case vscode.SymbolKind.Enum: return 'enums';
+		case vscode.SymbolKind.Interface: return 'interfaces';
+		case vscode.SymbolKind.Function: return 'functions';
+		case vscode.SymbolKind.Variable: return 'variables';
+		case vscode.SymbolKind.Constant: return 'constants';
+		case vscode.SymbolKind.String: return 'strings';
+		case vscode.SymbolKind.Number: return 'numbers';
+		case vscode.SymbolKind.Boolean: return 'booleans';
+		case vscode.SymbolKind.Array: return 'arrays';
+		case vscode.SymbolKind.Object: return 'objects';
+		case vscode.SymbolKind.Key: return 'keys';
+		case vscode.SymbolKind.Null: return 'nulls';
+		case vscode.SymbolKind.EnumMember: return 'enumMembers';
+		case vscode.SymbolKind.Struct: return 'structs';
+		case vscode.SymbolKind.Event: return 'events';
+		case vscode.SymbolKind.Operator: return 'operators';
+		case vscode.SymbolKind.TypeParameter: return 'typeParameters';
+		default: return 'unknowns';
 	}
 }
 

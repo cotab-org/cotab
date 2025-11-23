@@ -21,6 +21,14 @@ interface PromptCache {
 const promptCache = new Map<string, PromptCache>();
 const CACHE_DURATION = 5 * 60 * 1000; // Cache for 5 minutes
 
+// Prompt cache for cursor line position
+interface CursorLineCache {
+	documentUri: string;
+	cursorLine: number;
+	text: string;
+};
+
+let cursorLineCache: CursorLineCache | undefined = undefined;
 
 // Function to get inputCode from cache
 function getCachedInputCodeInternal(
@@ -275,6 +283,8 @@ ${cachedSourceCodeWithLine}
 						editorContext.cursorLine, (cursorAlwaysHead) ? 0 :editorContext.cursorCharacter, editorContext.aroundFromLine,
 						placeholder);
 	const aroundSnippetWithPlaceholderWithLine = withLineNumberCodeBlock(aroundSnippetWithPlaceholder, editorContext.aroundFromLine).CodeBlock;
+	let aroundSnippetWithPlaceholderWithLineWithCache = aroundSnippetWithPlaceholderWithLine;
+	let latestCursorLineText = '';
 	
 	// Whether to make code up to cursor position column already output to Assistant
 	// Note: Can guarantee characters before cursor but can't complete at positions before cursor.
@@ -292,6 +302,31 @@ ${cachedSourceCodeWithLine}
 	//###########################
 	// latest source code block
 	//###########################
+	// apply cursor line cache
+	{
+		const tmpLines = aroundSnippetWithPlaceholderWithLine.split('\n')
+		const tmpCursorIdx = editorContext.cursorLine - editorContext.aroundFromLine;
+		latestCursorLineText = tmpLines[tmpCursorIdx];
+
+		// check valid cursor line cache
+		if (cursorLineCache) {
+			if (cursorLineCache.documentUri !== editorContext.documentUri ||
+				cursorLineCache.cursorLine !== editorContext.cursorLine) {
+				cursorLineCache = undefined;
+			}
+		}
+
+		if (cursorLineCache) {
+			tmpLines[tmpCursorIdx] = cursorLineCache.text;
+			aroundSnippetWithPlaceholderWithLineWithCache = tmpLines.join('\n');
+		} else {
+			cursorLineCache = {
+				documentUri: editorContext.documentUri,
+				cursorLine: editorContext.cursorLine,
+				text: latestCursorLineText
+			};
+		}
+	}
 //===============================================
 const latestSourceCode =
 //===============================================
@@ -311,6 +346,28 @@ const latestSourceCodeBlock =
 //===============================================
 `\`\`\`${editorContext.languageId} title=${editorContext.relativePath}
 ${latestSourceCode}
+\`\`\``;
+//===============================================
+
+//===============================================
+const latestSourceCodeWithCache =
+//===============================================
+`
+// ... existing code ...
+
+${latestBeforeOutsideLastWithLine}${(yamlConfigMode.isNoInsertStartStopSymbolLatest) ? '' : ('\n'+startEditingHereSymbol)}
+${aroundSnippetWithPlaceholderWithLineWithCache}${(yamlConfigMode.isNoInsertStartStopSymbolLatest) ? '' : ('\n'+stopEditingHereSymbol)}
+${latestAfterOutsideFirstWithLine}
+
+// ... existing code ...
+`;
+//===============================================
+
+//===============================================
+const latestSourceCodeBlockWithCache =
+//===============================================
+`\`\`\`${editorContext.languageId} title=${editorContext.relativePath}
+${latestSourceCodeWithCache}
 \`\`\``;
 //===============================================
 
@@ -365,9 +422,13 @@ ${cursorLineBefore}`;
 		// Code blocks
 		"sourceCodeBlock": sourceCodeBlock,
 		"symbolCodeBlock": codeBlocks.symbolCodeBlock,
-		"editHistoryCodeBlock": makeYamlFromEditHistoryActions(codeBlocks.editHistoryActions??[]),
+		"editHistoryCodeBlock": makeYamlFromEditHistoryActions(codeBlocks.editHistoryActions),
+		"oldEditHistoryCodeBlock": makeYamlFromEditHistoryActions(codeBlocks.editHistoryActions.slice(0, -1)),
+		"lastEditHistoryCodeBlock": makeYamlFromEditHistoryActions(codeBlocks.editHistoryActions.slice(-1)),
 		"sourceAnalysis": codeBlocks.sourceAnalysis,
 		"latestSourceCodeBlock": latestSourceCodeBlock,
+		"latestSourceCodeBlockWithCache": latestSourceCodeBlockWithCache,
+		"latestCursorLineText": latestCursorLineText,
 		"aroundSnippetWithPlaceholderWithLine": aroundSnippetWithPlaceholderWithLine,
 		"latestAfterOutsideFirstWithLine": latestAfterOutsideFirstWithLine,
 		"assistantSourceCodeBlockBforeCursor": assistantSourceCodeBlockBforeCursor,

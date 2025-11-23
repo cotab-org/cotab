@@ -172,7 +172,7 @@ class CodeBlockBuilder {
 
 		const config = getConfig();
 		let symbolCodeBlocks: string[] = [];
-		let symbolTotalCount = 0;
+		let charTotalCount = 0;
 		for (const cachedSymbol of cachedSymbols) {
 			if (cachedSymbol.symbols.length === 0) continue;
 
@@ -188,16 +188,16 @@ class CodeBlockBuilder {
 					continue;
 				}
 			}
-			const { codeBlock, count: symbolCount } = getSymbolYaml(cachedSymbol, config.maxSymbolCount);
+			const { codeBlock, useCharCount: charCount } = getSymbolYaml(cachedSymbol, config.maxSymbolCharNum);
 
-			if (config.maxSymbolCount < symbolTotalCount + symbolCount) {
+			if (config.maxSymbolCharNum < charTotalCount + charCount) {
 				break;
 			}
 			symbolCodeBlocks.push(codeBlock);
-			symbolTotalCount += symbolCount;
+			charTotalCount += charCount;
 		}
 		
-		logInfo(`Symbols: ${cachedSymbols.length} files, ${symbolTotalCount} symbols`);
+		logInfo(`Symbols: ${cachedSymbols.length} files, ${charTotalCount} symbols`);
 
 		const totalCodeBlock = symbolCodeBlocks
 			.map(block =>
