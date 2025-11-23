@@ -108,6 +108,9 @@ class CodeBlockBuilder {
 		token: vscode.CancellationToken,
 		checkAborted?: () => boolean
 	): Promise<string> {
+		if (! getConfig().enableCodeSummary) {
+			return 'The source code has no summary.';
+		}
 		// Get description of entire source on first run
 		const cachedAnalysis = this.sourceAnalysisCache.get(editorContext.documentUri);
 

@@ -63,6 +63,7 @@ export interface CotabConfig {
 
     // Code block
     maxSymbolCharNum: number; // Maximum character number of symbols to include in symbol code blocks
+    enableCodeSummary: boolean; // Enable source code summary feature
     withLineNumber: boolean; // The number of lines to include in the line number so that llm can determine
 
     // ui

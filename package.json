@@ -297,6 +297,12 @@
           "description": "Maximum character number of symbols to include in symbol code blocks",
           "order": 411
         },
+        "cotab.promptDetail.enableCodeSummary": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable source code summary feature.\nIf enabled, the source code will be summarized and included in the prompt.",
+          "order": 412
+        },
         "cotab.detail.logLevel": {
           "type": "string",
           "enum": [
