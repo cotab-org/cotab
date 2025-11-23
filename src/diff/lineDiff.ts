@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { EditorContext } from '../utils/editorContext';
 import { YamlConfigMode } from '../utils/yamlConfig';
+import { computeCharDiff } from './charDiff';
 import { LineDiff, computeLineDiff, diffOperationsToLineEdits, processMaxLinesDiffOperations } from './lineDiffUtils';
 import { preprocessLLMOutput } from './lineDiffUtils';
 import { LineEdit } from '../suggestion/suggestionStore';
@@ -212,6 +213,44 @@ export function processDiffAndApplyEdits(
         originalIndex: op.originalIndex !== undefined ? op.originalIndex + baseLine : undefined,
         newIndex: op.newIndex !== undefined ? op.newIndex + baseLine : undefined,
     }));
+
+    /**
+     * If there is no stop symbol, insertion cannot be correctly detected.
+     * Even then, the system treats only the first line as a valid line to capture as much AI output as possible.
+     * As a result, the first line that should be inserted is mistakenly considered a replace,
+     * causing it to delete a line that shouldn't be removed.
+     * Because Diff lacks information for subsequent lines, we treat this as an insertion under conditions where major issues are unlikely.
+     */
+    if (! isStopedSymbol &&
+        edits.length > 0 &&
+        edits[0].type === 'change' &&
+        newLinesNonLast.length > 0) {
+        const newText = edits[0].newText.trim();
+        const orgText = documentTexts[edits[0].line].trim();
+        if (0 < orgText.length) {
+            const segs = computeCharDiff(orgText, newText);
+            // countup delete
+            let deleteCount = 0;
+            let deleteLength = 0;
+            let isInsertionJudgment = false;
+            for (const seg of segs) {
+                if (seg.type === 'delete') {
+                    deleteLength += (seg.delete??0);
+                    deleteCount++;
+                    
+                    if (deleteLength === orgText.length ||
+                        (deleteLength / orgText.length) >= 0.5) {
+                        isInsertionJudgment = true;
+                    }
+                }
+            }
+
+            // 
+            if (isInsertionJudgment) {
+                edits[0].type = 'add';
+            }
+        }
+    }
 
     // Calculate final line number (baseLine + processed lines)
     const finalLineNumber = baseLine + newLinesNonLast.length - 1;
