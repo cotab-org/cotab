@@ -5,7 +5,7 @@ It generates multiple lines of code using AI based not only on the entire file�
 
 ## Autocomplete
 ![Autocomplete Demo](doc/asset/cotab-tutorial-autocomplete1.gif)
-The supported programming languages ​​depend on the AI ​​model (default: Qwen3-4b-2507), but despite its compact size it effectively supports many languages.
+The programming languages supported depend on the AI model. Despite its compact size, the default model Qwen3-4b-2507 supports many languages.
 
 ## Auto Comment Mode
 ![Comment Demo](doc/github-asset/cotab-demo-comment.gif)
@@ -16,13 +16,13 @@ A dedicated mode that adds code comments. The AI understands the code at the cur
 A translation-only mode. It automatically translates comments in unfamiliar languages, making code easier to understand.
 
 ## Feature
+- Prioritizes privacy, operates completely offline using local LLM
 - Provides functionality focused solely on inline suggestions
 - Suggests not only inline completion from cursor position, but also multi-line edits
 - Provides suggestions considering the entire content of target files, symbols from other files, and edit history
 - Offers fast response optimized for llama-server
 - There are also modes for Auto Comment and Auto Translate.
 - Open source ensuring transparency
-- Prioritizes privacy, operates completely offline using local LLM
 
 ## Getting started
 1. Install Cotab via the VS Code marketplace
