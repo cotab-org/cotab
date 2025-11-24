@@ -287,20 +287,54 @@ ${block.replace(/```/g, '\\`\\`\\`')}
 		const diagnosticsMap = diagnosticsManager.getErrors(editorContext.document, currentCursorLine);
 		if (!diagnosticsMap || diagnosticsMap.size === 0) return '';
 
-		let yaml = '';
-		for(const [uri, diagnostics] of diagnosticsMap) {
-			const isCurrent = editorContext.documentUri === uri.toString();
+		let addIdx = 0;
+		const sortedErrorList: [Number, string, vscode.Diagnostic][] = [];
+		// first: current file
+		if (diagnosticsMap.has(editorContext.documentUri)) {
+			const diagnostics = diagnosticsMap.get(editorContext.documentUri)!;
+			// sorted from cursor line 
+			const sortedFromCursorLine = diagnostics.sort((a, b) => {
+				const aFromCursor = Math.abs(a.range.start.line - currentCursorLine);
+				const bFromCursor = Math.abs(b.range.start.line - currentCursorLine);
+				return aFromCursor - bFromCursor;
+			});
+			for (const diag of sortedFromCursorLine) {
+				sortedErrorList.push([addIdx++, editorContext.documentUri, diag]);
+			}
+		}
+		// then: other files
+		for (const [documentUri, diagnostics] of diagnosticsMap) {
+			if (documentUri === editorContext.documentUri) continue;
 			for (const diag of diagnostics) {
-				
-				// ignore cannot open source file. because referencing libraries etc. always causes this.
-				if (diag.message.includes('cannot open source file')) continue;
+				sortedErrorList.push([addIdx++, documentUri, diag]);
+			}
+		}
 
-				yaml += `- file: ${isCurrent ? 'current' : 'other'}\n`;
-				yaml += `  message: ${diag.message}\n`;
-				if (isCurrent) {
-					yaml += `  line: ${diag.range.start.line + 1}\n`;
-				}
-			};
+		// top 6
+		const topDiags = sortedErrorList.slice(0, 6);
+
+		// sort
+		const sortedTopDiags = topDiags.sort((a, b) => {
+			if (a[1] === b[1] && a[1] === editorContext.documentUri) {
+				return a[2].range.start.line - b[2].range.start.line;
+			}
+			else {
+				return (a[0] as number) - (b[0] as number);
+			}
+		});
+		let yaml = '';
+		for(const [_, uri, diag] of sortedTopDiags) {
+			const isCurrent = editorContext.documentUri === uri.toString();
+
+			// ignore cannot open source file. because referencing libraries etc. always causes this.
+			if (diag.message.includes('cannot open source file')) continue;
+			if (diag.message.includes('#include errors detected')) continue;
+
+			yaml += `- file: ${isCurrent ? 'current' : 'other'}\n`;
+			yaml += `  message: ${diag.message}\n`;
+			if (isCurrent) {
+				yaml += `  line: ${diag.range.start.line + 1}\n`;
+			}
 		}
 		if (yaml === '') return '';
 		

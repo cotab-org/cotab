@@ -11,7 +11,7 @@ export let diagnosticsManager: DiagnosticsManager;
 interface DiagnosticsCache {
     lastUpdated: number;
     lastAccessed: number;
-    diagnosticsMap: Map<vscode.Uri, vscode.Diagnostic[]>;
+    diagnosticsMap: Map<string, vscode.Diagnostic[]>;
 }
 
 class DiagnosticsManager implements vscode.Disposable {
@@ -26,7 +26,7 @@ class DiagnosticsManager implements vscode.Disposable {
         this.cache = undefined;
     }
     
-    public getErrors(document: vscode.TextDocument, line: number): Map<vscode.Uri, vscode.Diagnostic[]> {
+    public getErrors(document: vscode.TextDocument, line: number): Map<string, vscode.Diagnostic[]> {
         // Check if the cached diagnostics are still valid (based on version or timestamp)
         if (this.cache && (Date.now() - this.cache.lastUpdated < 1000)) {
             return this.cache.diagnosticsMap;
@@ -37,7 +37,7 @@ class DiagnosticsManager implements vscode.Disposable {
         const startLine = Math.max(line - 0, 0);
         const endLine = line + 3;
         
-        let diagnosticsMap = new Map<vscode.Uri, vscode.Diagnostic[]>();
+        let diagnosticsMap = new Map<string, vscode.Diagnostic[]>();
         for (const [uri, diagnotics] of diagnosticsAll) {
             // Check same document language
             const diagnosticsDocument = vscode.workspace.textDocuments.find((doc) => doc.uri.toString() === uri.toString());
@@ -54,7 +54,7 @@ class DiagnosticsManager implements vscode.Disposable {
                 
                 filteredDiagnostics.push(diagnotic);
             }
-            diagnosticsMap.set(uri, filteredDiagnostics);
+            diagnosticsMap.set(uri.toString(), filteredDiagnostics);
         }
         
         // Set cache
