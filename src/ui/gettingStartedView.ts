@@ -313,6 +313,10 @@ function getHtml(params: {
             flex-direction: column;
             gap: 32px;
         }
+        .setup-card--hero .helper-text {
+            font-size: 14px;
+            text-align: center;
+        }
         .setup-card__content-block {
             width: clamp(280px, 100%, 840px);
             margin: 0 auto;
@@ -574,7 +578,7 @@ function getHtml(params: {
             <div class="spacer"></div>
         </section>
         <div class="separator"></div>
-        <h3 class="center">Let’s Get Autocompleting!</h3>
+        <h3 class="center">Let's Get Autocompleting!</h3>
         <section class="setup-card setup-card--hero">
             <div class="setup-card__content-block">
                 <div class="setup-card__media">
@@ -592,6 +596,9 @@ function getHtml(params: {
                     <tr><td>Reject</td><td>Esc</td></tr>
                 </tbody>
             </table>
+            <div class="helper-text">
+                Note: By rejecting, you can change the next completion candidates.
+            </div>
         </section>
         <div class="separator"></div>
         <h3 class="center">Show This Page Again</h3>

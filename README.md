@@ -36,11 +36,14 @@ A translation-only mode. It automatically translates comments in unfamiliar lang
   
 3. Start typing!
    ![Getting started - completion](doc/github-asset/cotab-demo-completion.gif)
+   
    |Command|Keybinding|
    | ---- | ---- |
    |Accept All|Tab|
    |Accept First line|Shift + Tab|
    |Reject|Esc|
+
+   Note: By rejecting, you can change the next completion candidates.
 
 ## Important Notes
 - Requests generally involve prompts exceeding 10,000 tokens.
