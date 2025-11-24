@@ -1,10 +1,10 @@
-## 0.1.0 - 2025/11/24
+## 0.1.0 - 2025/11/25
+- Change: llama.cpp install path. (llama-cpp -> llama.cpp)
 - Update: Significant quality improvement of coding, comment and translate.
 - Support: Large file completion.
 - Add: Use error problems for coding prompt.
 - Add: no italic, temperature. Update: Comment Prompt
 - Add: Disabled code summary.
-- Change: llama.cpp install path. (llama-cpp -> llama.cpp)
 - Fix: Flickering issue with overlay display
 - Fix: Local server dose not stop when vscode is closed.
 - Fix: Display icon of Server status bug
