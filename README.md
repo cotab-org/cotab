@@ -45,8 +45,7 @@ A translation-only mode. It automatically translates comments in unfamiliar lang
 
    Note:
    - By rejecting, you can change the next completion candidates.
-   - italic display overlay means the AI is still outputting the result and the result has not been determined yet.
-   - In most cases, it is the same as the final result, but in the case of italic display, there may be problems with the merge result.
+   - Italic display overlay means the AI is still outputting the result and the result has not been determined yet. In most cases, it is the same as the final result, but in the case of italic display, there may be problems with the merge result.
 
 ## Important Notes
 - Requests generally involve prompts exceeding 10,000 tokens.
