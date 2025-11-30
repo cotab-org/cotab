@@ -7,7 +7,7 @@ import { logDebug, logError } from './logger';
 import { getConfig } from './config';
 import { getYamlDefaultCodingPrompt } from '../llm/defaultCodingPrompts';
 import { getYamlDefaultCommentPrompt } from '../llm/defaultCommentPrompts';
-import { getYamlDefaultTranslatePrompt } from '../llm/defaultTranslationPrompts';
+import { getYamlDefaultTranslatePrompt, getYamlDefaultTextTranslatePrompt } from '../llm/defaultTranslationPrompts';
 import { getYamlDefaultProofreadingPrompt } from '../llm/defaultProofreadingPrompts';
 import { getYamlDefaultBusinessChatPrompt } from '../llm/defaultBusinessChatPrompts';
 
@@ -122,6 +122,14 @@ export interface YamlConfigMode {
 }
 
 export interface YamlConfig {
+    // Order of display modes in the UI; defines the sequence in which prompt modes are presented to users.
+    orderDisplayModes?: string[];
+
+    // List of mode names to disable;
+    // if a mode's name is in this list, it will be excluded from the active modes list
+    diableModes?: string[];
+
+    // Declare the array of prompt modes that define behavior for different file types and editing scenarios
     modes: YamlConfigMode[];
 }
 
@@ -180,14 +188,22 @@ export function getYamlConfig(): YamlConfig {
         const readYamlConfig = parse(readYamlContent) as YamlConfig;
 
         // Merge the prompt configurations from the YAML file into the default config
-        const yamlConfig = getDefaultYamlConfig();
-        for (const readMode of readYamlConfig.modes) {
-            const modeIndex = yamlConfig.modes.findIndex(m => m.mode === readMode.mode);
-            if (modeIndex !== -1) {
-                yamlConfig.modes[modeIndex] = { ...yamlConfig.modes[modeIndex], ...readMode };
-            } else {
-                yamlConfig.modes.push({ ...readMode });
-            }
+        const defaultYamlConfig = getDefaultYamlConfig();
+
+        const yamlConfig = readYamlConfig;
+        if (! yamlConfig.orderDisplayModes) {
+            yamlConfig.orderDisplayModes = defaultYamlConfig.orderDisplayModes;
+        }
+        if (! yamlConfig.diableModes) {
+            yamlConfig.diableModes = defaultYamlConfig.diableModes;
+        }
+        yamlConfig.modes.push(...defaultYamlConfig.modes);
+
+        // remove disable entry
+        if (yamlConfig.diableModes && yamlConfig.diableModes.length > 0) {
+            yamlConfig.modes = yamlConfig.modes.filter(
+                m => !yamlConfig.diableModes!.includes(m.mode)
+            );
         }
         
         // Trigger config change callback if file has been modified since last cache
@@ -238,25 +254,46 @@ export function getYamlConfig(): YamlConfig {
 }
 
 function getDefaultYamlConfig(): YamlConfig {
+    const modes: YamlConfigMode[] = [
+        getYamlDefaultCodingPrompt(),
+        getYamlDefaultCommentPrompt(),
+        getYamlDefaultTextTranslatePrompt(),    // specific plaintext
+        getYamlDefaultTranslatePrompt(),
+        getYamlDefaultProofreadingPrompt(),
+        getYamlDefaultBusinessChatPrompt(),
+    ];
+    // make orderDisplayModes
+    const orderDisplayModes: string[] = [];
+    for (const mode of modes) {
+        if (!orderDisplayModes.includes(mode.mode)) {
+            orderDisplayModes.push(mode.mode);
+        }
+    }
     return {
-        modes: [
-            getYamlDefaultCodingPrompt(),
-            getYamlDefaultCommentPrompt(),
-            getYamlDefaultTranslatePrompt(),
-            getYamlDefaultProofreadingPrompt(),
-            getYamlDefaultBusinessChatPrompt(),
-        ]
+        orderDisplayModes,
+        modes
     };
 }
-
 export function getYamlConfigPromptModes(): string[] {
+    const yamlConfig = getYamlConfig();
     let modes: string[] = [];
-    for (const mode of getYamlConfig().modes) {
+    for (const mode of yamlConfig.modes) {
         if (mode.mode) {
             if (!modes.includes(mode.mode)) {
                 modes.push(mode.mode);
             }
         }
+    }
+    // sort
+    if (yamlConfig.orderDisplayModes && yamlConfig.orderDisplayModes.length > 0) {
+        modes.sort((a, b) => {
+            const indexA = yamlConfig.orderDisplayModes!.indexOf(a);
+            const indexB = yamlConfig.orderDisplayModes!.indexOf(b);
+            if (indexA === -1 && indexB === -1) return 0;
+            if (indexA === -1) return 1;
+            if (indexB === -1) return -1;
+            return indexA - indexB;
+        });
     }
     return modes;
 }
