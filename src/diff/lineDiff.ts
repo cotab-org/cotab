@@ -181,20 +181,32 @@ export function processDiffAndApplyEdits(
     const filteredOps: LineDiff[] = [];
     let foundChange = false;
     let foundKeepAfterChange = false;
-    for (const op of diffOpsNoChecked) {
-        if (op.type === 'keep') {
-            if (foundChange) {
-                foundKeepAfterChange = true;
-                break;
-            }
-        }
-        else {
-            foundChange = true;
+    //if (yamlConfigMode.isNoCheckStopSymbol)
+    if (false)  // @todo because buildSvgDataUriWithShiki is not supported sepalated line
+    {
+        for (const op of diffOpsNoChecked) {
             filteredOps.push(op);
         }
     }
+    else {
+        for (const op of diffOpsNoChecked) {
+            if (op.type === 'keep') {
+                if (foundChange) {
+                    foundKeepAfterChange = true;
+                    break;
+                }
+            }
+            else {
+                foundChange = true;
+                filteredOps.push(op);
+            }
+        }
+    }
 
-    let trimmedOps = (foundKeepAfterChange && !isStopedExistingComment) ? filteredOps : processMaxLinesDiffOperations(filteredOps, origLines);
+    let trimmedOps = (foundKeepAfterChange &&
+                            ! isStopedExistingComment 
+                            // &&  ! yamlConfigMode.isNoCheckStopSymbol  // @todo because buildSvgDataUriWithShiki is not supported sepalated line
+                        ) ? filteredOps : processMaxLinesDiffOperations(filteredOps, origLines);
 
     // If the first line only and only contains whitespace, do nothing
     if (trimmedOps.length === 1 && trimmedOps[0].originalText?.trim() === '' && trimmedOps[0].newText?.trim() === '') {
@@ -202,6 +214,18 @@ export function processDiffAndApplyEdits(
     }
 
     const preEdits = diffOperationsToLineEdits(trimmedOps, baseLine);
+
+    // 停止シンボルが無く、deleteが5以上続いた場合、差分ミスと判断し無効化する。
+    if (! isStopedSymbol &&
+        3 <= preEdits.length &&
+        preEdits[0].type === 'delete' &&
+        preEdits[1].type === 'delete' &&
+        preEdits[2].type === 'delete' &&
+        preEdits[3].type === 'delete' &&
+        preEdits[4].type === 'delete'
+    ) {
+        preEdits.length = 0;
+    }
     
     // ignore if out of range that first edit line
     const isValidFirstLines = lastLineLine + editorContext.aroundLatestAddAfterLines;
@@ -221,7 +245,8 @@ export function processDiffAndApplyEdits(
      * causing it to delete a line that shouldn't be removed.
      * Because Diff lacks information for subsequent lines, we treat this as an insertion under conditions where major issues are unlikely.
      */
-    if (! isStopedSymbol &&
+    if (! yamlConfigMode.isNoCheckStopSymbol &&
+        ! isStopedSymbol &&
         edits.length > 0 &&
         edits[0].type === 'change' &&
         newLinesNonLast.length > 0) {

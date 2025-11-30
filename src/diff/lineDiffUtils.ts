@@ -143,12 +143,13 @@ export function computeLineDiff(originalLines: string[], newLines: string[]): Li
  */
 export function mergeDeleteAddChange(ops: LineDiff[]): LineDiff[] {
     const res: LineDiff[] = [...ops];
+    // delete followed by add  --> change
     for (let i = 0; i < res.length; i++) {
         const cur = res[i];
+        if (cur.type !== 'delete') continue;
         for (let j = i + 1; j < res.length; j++) {
             const target = res[j];
-            // delete followed by add  --> change
-            if (cur.type === 'delete' && target.type === 'add' && cur.originalIndex === target.newIndex) {
+            if (target.type === 'add' && cur.originalIndex === target.newIndex) {
                 res[i] = {
                     type: 'change',
                     originalIndex: cur.originalIndex,
@@ -159,8 +160,19 @@ export function mergeDeleteAddChange(ops: LineDiff[]): LineDiff[] {
                 res.splice(j, 1);
                 break;
             }
-            // add followed by delete at same position  --> swap order or merge
-            if (cur.type === 'add' && target.type === 'delete' && target.originalIndex === cur.originalIndex) {
+            // Stop scanning if not consecutive delete
+            if (target.type !== 'delete') {
+                break;
+            }
+        }
+    }
+    // add followed by delete at same position  --> swap order or merge
+    for (let i = 0; i < res.length; i++) {
+        const cur = res[i];
+        if (cur.type !== 'add') continue;
+        for (let j = i + 1; j < res.length; j++) {
+            const target = res[j];
+            if (target.type === 'delete' && target.originalIndex === cur.originalIndex) {
                 // Prefer merging to change for consistency
                 res[i] = {
                     type: 'change',
@@ -170,6 +182,10 @@ export function mergeDeleteAddChange(ops: LineDiff[]): LineDiff[] {
                     newText: cur.newText,
                 };
                 res.splice(j, 1);
+                break;
+            }
+            // Stop scanning if not consecutive add
+            if (target.type !== 'add') {
                 break;
             }
         }
