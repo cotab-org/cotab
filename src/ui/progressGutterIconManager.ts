@@ -74,10 +74,16 @@ class ProgressGutterIconManager implements vscode.Disposable {
         }
         
         const editor = this.state.editor;
+        const hasGutterConflict = this.hasGutterIconConflict(editor, this.state.range);
 
-        // crear prev decorations
+        // clear prev decorations
         if (this.state.dispDecoration) {
             editor.setDecorations(this.state.dispDecoration, []);
+            this.state.dispDecoration = null;
+        }
+
+        if (hasGutterConflict) {
+            return;
         }
 
         // set current decorations
@@ -167,6 +173,65 @@ class ProgressGutterIconManager implements vscode.Disposable {
         });
 
         return spinnerDecorationTypesMap[phase];
+    }
+
+    private hasGutterIconConflict(editor: vscode.TextEditor, range: vscode.Range): boolean {
+        const document = editor.document;
+        const documentUri = document.uri.toString();
+        const documentFsPath = document.uri.fsPath;
+        const targetLine = range.start.line;
+
+        if (this.hasBreakpointIcon(documentUri, targetLine)) {
+            return true;
+        }
+
+        return this.hasTraceIcon(documentFsPath, targetLine);
+    }
+
+    private hasBreakpointIcon(documentUri: string, targetLine: number): boolean {
+        for (const breakpoint of vscode.debug.breakpoints) {
+            if (!(breakpoint instanceof vscode.SourceBreakpoint)) continue;
+            const location = breakpoint.location;
+            if (!location) continue;
+            if (location.uri.toString() !== documentUri) continue;
+            if (location.range.start.line === targetLine) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private hasTraceIcon(documentFsPath: string, targetLine: number): boolean {
+        const stackItem = vscode.debug.activeStackItem;
+        if (!stackItem) return false;
+
+        const stackFrame = stackItem as any;
+        const sourcePath = stackFrame?.source?.path as string | undefined;
+        if (!sourcePath) return false;
+
+        const frameFsPath = vscode.Uri.file(sourcePath).fsPath;
+        if (frameFsPath !== documentFsPath) {
+            return false;
+        }
+
+        const frameLine = this.getStackFrameLine(stackFrame);
+        if (frameLine === undefined) return false;
+
+        return frameLine === targetLine;
+    }
+
+    private getStackFrameLine(stackFrame: any): number | undefined {
+        const rangeLine = stackFrame?.range?.start?.line;
+        if (typeof rangeLine === 'number') {
+            return rangeLine;
+        }
+
+        const dapLine = stackFrame?.line;
+        if (typeof dapLine === 'number') {
+            return Math.max(0, dapLine - 1); // DAP uses 1-based lines
+        }
+
+        return undefined;
     }
 
     private disposeProgressDecoration() {
