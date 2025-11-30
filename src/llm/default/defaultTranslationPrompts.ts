@@ -1,4 +1,4 @@
-import { YamlConfigMode } from '../utils/yamlConfig';
+import { YamlConfigMode } from '../../utils/yamlConfig';
 
 /**
  * Default prompts for translating plain comment text into code-comments

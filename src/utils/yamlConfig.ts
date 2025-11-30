@@ -5,11 +5,11 @@ import * as vscode from 'vscode';
 import { parse } from 'yaml';
 import { logDebug, logError } from './logger';
 import { getConfig } from './config';
-import { getYamlDefaultCodingPrompt } from '../llm/defaultCodingPrompts';
-import { getYamlDefaultCommentPrompt } from '../llm/defaultCommentPrompts';
-import { getYamlDefaultTranslatePrompt, getYamlDefaultTextTranslatePrompt } from '../llm/defaultTranslationPrompts';
-import { getYamlDefaultProofreadingPrompt } from '../llm/defaultProofreadingPrompts';
-import { getYamlDefaultBusinessChatPrompt } from '../llm/defaultBusinessChatPrompts';
+import { getYamlDefaultCodingPrompt } from '../llm/default/defaultCodingPrompts';
+import { getYamlDefaultCommentPrompt } from '../llm/default/defaultCommentPrompts';
+import { getYamlDefaultTranslatePrompt, getYamlDefaultTextTranslatePrompt } from '../llm/default/defaultTranslationPrompts';
+import { getYamlDefaultProofreadingPrompt } from '../llm/default/defaultProofreadingPrompts';
+import { getYamlDefaultBusinessChatPrompt } from '../llm/default/defaultBusinessChatPrompts';
 
 export function registerYamlConfig(disposables: vscode.Disposable[]) {
     // Update edit history

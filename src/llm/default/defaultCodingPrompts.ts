@@ -1,4 +1,4 @@
-import { YamlConfigMode } from '../utils/yamlConfig';
+import { YamlConfigMode } from '../../utils/yamlConfig';
 
 /**
  * Default prompts for code completion and analysis
