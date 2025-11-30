@@ -265,6 +265,8 @@ async function convertShikiHtmlToSvgGut(
 	const document = dom.window.document;
     const config = getConfig();
     const overlayColors = getOverlayColors();
+	const defaultColor = extractDefaultTextColor(document);
+	const defaultColorAttr = defaultColor ? ` style="color:${defaultColor}"` : "";
 
 	const lines = Array.from(document.querySelectorAll(".line")) as Element[];
 	let maxWidth = 0;
@@ -272,20 +274,22 @@ async function convertShikiHtmlToSvgGut(
 		// code texts
 		const spans = Array.from(line.childNodes).map((node) => {
 			if (node.nodeType === 3) {
-				return `<tspan xml:space="preserve">${escapeForSVG(node.textContent ?? "")}</tspan>`;
+				return `<tspan xml:space="preserve"${defaultColorAttr}>${escapeForSVG(node.textContent ?? "")}</tspan>`;
 			}
 
 			const el = node as HTMLElement;
 			const style = el.getAttribute("style") || "";
-			const colorMatch = style.match(/color:\s*(#[0-9a-fA-F]{6})/);
+			const colorMatch = extractColorFromStyle(style);
 			const classes = el.getAttribute("class") || "";
-			let fill = colorMatch ? ` fill="${colorMatch[1]}"` : "";
+			let appendStyle = (defaultColorAttr && ! colorMatch) ? defaultColorAttr : "";
+			let fillColor = colorMatch || defaultColor;
+			let fill = fillColor ? ` fill="${fillColor}"` : "";
 			if (classes.includes("highlighted")) {
 				fill = ` fill="${overlayColors.backgroundColor}"`;
 			}
 
 			const content = el.textContent || "";
-			return `<tspan xml:space="preserve"${fill}>${escapeForSVG(content)}</tspan>`;
+			return `<tspan${appendStyle} xml:space="preserve"${fill}>${escapeForSVG(content)}</tspan>`;
 		}).join("");
 
 		const charDiffSegments = charDiffSegmentsList[index];
@@ -321,6 +325,35 @@ async function convertShikiHtmlToSvgGut(
 		maxWidth,
 		totalHeight,
 	};
+}
+
+function extractDefaultTextColor(document: Document): string | null {
+	const candidates = [document.querySelector('code'), document.querySelector('pre')];
+	for (const el of candidates) {
+		const color = extractColorFromStyle(el?.getAttribute('style') || '');
+		if (color) {
+			return color;
+		}
+	}
+	return null;
+}
+function extractColorFromStyle(style: string): string | null {
+	if (!style) return null;
+
+	const declarations = style.split(';');
+	for (const decl of declarations) {
+		const parts = decl.split(':');
+		if (parts.length < 2) continue;
+
+		const property = parts[0].trim().toLowerCase();
+		if (property === 'color') {
+			// Join the value parts with ':' and trim. It's okay if the value contains a colon.
+			const value = parts.slice(1).join(':').trim();
+			return value || null;
+		}
+	}
+
+	return null;
 }
 
 let highlighterCache: Map<string, Promise<ShikiHighlighter>> | undefined;
