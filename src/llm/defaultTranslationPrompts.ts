@@ -3,7 +3,6 @@ import { YamlConfigMode } from '../utils/yamlConfig';
 /**
  * Default prompts for translating plain comment text into code-comments
  */
-
 //#######################################################################################
 // Translation Prompts
 //#######################################################################################
@@ -11,27 +10,22 @@ import { YamlConfigMode } from '../utils/yamlConfig';
 // System Prompt for translation
 const defaultSystemPrompt =
 `You are an expert "{{languageId}}" code editor assistant.
-Your task is translated comment.`;
+Your task is translated text and comment.`;
 
 // User Prompt for translation
 const defaultUserPrompt =
 `Your task is to translate the provided "CODE_INPUT" into "{{commentLanguage}}".
-It is important to follow "TRANSLATION_RULES" and "IMPORTANT".
-Think about clarity and idiomatic phrasing in "{{commentLanguage}}" but do not add new technical claims or details that are not present in the source comment.
+It is important to follow "TRANSLATION_RULES".
+Think about clarity and idiomatic phrasing in "{{commentLanguage}}" but do not add new technical claims or details that are not present in the source comment or string literal.
 The translation must be exact and free of misleading statements.
 Unless explicitly instructed to modify other parts, output the input code exactly as provided.
 
 <TRANSLATION_RULES>
 - Preserve identifiers, function names, types, file paths, error codes, and other code tokens exactly; do not translate them.
-- If the source contains ambiguous wording, prefer a literal/neutral translation rather than adding assumptions.
-- If the source contains shorthand, abbreviations, or non-grammatical notes, normalize them only as needed for clarity while preserving meaning.
+- Translate comments, string literals, and other textual content.
+- If the input contains ambiguous wording, prefer a literal/neutral translation rather than adding assumptions.
+- If the input contains shorthand, abbreviations, or non-grammatical notes, normalize them only as needed for clarity while preserving meaning.
 </TRANSLATION_RULES>
-
-<IMPORTANT>
-- You MUST preserve all lines outside the edit block exactly as provided.
-- Do not output comments with long explanations; be concise and faithful to the source.
-- The translated comment should be helpful to a maintainer reading the code for the first time, but must not add technical claims not present in the source.
-</IMPORTANT>
 
 <CODE_INPUT>
 \`\`\`{{languageId}}
@@ -40,14 +34,44 @@ Unless explicitly instructed to modify other parts, output the input code exactl
 \`\`\`
 </CODE_INPUT>
 
-{{additionalUserPrompt}}`;
+You will output only the code block with the translated text and comment in "CODE_INPUT" and no other text and comment.
+Please output only the complete {{CODE_INPUT}} block translated into "{{commentLanguage}}".{{additionalUserPrompt}}`;
 
 // Assistant thinking output Prompt for translation
 const defaultAssistantPrompt =
-`Sure! I will output only the code block with the translated comment in "CODE_INPUT" and no other text.{{additionalAssistantOutputPrompt}}
-Here is the complete edited code in the {{CODE_INPUT}} block translated into "{{commentLanguage}}":
-\`\`\`{{languageId}}
+`{{additionalAssistantOutputPrompt}}\`\`\`{{languageId}}
 {{cursorLineBeforeWithLine}}`;
+
+
+//#######################################################################################
+// Translation Prompts
+//#######################################################################################
+
+// System Prompt for translation
+const defaultTextSystemPrompt =
+`You are an expert translation assistant.`;
+
+// User Prompt for translation
+const defaultTextUserPrompt =
+`Your task is to translate the provided "TEXT_INPUT" into "{{commentLanguage}}".
+It is important to follow "TRANSLATION_RULES".
+Think about clarity and idiomatic phrasing in "{{commentLanguage}}" but do not add new technical claims or details that are not present in the "TEXT_INPUT".
+The translation must be exact and free of misleading statements.
+
+<TRANSLATION_RULES>
+- If the input contains ambiguous wording, prefer a literal/neutral translation rather than adding assumptions.
+- If the input contains shorthand, abbreviations, or non-grammatical notes, normalize them only as needed for clarity while preserving meaning.
+- Even if multiple languages are mixed, translate all of them into "{{commentLanguage}}".
+</TRANSLATION_RULES>
+
+<TEXT_INPUT>
+\`\`\`{{languageId}}
+{{aroundSnippetWithPlaceholderWithLine}}
+{{latestAfterOutsideFirstWithLine}}
+\`\`\`
+</TEXT_INPUT>
+
+You will output only the translated block in "{{commentLanguage}}".`;
 
 //#######################################################################################
 // YAML Configuration Creator
@@ -73,4 +97,12 @@ export function getYamlDefaultTranslatePrompt(): YamlConfigMode {
 		userPrompt: defaultUserPrompt,
 		assistantPrompt: defaultAssistantPrompt,
 	};
+}
+
+export function getYamlDefaultTextTranslatePrompt(): YamlConfigMode {
+	const mode = getYamlDefaultTranslatePrompt();
+	mode.extensions = ["txt"];
+	mode.systemPrompt = defaultTextSystemPrompt;
+	mode.userPrompt = defaultTextUserPrompt;
+	return mode;
 }
