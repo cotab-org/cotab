@@ -111,6 +111,9 @@ export interface YamlConfigMode {
     // Prompt text when existing errors.
     appendThinkPromptError?: string;
 
+    // Prompt text when cursor error.
+    appendThinkPromptCursorError?: string;
+
     // Replacement prompt used to generate new output after the user has dismissed an earlier response.
     appendOutputPromptReject?: string;
 
@@ -225,6 +228,7 @@ export function getYamlConfig(): YamlConfig {
             mode.appendThinkPromptAddition = mode.appendThinkPromptAddition?.replace(/\n+$/, '');
             mode.appendThinkPromptReject = mode.appendThinkPromptReject?.replace(/\n+$/, '');
             mode.appendThinkPromptError = mode.appendThinkPromptError?.replace(/\n+$/, '');
+            mode.appendThinkPromptCursorError = mode.appendThinkPromptCursorError?.replace(/\n+$/, '');
             mode.appendOutputPromptReject = mode.appendOutputPromptReject?.replace(/\n+$/, '');
             mode.analyzeSystemPrompt = mode.analyzeSystemPrompt?.replace(/\n+$/, '');
             mode.analyzeUserPrompt = mode.analyzeUserPrompt?.replace(/\n+$/, '');
@@ -540,6 +544,11 @@ modes:
         if (mode.appendThinkPromptError) {
             yamlContent += `#    appendThinkPromptError: |\n`;
             yamlContent += `#      ${mode.appendThinkPromptError.replace(/\n/g, '\n#      ')}\n`;
+        }
+
+        if (mode.appendThinkPromptCursorError) {
+            yamlContent += `#    appendThinkPromptCursorError: |\n`;
+            yamlContent += `#      ${mode.appendThinkPromptCursorError.replace(/\n/g, '\n#      ')}\n`;
         }
 
         if (mode.appendOutputPromptReject) {

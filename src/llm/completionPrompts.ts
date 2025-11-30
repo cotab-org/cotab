@@ -4,7 +4,7 @@ import { logDebug } from '../utils/logger';
 import { withLineNumberCodeBlock } from './llmUtils';
 import { getYamlConfigMode, YamlConfigMode } from '../utils/yamlConfig';
 import { parseHandlebarsTemplate } from '../utils/cotabUtil';
-import { CodeBlocks, EditHistoryAction, makeYamlFromEditHistoryActions } from '../llm/codeBlockBuilder';
+import { CodeBlocks, EditHistoryAction, makeYamlFromEditHistoryActions, makeYamlFromErrors } from '../llm/codeBlockBuilder';
 import { beforeTruncatedText, afterTruncatedText } from '../managers/largeFileManager'
 
 // Prompt cache type definition
@@ -232,6 +232,7 @@ export function buildCompletionPrompts(editorContext: EditorContext,
 	const appendThinkPromptAddition = yamlConfigMode.appendThinkPromptAddition || '';
 	const appendThinkPromptReject = yamlConfigMode.appendThinkPromptReject || '';
 	const appendThinkPromptError = yamlConfigMode.appendThinkPromptError || '';
+	const appendThinkPromptCursorError = yamlConfigMode.appendThinkPromptCursorError || '';
 	const appendOutputPromptReject = yamlConfigMode.appendOutputPromptReject || '';
 
 	// Code blocks & Latest surrounding code blocks & Cached source code
@@ -410,6 +411,8 @@ ${cursorLineBefore}`;
 		}
 	}
 	
+	const { cursorErrorCodeBlock, otherErrorCodeBlock } = makeYamlFromErrors(editorContext, codeBlocks.errorContext);
+	
 	// Create Handlebars context
 	let handlebarsContext = {
 		// Basic information
@@ -445,20 +448,27 @@ ${cursorLineBefore}`;
 		
 		// Thinking prompt
 		"thinkErrorPrompt": "",
+		"thinkCursorErrorPrompt": "",
 		"appendThinkPrompt": "",
 		"rejectContent": rejectContent,
-		"errorCodeBlock": codeBlocks.diagnosticsCodeBlock,
+		"errorCodeBlock": otherErrorCodeBlock,
+		"cursorErrorCodeBlock": cursorErrorCodeBlock,
 
 		// Output
 		"appendOutputPrompt": "",
 	};
 	
 	// Decide appendThinkPrompt by simple rules
+	let parsedThinkCursorErrorPrompt = '';
 	let parsedThinkErrorPrompt = '';
 	{
-		// error prompt
-		if (codeBlocks.diagnosticsCodeBlock !== '') {
+		if (otherErrorCodeBlock) {
+			handlebarsContext.errorCodeBlock = otherErrorCodeBlock;
 			parsedThinkErrorPrompt = parseHandlebarsTemplate(appendThinkPromptError, handlebarsContext);
+		}
+		if (cursorErrorCodeBlock) {
+			handlebarsContext.cursorErrorCodeBlock = cursorErrorCodeBlock;
+			parsedThinkCursorErrorPrompt = parseHandlebarsTemplate(appendThinkPromptCursorError, handlebarsContext);
 		}
 	}
 	let parsedAppendThinkPrompt = '';
@@ -496,6 +506,7 @@ ${cursorLineBefore}`;
 	}
 
 	// Thinking prompt
+	handlebarsContext.thinkCursorErrorPrompt = parsedThinkCursorErrorPrompt;
 	handlebarsContext.thinkErrorPrompt = parsedThinkErrorPrompt;
 	handlebarsContext.appendThinkPrompt = parsedAppendThinkPrompt;
 	handlebarsContext.appendOutputPrompt = parsedAppendOutputPrompt;

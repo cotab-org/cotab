@@ -28,7 +28,7 @@ export interface CodeBlocks {
 	sourceAnalysis: string;
 	symbolCodeBlock: string;
 	editHistoryActions: EditHistoryAction[];
-	diagnosticsCodeBlock: string;
+	errorContext: DiagnosticsContext;
 }
 
 export interface EditHistoryAction {
@@ -38,6 +38,13 @@ export interface EditHistoryAction {
 	before?: string;
 	after?: string;
 	content?: string;
+}
+
+type DiagnosticsType = [number, string, vscode.Diagnostic];
+
+export interface DiagnosticsContext {
+	cursorError: DiagnosticsType[];
+	otherErrors: DiagnosticsType[];
 }
 
 export function makeYamlFromEditHistoryActions(editHistoryActions: EditHistoryAction[]): string {
@@ -69,6 +76,49 @@ export function makeYamlFromEditHistoryActions(editHistoryActions: EditHistoryAc
 	return `\`\`\`yaml\n${text.replace(/```/g, '\\`\\`\\`')}\n\`\`\``;
 }
 
+export function makeYamlFromErrors(editorContext: EditorContext, diagnosticsContext: DiagnosticsContext):
+{cursorErrorCodeBlock: string, otherErrorCodeBlock: string} {
+	let cursorErrorYaml = '';
+	let otherErrorYaml = '';
+
+	let makeContent = (uri: string, diag: vscode.Diagnostic) => {
+		const isCurrent = editorContext.documentUri === uri.toString();
+
+		// ignore cannot open source file. because referencing libraries etc. always causes this.
+		if (diag.message.includes('cannot open source file')) return '';
+		if (diag.message.includes('#include errors detected')) return '';
+
+		let yaml = '';
+		yaml += `- file: ${isCurrent ? 'current' : 'other'}\n`;
+		yaml += `  message: ${diag.message}\n`;
+		if (isCurrent) {
+			yaml += `  line: ${diag.range.start.line + 1}\n`;
+		}
+		return yaml;
+	}
+
+	for (const [_, documentUri, diag] of diagnosticsContext.cursorError) {
+		cursorErrorYaml += makeContent(documentUri, diag);
+	}
+
+	for (const [_, documentUri, diag] of diagnosticsContext.otherErrors) {
+		otherErrorYaml += makeContent(documentUri, diag);
+	}
+
+// If no cursor-related errors were found, skip generating the block to avoid empty output
+const cursorErrorCodeBlock = (cursorErrorYaml === '') ? '' :
+`\`\`\`yaml
+${cursorErrorYaml.replace(/```/g, '\\`\\`\\`')}
+\`\`\``;
+
+const otherErrorCodeBlock = (otherErrorYaml === '') ? '' :
+`\`\`\`yaml
+${otherErrorYaml.replace(/```/g, '\\`\\`\\`')}
+\`\`\``;
+	
+	return { cursorErrorCodeBlock, otherErrorCodeBlock };
+}
+
 class CodeBlockBuilder {	
     public sourceAnalysisCache = new Map<string, CacheData>();
     public symbolCodeBlockCache = new Map<string, CacheData>();
@@ -88,16 +138,16 @@ class CodeBlockBuilder {
 		const symbolCodeBlock = this.buildSymbolCodeBlock(editorContext);
 
 		// Build edit history code block
-		const editHistoryActions = this.buildEditHistoryCodeBlock(editorContext, currentCursorLine);
+		const editHistoryActions = this.buildEditHistoryActions(editorContext, currentCursorLine);
 
 		// Build diagnostics code block
-		const diagnosticsCodeBlock = this.buildDiagnosticsCodeBlock(editorContext, currentCursorLine);
+		const errorContext = this.buildErrorContext(editorContext, currentCursorLine);
 
 		return {
 			sourceAnalysis,
 			symbolCodeBlock,
 			editHistoryActions,
-			diagnosticsCodeBlock
+			errorContext
 		};
 	}
 
@@ -218,7 +268,7 @@ ${block.replace(/```/g, '\\`\\`\\`')}
 		return totalCodeBlock || '# There are no symbols.';
 	}
 
-	private buildEditHistoryCodeBlock(editorContext: EditorContext, currentCursorLine: number): EditHistoryAction[] {
+	private buildEditHistoryActions(editorContext: EditorContext, currentCursorLine: number): EditHistoryAction[] {
 		let histories: string[] = [];
 		const editHistory = editHistoryManager.getEdits();
 		logInfo(`Edit history: ${editHistory.length} items`);
@@ -283,12 +333,18 @@ ${block.replace(/```/g, '\\`\\`\\`')}
 		return editHistoryActions;
 	}
 
-	private buildDiagnosticsCodeBlock(editorContext: EditorContext, currentCursorLine: number): string {
+	private buildErrorContext(editorContext: EditorContext, currentCursorLine: number): DiagnosticsContext {
 		const diagnosticsMap = diagnosticsManager.getErrors(editorContext.document, currentCursorLine);
-		if (!diagnosticsMap || diagnosticsMap.size === 0) return '';
+		
+		let errorContext: DiagnosticsContext = {
+			cursorError: [],
+			otherErrors: []
+		};
+
+		if (!diagnosticsMap || diagnosticsMap.size === 0) return errorContext;
 
 		let addIdx = 0;
-		const sortedErrorList: [Number, string, vscode.Diagnostic][] = [];
+		const sortedErrorList: DiagnosticsType[] = [];
 		// first: current file
 		if (diagnosticsMap.has(editorContext.documentUri)) {
 			const diagnostics = diagnosticsMap.get(editorContext.documentUri)!;
@@ -311,10 +367,22 @@ ${block.replace(/```/g, '\\`\\`\\`')}
 		}
 
 		// top 6
-		const topDiags = sortedErrorList.slice(0, 6);
+		const topErrorList = sortedErrorList.slice(0, 6);
+
+		// cursor line 
+		let cursorError = [];
+		for(const error of topErrorList) {
+			if (error[1] === editorContext.documentUri &&
+			error[2].range.start.line === currentCursorLine) {
+				cursorError.push(error);
+			}
+		}
+
+		// other
+		const otherErrors = topErrorList.slice(cursorError.length);
 
 		// sort
-		const sortedTopDiags = topDiags.sort((a, b) => {
+		const sortedOtherErrors = otherErrors.sort((a, b) => {
 			if (a[1] === b[1] && a[1] === editorContext.documentUri) {
 				return a[2].range.start.line - b[2].range.start.line;
 			}
@@ -322,28 +390,10 @@ ${block.replace(/```/g, '\\`\\`\\`')}
 				return (a[0] as number) - (b[0] as number);
 			}
 		});
-		let yaml = '';
-		for(const [_, uri, diag] of sortedTopDiags) {
-			const isCurrent = editorContext.documentUri === uri.toString();
 
-			// ignore cannot open source file. because referencing libraries etc. always causes this.
-			if (diag.message.includes('cannot open source file')) continue;
-			if (diag.message.includes('#include errors detected')) continue;
-
-			yaml += `- file: ${isCurrent ? 'current' : 'other'}\n`;
-			yaml += `  message: ${diag.message}\n`;
-			if (isCurrent) {
-				yaml += `  line: ${diag.range.start.line + 1}\n`;
-			}
-		}
-		if (yaml === '') return '';
-		
-const yamlBlock =
-`\`\`\`yaml
-# Here is a list of error diagnostics:
-${yaml.replace(/```/g, '\\`\\`\\`')}
-\`\`\``;
-		return yamlBlock;
+		errorContext.cursorError = cursorError;
+		errorContext.otherErrors = sortedOtherErrors;
+		return errorContext;
 	}
 
 	private severityToString(sev: vscode.DiagnosticSeverity): string {

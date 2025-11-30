@@ -112,7 +112,7 @@ You will complete partially written symbol names with the names you are likely t
 You will improve output quality by using context-aware completions. For example, where "{{placeholder}}" appears in a scope with several classes, structs, or functions already declared, You will output an appropriate declaration such as "class Child" if the surrounding code implies a Parent/Child relationship. The same context-driven reasoning applies to variable names, control structures like if and for, and language keywords. You will treat a blank line as an intention to write new code and use the surrounding or immediately preceding code as the primary signal. For example, if an undefined variable appears nearby, You will output code that defines that variable to improve the result.
 Because "{{stopEditingHere}}" is a critical merging marker, You will take the utmost care to never output code that comes after "{{stopEditingHere}}" before emitting this marker itself. You will also prefer to use unused variables from surrounding or previous code where doing so improves quality, and even if no unused variables exist You will prioritize using variables or symbols defined immediately prior or recently used, since surrounding code is always informative. The same principle governs functions, classes, and structs. You will always check the entire source code when defining function, variable, class, or struct symbol names to ensure there are no duplicates and to avoid accidentally copying an existing definition.
 You will write program comments in "{{commentLanguage}}".
-
+{{thinkErrorPrompt}}
 As the provided edit history and source code may be outdated, we will obtain the latest information before making any edits.
 The retrieved latest edit history is as follows:
 <EDIT_HISTORY>
@@ -128,18 +128,16 @@ The retrieved latest source code is as follows:
 
 Okey, You have checked the latest source code and edit history. You MUST consult the latest source code only. If any line number matches, You MUST NOT reference or use any older version.
 You will output only the code block. and You will not forget to also output "{{stopEditingHere}}".{{appendOutputPrompt}}
-
-{{thinkErrorPrompt}}
-
-The latest cursor line is as follows:
+{{thinkCursorErrorPrompt}}
 <LATEST_EDIT_HISTORY>
 {{lastEditHistoryCodeBlock}}
 </LATEST_EDIT_HISTORY>
 
-<LATEST_CODE_INPUT>
+The latest cursor line is as follows:
+<LATEST_CURSOR_LINE_CODE_INPUT>
 # VERSION: 3
 {{latestCursorLineText}}
-</LATEST_CODE_INPUT>
+</LATEST_CURSOR_LINE_CODE_INPUT>
 
 {{appendThinkPrompt}}{{additionalUserPrompt}}`;
 
@@ -173,7 +171,15 @@ You also need to check whether there are any errors. The latest error status is 
 <ERROR_LIST>
 {{errorCodeBlock}}
 </ERROR_LIST>
-Okey, You need to fix this error`;
+Okey, You need to fix this error
+`;
+
+const defaultAppendThinkPromptCursorError =
+`
+<CURSOR_LINE_ERROR_LIST>
+{{cursorErrorCodeBlock}}
+</CURSOR_LINE_ERROR_LIST>
+`;
 
 //#######################################################################################
 // Analysis Prompts
@@ -236,6 +242,7 @@ export function getYamlDefaultCodingPrompt(): YamlConfigMode {
 		appendThinkPromptAddition: defaultAppendThinkPromptAddition,
 		appendThinkPromptReject: defaultAppendThinkPromptReject,		// Qwen3:4b-Instruct-2507 does not react to rejection almost, so omitted.
 		appendThinkPromptError: defaultAppendThinkPromptError,
+		appendThinkPromptCursorError: defaultAppendThinkPromptCursorError,
 //		appendOutputPromptReject: defaultAppendOutputPromptReject,
 		analyzeSystemPrompt: defaultAnalyzeSystemPrompt,
 		analyzeUserPrompt: defaultAnalyzeUserPrompt
