@@ -2,6 +2,7 @@
 This VS Code extension is an AI-powered multi-line autocomplete plugin designed with maximum privacy and security in mind by running entirely on a local LLM.
 
 It generates multiple lines of code using AI based not only on the entire file’s context but also on external symbols, errors, and prior edits, and presents them as autocomplete suggestions.
+It also offers a dedicated translation-only mode.
 
 ## Autocomplete
 ![Autocomplete Demo](doc/asset/cotab-tutorial-autocomplete1.gif)

@@ -2,7 +2,7 @@
   "name": "cotab",
   "displayName": "Cotab",
   "description": "This VS Code extension is an AI-powered multi-line autocomplete plugin designed with maximum privacy and security in mind by running entirely on a local LLM.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "cotab",
   "license": "Apache-2.0",
   "repository": {
@@ -41,7 +41,8 @@
     "symbol-analysis",
     "edit-history",
     "cursor-style",
-    "smart-rewrites"
+    "smart-rewrites",
+    "translation"
   ],
   "qna": false,
   "activationEvents": [

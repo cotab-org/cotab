@@ -1,3 +1,10 @@
+## 0.1.2 - 2025/12/01
+- Update: improved error prompts and increased processing speed.
+- Update: Translation prompt.
+- Fix: The screen jittering when breakpoints are present.
+- Fix: Text color not being applied in overlay.
+- Fix: Merging multiple lines could break.
+- Fix: Multiple prompts were not processed correctly.
 ## 0.1.0 - 2025/11/25
 - Change: llama.cpp install path. (llama-cpp -> llama.cpp)
 - Update: Significant quality improvement of coding, comment and translate.
