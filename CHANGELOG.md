@@ -1,3 +1,5 @@
+## 0.1.3 - 2025/12/06
+- Update: Install stable version of llama.cpp (b7010)
 ## 0.1.2 - 2025/12/01
 - Update: improved error prompts and increased processing speed.
 - Update: Translation prompt.
