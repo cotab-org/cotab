@@ -30,6 +30,7 @@ export interface CotabConfig {
     hideOnStartup: boolean;
 
     // llm
+    llamaCppVersion: 'Stable';
     provider: 'OpenAICompatible';
     settingApiBaseURL: string;
     apiBaseURL: string;
@@ -151,6 +152,7 @@ function getConfigRaw(): CotabConfig {
         hideOnStartup: cfg.get<boolean>('cotab.gettingStarted.hideOnStartup', false),
 
         // llm
+        llamaCppVersion: cfg.get<'Stable'>('cotab.llm.llamaCppVersion', 'Stable'),
         provider: cfg.get<'OpenAICompatible'>('cotab.llm.provider', 'OpenAICompatible'),
         settingApiBaseURL,
         apiBaseURL,

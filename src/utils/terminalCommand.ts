@@ -118,11 +118,11 @@ class TerminalCommand implements vscode.Disposable {
     }
 
     public isSupportMyInstall(osInfo: OSInfo): boolean {
-        const releaseLlamacppName = this.GetReleaseLlamacppName(osInfo);
+        const releaseLlamacppName = this.GetReleaseLlamaCppName(osInfo);
         return releaseLlamacppName !== '' ? true : false;
     }
 
-    private GetReleaseLlamacppName(osInfo: OSInfo): string {
+    private GetReleaseLlamaCppName(osInfo: OSInfo): string {
         if (osInfo.platform === 'win') {
             if (osInfo.cpu === 'x64') {
                 if (osInfo.gpu === 'cuda' || osInfo.gpu === 'vulkan' || osInfo.gpu === 'none') {
@@ -142,6 +142,115 @@ class TerminalCommand implements vscode.Disposable {
         }
         return '';
     }
+    private getDownloadBinName(osInfo: OSInfo): {
+        mainName: string;
+        cudartName: string;
+    } {
+        const cudaVer = '-12.4';
+        
+        ///// win
+        // like `b7216/cudart-llama-bin-win-cuda-12.4-x64.zip`
+        // like `b7216/llama-b7216-bin-win-cuda-12.4-x64.zip`
+        // like `b7216/llama-b7216-bin-win-vulkan-x64.zip`
+        ///// mac
+        // like `b7216/llama-b7216-bin-macos-x64.zip`
+        ///// ubuntu
+        // like `llama-b7216-bin-ubuntu-vulkan-x64.zip`
+        
+        const platform = `-${osInfo.platform}`;
+        let gpu = (osInfo.gpu === 'none' || osInfo.gpu === 'unknown') ? '' : `-${osInfo.gpu}`;
+        const cpu = `-${osInfo.cpu}`;
+        let ext = '.zip'
+        let cudartName = '';
+        if (osInfo.platform === 'win' && osInfo.gpu === 'cuda') {
+            gpu = `-${osInfo.gpu}${cudaVer}`;
+
+            cudartName = `bin${platform}${gpu}${cpu}${ext}`;
+            
+        }
+        else if (osInfo.platform === 'ubuntu') {
+            //ext = '.tar.gz';
+        }
+
+        const mainName = `bin${platform}${gpu}${cpu}${ext}`;
+        return {mainName, cudartName};
+    }
+
+    private async getDownloadURL(osInfo: OSInfo): Promise<{
+        mainBinary: any | undefined;
+        cudartBinary: any | undefined;
+    }> {
+        const config = getConfig();
+        if (config.llamaCppVersion === 'Stable') {
+            let mainBinary: any | undefined;
+            let cudartBinary: any | undefined;
+            
+            //const tag = 'b6989';
+            const tag = 'b7010';
+
+            const baseUrl = 'https://github.com/ggml-org/llama.cpp/releases/download/';
+
+            const {mainName, cudartName} = this.getDownloadBinName(osInfo);
+
+            if (cudartName !== '') {
+                const cudartDLName = `${tag}/cudart-llama-${cudartName}`;
+                cudartBinary = {
+                    name: cudartDLName,
+                    browser_download_url: baseUrl + cudartDLName,
+                }
+            }
+
+            const dlName = `${tag}/llama-${tag}-${mainName}`;
+            mainBinary = {
+                name: dlName,
+                browser_download_url: baseUrl + dlName,
+            }
+
+            return {mainBinary, cudartBinary};
+        }
+        else {
+            return this.getDownloadURLInternal(osInfo);
+        }
+    }
+
+    private async getDownloadURLInternal(osInfo: OSInfo): Promise<{
+        mainBinary: any | undefined;
+        cudartBinary: any | undefined;
+    }> {
+        let mainBinary: any | undefined;
+        let cudartBinary: any | undefined;
+
+        const release = await this.getLatestLlamaCppRelease();
+
+        if (osInfo.platform === 'win' && osInfo.gpu === 'cuda') {
+            mainBinary = release.assets.find((asset: any) =>
+                !asset.name.includes(`cudart-llama-bin-${osInfo.platform}-${osInfo.gpu}-`) &&
+                asset.name.includes('llama-b') &&
+                asset.name.includes(`bin-${osInfo.platform}-${osInfo.gpu}-`) && // cuda is included version
+                asset.name.includes(`-${osInfo.cpu}.zip`)
+            );
+            cudartBinary = release.assets.find((asset: any) =>
+                asset.name.includes(`cudart-llama-bin-${osInfo.platform}-${osInfo.gpu}-`) && // cuda is included version
+                asset.name.includes(`-${osInfo.cpu}.zip`)
+            );
+            if (!mainBinary || !cudartBinary) {
+                throw new Error('CUDA binaries not found in latest release');
+            }
+        }
+        else {
+            const releaseLlamacppName = this.GetReleaseLlamaCppName(osInfo);
+            mainBinary = release.assets.find((asset: any) =>
+                asset.name.includes('llama-b') &&
+                asset.name.includes(releaseLlamacppName)
+            );
+            if (!mainBinary) {
+                throw new Error(`${osInfo.platform}-${osInfo.gpu}-${osInfo.cpu} binaries not found in latest release`);
+            }
+        }
+        
+        return { mainBinary, cudartBinary };
+    }
+
     private async downloadAndInstallWindowsBinaries(osInfo: OSInfo): Promise<'success' | 'error' | 'notsupported'> {
         try {
             if (! this.isSupportMyInstall(osInfo)) {
@@ -151,36 +260,8 @@ class TerminalCommand implements vscode.Disposable {
             // show log window for installation progress
             showLogWindow(true);
             logTerminal('[Install] Fetching latest llama.cpp release information...');
-            const release = await this.getLatestLlamaCppRelease();
 
-            let mainBinary: any | undefined;
-            let cudartBinary: any | undefined;
-
-            if (osInfo.platform === 'win' && osInfo.gpu === 'cuda') {
-                mainBinary = release.assets.find((asset: any) =>
-                    !asset.name.includes(`cudart-llama-bin-${osInfo.platform}-${osInfo.gpu}-`) &&
-                    asset.name.includes('llama-b') &&
-                    asset.name.includes(`bin-${osInfo.platform}-${osInfo.gpu}-`) && // cuda is included version
-                    asset.name.includes(`-${osInfo.cpu}.zip`)
-                );
-                cudartBinary = release.assets.find((asset: any) =>
-                    asset.name.includes(`cudart-llama-bin-${osInfo.platform}-${osInfo.gpu}-`) && // cuda is included version
-                    asset.name.includes(`-${osInfo.cpu}.zip`)
-                );
-                if (!mainBinary || !cudartBinary) {
-                    throw new Error('CUDA binaries not found in latest release');
-                }
-            }
-            else {
-                const releaseLlamacppName = this.GetReleaseLlamacppName(osInfo);
-                mainBinary = release.assets.find((asset: any) =>
-                    asset.name.includes('llama-b') &&
-                    asset.name.includes(releaseLlamacppName)
-                );
-                if (!mainBinary) {
-                    throw new Error(`${osInfo.platform}-${osInfo.gpu}-${osInfo.cpu} binaries not found in latest release`);
-                }
-            }
+            const {mainBinary, cudartBinary} = await this.getDownloadURL(osInfo);
 
             // Create user install directory for llama.cpp binaries (clean first)
             const installDir = this.getInstallBaseDir();
@@ -345,7 +426,7 @@ class TerminalCommand implements vscode.Disposable {
                 return true;
             }
             else if (result === 'error') {
-                logError(`Failed to download binaries.`);
+                logError(`[Install] Failed to download binaries.`);
                 return false;
             }
             else if (result === 'notsupported' && osInfo.platform === 'macos') {
