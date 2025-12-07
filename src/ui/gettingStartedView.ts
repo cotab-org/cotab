@@ -1,21 +1,108 @@
 import * as vscode from 'vscode';
 import { getConfig, setConfigHideOnStartup, setConfigShowProgressSpinner, setConfigApiBaseURL, setConfigCommentLanguage, setConfigLocalServerContextSize } from '../utils/config';
-import { terminalCommand } from '../utils/terminalCommand';
+import { terminalCommand, StablellamaCppVersion } from '../utils/terminalCommand';
 import { getAiClient } from '../llm/llmProvider';
 import { GetOSInfo } from '../utils/cotabUtil';
 import { buildLinkButtonSvgDataUri, buildNetworkServerLabelSvgDataUri } from './menuUtil';
 
-export function registerGettingStartedView(disposables: vscode.Disposable[], context: vscode.ExtensionContext): void {
+export function registerGettingStartedView(
+    disposables: vscode.Disposable[],
+    context: vscode.ExtensionContext,
+    prevVersion: string | undefined, 
+    currentVersion: string): void {
     disposables.push(vscode.commands.registerCommand('cotab.gettingStarted.show', async () => {
         await showGettingStartedView(context);
     }));
 
     // On setup, auto-show (only if hideOnStartup is off)
-    const hide = getConfig().hideOnStartup;
-    if (!hide) {
+    let show = ! getConfig().hideOnStartup;
+    //const additionalHtmlPromise = GetNewVersionNotice(prevVersion, currentVersion);
+    if (show) {
         // Delayed display (wait for initialization to complete after setup)
         setTimeout(() => { void showGettingStartedView(context); }, 500);
     }
+}
+
+async function GetNewVersionNotice(prevVersion: string | undefined, currentVersion: string): Promise<string> {
+    let additionalHtml = '';
+    if (prevVersion !== '' && prevVersion !== '0') {
+        if (getConfig().llamaCppVersion === 'Stable') {
+            // Check if llama.cpp is installed
+            const installedVersion = await terminalCommand.getInstalledLocalLlamaCppVersion();
+            if (installedVersion !== '' && `b${installedVersion}` !== StablellamaCppVersion) {
+                additionalHtml = `
+    <style>
+        .reinstall-warning {
+            background: linear-gradient(135deg, var(--vscode-textBlockQuote-background) 0%, var(--vscode-textBlockQuote-background) 100%);
+            border: 2px solid var(--vscode-textLink-foreground);
+            border-radius: 12px;
+            padding: 30px;
+            margin: 30px 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .warning-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--vscode-textLink-foreground);
+            margin: 0 0 15px 0;
+            border: none;
+            padding: 0;
+        }
+        .warning-message {
+            font-size: 16px;
+            margin: 0 0 25px 0;
+            line-height: 1.6;
+        }
+        .install-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            background: linear-gradient(135deg, var(--vscode-button-background) 0%, var(--vscode-button-hoverBackground) 100%);
+            color: var(--vscode-button-foreground);
+            border: 2px solid var(--vscode-button-border);
+            border-radius: 8px;
+            padding: 16px 32px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            text-decoration: none;
+        }
+        .install-button:hover {
+            background: linear-gradient(135deg, var(--vscode-button-hoverBackground) 0%, var(--vscode-button-background) 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+        .install-button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        .button-icon {
+            font-size: 24px;
+        }
+        .button-text {
+            font-size: 18px;
+        }
+    </style>
+                    <div class="reinstall-warning">
+                        <h2 class="warning-title">⚠️ Please Reinstall the Server !</h2>
+                        <p class="warning-message">
+                            The latest version of Server (llama.cpp) has a performance issue and the completion speed is significantly reduced. <br>
+                            Please reinstall to get better performance. <br>
+                            Current version: "b${installedVersion}". Stable version: "${StablellamaCppVersion}"
+                        </p>
+                        <button class="install-button" onclick="executeCommand('cotab.server.install')">
+                            <span class="button-icon">🔧</span>
+                            <span class="button-text">Click to Reinstall Server</span>
+                        </button>
+                    </div>
+                `;
+            }
+        }
+    }
+    return additionalHtml;
 }
 
 /**

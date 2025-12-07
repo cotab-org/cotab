@@ -1,3 +1,6 @@
+## 0.1.4 - 2025/12/08
+- Fix: Slow performance bug since November 13, 2025.
+- Update: Install stable version of llama.cpp (b7314)
 ## 0.1.3 - 2025/12/06
 - Update: Install stable version of llama.cpp (b7010)
 ## 0.1.2 - 2025/12/01

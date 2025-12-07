@@ -11,6 +11,7 @@ import { isLocalhost } from '../llm/llmUtils';
 import { OSInfo, GetOSInfo } from '../utils/cotabUtil';
 import { logInfo, logWarning, logError, logServer, logTerminal, showLogWindow } from './logger';
 import { requestUpdateCotabMenuUntilChanged } from '../ui/menuIndicator';
+import { updateLlamaCppVersion } from './systemConfig';
 
 // Register helper (mirrors progressGutterIconManager)
 export function registerTerminalCommand(disposables: vscode.Disposable[]): void {
@@ -19,6 +20,8 @@ export function registerTerminalCommand(disposables: vscode.Disposable[]): void 
 }
 
 export let terminalCommand: TerminalCommand;
+
+export const StablellamaCppVersion = 'b7314';
 
 const llamaServerExe = (process.platform === 'win32') ? 'llama-server.exe' : 'llama-server';
 
@@ -179,34 +182,36 @@ class TerminalCommand implements vscode.Disposable {
     private async getDownloadURL(osInfo: OSInfo): Promise<{
         mainBinary: any | undefined;
         cudartBinary: any | undefined;
+        version: string;
     }> {
         const config = getConfig();
-        if (config.llamaCppVersion === 'Stable') {
+        if (config.llamaCppVersion === 'Stable' || config.llamaCppVersion === 'Custom') {
             let mainBinary: any | undefined;
             let cudartBinary: any | undefined;
-            
-            //const tag = 'b6989';
-            const tag = 'b7010';
 
             const baseUrl = 'https://github.com/ggml-org/llama.cpp/releases/download/';
 
             const {mainName, cudartName} = this.getDownloadBinName(osInfo);
 
+            const tag = config.llamaCppVersion === 'Stable' ? StablellamaCppVersion : config.customLlamaCppVersion;
+            
             if (cudartName !== '') {
-                const cudartDLName = `${tag}/cudart-llama-${cudartName}`;
+                const name = `cudart-llama-${cudartName}`
+                const url = `${baseUrl}/${tag}/${name}`;
                 cudartBinary = {
-                    name: cudartDLName,
-                    browser_download_url: baseUrl + cudartDLName,
+                    name: name,
+                    browser_download_url: url,
                 }
             }
 
-            const dlName = `${tag}/llama-${tag}-${mainName}`;
+            const name = `llama-${tag}-${mainName}`;
+            const dlUrl = `${baseUrl}/${tag}/${name}`;
             mainBinary = {
-                name: dlName,
-                browser_download_url: baseUrl + dlName,
+                name: name,
+                browser_download_url: dlUrl,
             }
 
-            return {mainBinary, cudartBinary};
+            return {mainBinary, cudartBinary, version: tag};
         }
         else {
             return this.getDownloadURLInternal(osInfo);
@@ -216,6 +221,7 @@ class TerminalCommand implements vscode.Disposable {
     private async getDownloadURLInternal(osInfo: OSInfo): Promise<{
         mainBinary: any | undefined;
         cudartBinary: any | undefined;
+        version: string;
     }> {
         let mainBinary: any | undefined;
         let cudartBinary: any | undefined;
@@ -248,7 +254,16 @@ class TerminalCommand implements vscode.Disposable {
             }
         }
         
-        return { mainBinary, cudartBinary };
+        // Extract version from mainBinary.name (e.g., "llama-b7216-bin-win-vulkan-x64.zip" -> "b7216")
+        let version = ''; // fallback to tag_name
+        if (mainBinary && mainBinary.name) {
+            const versionMatch = mainBinary.name.match(/llama-(b\d+)/);
+            if (versionMatch && versionMatch[1]) {
+                version = versionMatch[1];
+            }
+        }
+        
+        return { mainBinary, cudartBinary, version };
     }
 
     private async downloadAndInstallWindowsBinaries(osInfo: OSInfo): Promise<'success' | 'error' | 'notsupported'> {
@@ -261,7 +276,7 @@ class TerminalCommand implements vscode.Disposable {
             showLogWindow(true);
             logTerminal('[Install] Fetching latest llama.cpp release information...');
 
-            const {mainBinary, cudartBinary} = await this.getDownloadURL(osInfo);
+            const {mainBinary, cudartBinary, version} = await this.getDownloadURL(osInfo);
 
             // Create user install directory for llama.cpp binaries (clean first)
             const installDir = this.getInstallBaseDir();
@@ -304,6 +319,10 @@ class TerminalCommand implements vscode.Disposable {
             logTerminal('[Install] ########################################');
             logTerminal('[Install] # llama.cpp installation successfully! #');
             logTerminal('[Install] ########################################');
+            
+            // Update llama.cpp version in system config
+            updateLlamaCppVersion(version);
+            
             return 'success';
         } catch (error) {
             logError(`[Install] Failed to install llama.cpp: ${error}`);
@@ -408,6 +427,29 @@ class TerminalCommand implements vscode.Disposable {
         }
     }
 
+    public async getInstalledLocalLlamaCppVersion(): Promise<string | undefined> {
+        const isInstalled = await this.isInstalledLocalLlamaServer();
+        if (! isInstalled) {
+            return "";
+        }
+        const logs = await this.runLocalLlamaServerInternal(['--version'], true);
+        
+        if (!logs || logs.length === 0) {
+            return "";
+        }
+        
+        // Join all log lines
+        const logText = logs.join('\n');
+        
+        // Extract version from "version: xxx" pattern
+        const versionMatch = logText.match(/version:\s*(\d+)/i);
+        if (versionMatch && versionMatch[1]) {
+            return versionMatch[1];
+        }
+        
+        return "";
+    }
+
     /**
      * Install llama.cpp via integrated terminal
      * not waitable command. because terminal is not visible to user. so user input is required.
@@ -477,6 +519,10 @@ class TerminalCommand implements vscode.Disposable {
                         logTerminal(`[Uninstall] Uninstalling llama.cpp from user install directory: ${installDir}`);
                         fs.rmSync(installDir, { recursive: true, force: true });
                         logTerminal(`[Uninstall] Uninstalled llama.cpp from user install directory.`);
+                        
+                        // Clear llama.cpp version in system config
+                        updateLlamaCppVersion(undefined);
+                        
                         return true;
                     } catch (err) {
                         logError(`[Uninstall] Failed to uninstall llama.cpp from user install directory: ${err}`);
@@ -494,6 +540,12 @@ class TerminalCommand implements vscode.Disposable {
                     terminal?.sendText(`echo "llama.cpp has been removed from your system."`);
                     terminal?.sendText(`echo "##############################"`);
                     this.InstallTerminal = terminal;
+                    
+                    if (success) {
+                        // Clear llama.cpp version in system config
+                        updateLlamaCppVersion(undefined);
+                    }
+                    
                     return success;
                 }
             }
@@ -501,6 +553,9 @@ class TerminalCommand implements vscode.Disposable {
                 vscode.window.showInformationMessage("Automatic uninstall is supported only for Mac and Windows for now. Please uninstall llama.cpp manually. Visit github.com/ggml-org/llama.vscode/wiki for details.");
                 return false;
             }
+            
+            // If we reach here without uninstalling, clear version anyway
+            updateLlamaCppVersion(undefined);
             return true;
         }
         finally {
@@ -513,13 +568,20 @@ class TerminalCommand implements vscode.Disposable {
         const config = getConfig();
         const args = config.localServerArg.split(' ');
         if (!args.includes('-c') && !args.includes('--ctx-size')) {
-            const contextSize = config.localServerContextSize;
-            args.push(`-c`, `${contextSize}`);
+            args.push(`-c`, `${config.localServerContextSize}`);
+        }
+        if (!args.includes('-kvu') && !args.includes('--kv-unified')) {
+            args.push(`-kvu`);
+        }
+        if (!args.includes('-cram') && !args.includes('--cache-ram')) {
+            args.push(`-cram`, `${config.localServerCacheRam}`);
         }
         this.runLocalLlamaServerInternal(args);
     }
 
-    public async runLocalLlamaServerInternal(args: string[]) {
+    private async runLocalLlamaServerInternal(args: string[], returnLogs: boolean = false): Promise<string[] | void> {
+        const logs: string[] = [];
+        
         try {
             let command: string;
             let cwd: string | undefined;
@@ -552,18 +614,30 @@ class TerminalCommand implements vscode.Disposable {
             });
 
             this.ServerProcess.on('error', (err) => {
-                logError(`llama-server spawn error: ${err?.message || err}`);
+                const errorMsg = `llama-server spawn error: ${err?.message || err}`;
+                logError(errorMsg);
+                if (returnLogs) {
+                    logs.push(errorMsg);
+                }
                 vscode.window.showErrorMessage(`llama-server execution error: ${err?.message || err}`);
             });
             this.ServerProcess.on('exit', (code, signal) => {
-                logWarning(`llama-server exited: code=${code} signal=${signal}`);
+                const exitMsg = `llama-server exited: code=${code} signal=${signal}`;
+                logWarning(exitMsg);
+                if (returnLogs) {
+                    logs.push(exitMsg);
+                }
             });
             if (this.ServerProcess.stdout) {
                 this.ServerProcess.stdout.on('data', (data: Buffer) => {
                     const text = process.platform === 'win32' 
                         ? data.toString('utf8') 
                         : data.toString();
-                    logServer(`${text}`);
+                    if (returnLogs) {
+                        logs.push(text);
+                    } else {
+                        logServer(`${text}`);
+                    }
                 });
             }
             if (this.ServerProcess.stderr) {
@@ -571,7 +645,26 @@ class TerminalCommand implements vscode.Disposable {
                     const text = process.platform === 'win32' 
                         ? data.toString('utf8') 
                         : data.toString();
-                    logServer(`${text}`);
+                    if (returnLogs) {
+                        logs.push(text);
+                    } else {
+                        logServer(`${text}`);
+                    }
+                });
+            }
+            
+            // If returnLogs is true, wait for initial output and return logs
+            if (returnLogs) {
+                // Wait for initial output (e.g., 3 seconds) or until process exits
+                return new Promise<string[]>((resolve) => {
+                    const timeout = setTimeout(() => {
+                        resolve(logs);
+                    }, 3000);
+                    
+                    this.ServerProcess?.on('exit', () => {
+                        clearTimeout(timeout);
+                        resolve(logs);
+                    });
                 });
             }
         } finally {

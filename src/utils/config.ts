@@ -30,12 +30,15 @@ export interface CotabConfig {
     hideOnStartup: boolean;
 
     // llm
-    llamaCppVersion: 'Stable';
+    llamaCppVersion: 'Stable' | 'Latest' | 'Custom';
+    customLlamaCppVersion: string;  // like "b7010"
     provider: 'OpenAICompatible';
     settingApiBaseURL: string;
     apiBaseURL: string;
     localServerArg: string;
     localServerContextSize: number;
+    // set the maximum cache size in MiB (default: 8192, -1 - no limit, 0 - disable) https://github.com/ggml-org/llama.cpp/pull/16391
+    localServerCacheRam: number; 
     model: string;
     temperature: number;
     top_p: number;
@@ -152,12 +155,14 @@ function getConfigRaw(): CotabConfig {
         hideOnStartup: cfg.get<boolean>('cotab.gettingStarted.hideOnStartup', false),
 
         // llm
-        llamaCppVersion: cfg.get<'Stable'>('cotab.llm.llamaCppVersion', 'Stable'),
+        llamaCppVersion: cfg.get<'Stable' | 'Latest' | 'Custom'>('cotab.llm.llamaCppVersion', 'Stable'),
+        customLlamaCppVersion: cfg.get<string>('cotab.llm.customLlamaCppVersion', 'b7314'),
         provider: cfg.get<'OpenAICompatible'>('cotab.llm.provider', 'OpenAICompatible'),
         settingApiBaseURL,
         apiBaseURL,
         localServerArg: cfg.get<string>('cotab.llm.localServerArg', '-hf unsloth/Qwen3-4B-Instruct-2507-GGUF --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -ctk q8_0 -ctv q8_0'),
         localServerContextSize: cfg.get<number>('cotab.llm.localServerContextSize', 32768),
+        localServerCacheRam: cfg.get<number>('cotab.llm.localServerCacheRam', 4096),
         model: cfg.get<string>('cotab.llm.model', 'qwen3-4b-2507'),
         temperature: cfg.get<number>('cotab.llm.temperature', 0.1),
         top_p: cfg.get<number>('cotab.llm.top_p', -1),

@@ -17,6 +17,8 @@ import { registerTerminalCommand } from './utils/terminalCommand';
 import { registerServerManager, autoStopServerOnExit } from './managers/serverManager';
 import { registerYamlConfig } from './utils/yamlConfig';
 import { registerGettingStartedView } from './ui/gettingStartedView';
+import { checkAndUpdatePluginVersion } from './utils/systemConfig';
+import { registerViewChangelog } from './ui/viewChangelog';
 
 const cotabDisposables: vscode.Disposable[] = [];
 let cotabContext: vscode.ExtensionContext;
@@ -49,16 +51,23 @@ export function activate(context: vscode.ExtensionContext) {
 	
 	// Register menu indicator
 	registerMenuIndicator(context.subscriptions);
-
-    // Quick Setup
-    registerGettingStartedView(context.subscriptions, context);
-	
-	cotabContext = context;
-
-	onChangedEnableExtension(getConfig().enabled);
 	
     // Register server manager
     registerServerManager(context.subscriptions, context);
+	
+	cotabContext = context;
+
+	// Activate Cotab Enable Modules
+	onChangedEnableExtension(getConfig().enabled);
+
+	// Check plugin version on startup
+	const { prevVersion, currentVersion } = checkAndUpdatePluginVersion();
+
+    // Quick Setup
+    registerGettingStartedView(context.subscriptions, context, prevVersion, currentVersion);
+
+	// Register viewChangelog
+	registerViewChangelog(context, prevVersion, currentVersion);
 }
 
 export function deactivate() {

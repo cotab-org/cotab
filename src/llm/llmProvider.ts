@@ -394,7 +394,7 @@ abstract class BaseAiClient implements AiClient {
 			const res = await http.post(this.getChatEndpoint(), arg, { 
 				// If cancel signal is sent too early and communication ends, llama-server may miss task cancellation,
 				// so don't pass signal directly
-//				signal,
+				signal, // fix b7037
 				responseType: 'stream',
 				validateStatus: () => true,	// no exception for status code 400
 			});

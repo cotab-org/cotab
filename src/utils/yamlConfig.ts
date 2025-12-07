@@ -200,6 +200,9 @@ export function getYamlConfig(): YamlConfig {
         if (! yamlConfig.diableModes) {
             yamlConfig.diableModes = defaultYamlConfig.diableModes;
         }
+        if (! yamlConfig.modes) {
+            yamlConfig.modes = [];
+        }
         yamlConfig.modes.push(...defaultYamlConfig.modes);
 
         // remove disable entry
