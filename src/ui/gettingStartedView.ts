@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { getConfig, setConfigHideOnStartup, setConfigShowProgressSpinner, setConfigApiBaseURL, setConfigCommentLanguage, setConfigLocalServerContextSize } from '../utils/config';
+import { getConfig, setConfigHideOnStartup, setConfigShowProgressSpinner, setConfigApiBaseURL, setConfigCommentLanguage, setConfigLocalServerContextSize, setConfigModel } from '../utils/config';
 import { terminalCommand, StablellamaCppVersion } from '../utils/terminalCommand';
 import { getAiClient } from '../llm/llmProvider';
 import { GetOSInfo } from '../utils/cotabUtil';
@@ -212,6 +212,7 @@ async function showGettingStartedView(context: vscode.ExtensionContext): Promise
     // view contents
     panel.webview.html = getHtml({
         apiBaseURL: config.settingApiBaseURL,
+        model: config.model,
         hideOnStartup: config.hideOnStartup,
         initial: await getServerSectionState(),
         iconUri: panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'icon.png')),
@@ -244,6 +245,11 @@ async function handleWebviewMessage(panel: vscode.WebviewPanel, msg: any): Promi
             setTimeout(async () => {
                 autoRefreshManager?.refresh();
             }, 500);
+    }
+    else if (msg?.type === 'saveModel') {
+        const value = String(msg.value || '').trim();
+        await setConfigModel(value);
+        panel.webview.postMessage({ type: 'saved', key: 'model', value });
     }
     else if (msg?.type === 'setHideOnStartup') {
         const value = Boolean(msg.value);
@@ -286,6 +292,7 @@ async function handleWebviewMessage(panel: vscode.WebviewPanel, msg: any): Promi
 
 function getHtml(params: {
     apiBaseURL: string;
+    model: string;
     hideOnStartup: boolean;
     initial: { kind: string; label: string; command?: string; };
     iconUri: vscode.Uri;
@@ -301,6 +308,7 @@ function getHtml(params: {
 }): string {
     const nonce = String(Date.now());
     const apiBaseURL = escapeHtml(params.apiBaseURL || '');
+    const model = escapeHtml(params.model || '');
     const hideOnStartup = params.hideOnStartup ? 'checked' : '';
     const showProgressSpinner = params.showProgressSpinner ? 'checked' : '';
     const commentLanguage = escapeHtml(params.settingCommentLanguage || '');
@@ -348,6 +356,38 @@ function getHtml(params: {
         .row { display: flex; gap: 8px; align-items: center; }
         .grow { flex: 1; }
         .context-size-input { width: 64px !important; min-width: 64px; text-align: left; }
+        .setting-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 12px 16px;
+            margin-bottom: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+        .setting-group:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.12);
+        }
+        .setting-group label {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--vscode-foreground);
+            margin-bottom: 8px;
+            opacity: 0.9;
+        }
+        .setting-group .row {
+            width: 100%;
+        }
+        .setting-group input[type="text"] {
+            margin: 0;
+        }
+        .setting-group .helper-text {
+            margin-top: 6px;
+            margin-bottom: 0;
+        }
         button { padding: 6px 12px; border: 1px solid var(--vscode-button-border, transparent); color: var(--vscode-button-foreground); background: var(--vscode-button-background); border-radius: 4px; cursor: pointer; }
         .muted { opacity: 0.8; }
         .helper-text { font-size: 12px; color: var(--vscode-descriptionForeground); margin-top: 6px; text-align: left; }
@@ -610,6 +650,9 @@ function getHtml(params: {
             overflow: hidden;
             box-shadow: 0 2px 6px rgba(0,0,0,0.1);
         }
+        #context-size-container {
+            margin-top: 8px;
+        }
 
         .shortcut-table th {
             background-color: #cccccc;
@@ -643,10 +686,9 @@ function getHtml(params: {
             <div class="spacer"></div>
             <div id="serverStatus" class="muted"></div>
             <a id="serverActionButton" class="server-action-link" style="display:none;" href="javascript:void(0)" title="server action"></a>
-            <div id="context-size-container" title="Required:&#10; - set 16k (16384) or more.&#10;&#10;Recommended:&#10; - set 32k (32768) or more.&#10;&#10;Reason:&#10; - The system prompt uses about 5k, and 1,000 lines of code use about 12k more.&#10; - so please set the context window to 20k (20480) or more.&#10;&#10;The default model (qwen3-4b-2507) VRAM usage:&#10; - 16k: about 4 GB&#10; - 32k: about 5.5 GB">
-                <div class="spacer"></div>
+            <div id="context-size-container" class="setting-group" title="Required:&#10; - set 16k (16384) or more.&#10;&#10;Recommended:&#10; - set 32k (32768) or more.&#10;&#10;Reason:&#10; - The system prompt uses about 5k, and 1,000 lines of code use about 12k more.&#10; - so please set the context window to 20k (20480) or more.&#10;&#10;The default model (qwen3-4b-2507) VRAM usage:&#10; - 16k: about 4 GB&#10; - 32k: about 5.5 GB">
+                <label for="localServerContextSlider">Context Size</label>
                 <div class="row">
-                    <label for="localServerContextSlider">Context Size</label>
                     <input id="localServerContextSlider" type="range" class="range-input" min="8192" max="131072" step="4096" value="${localServerContextSize}" />
                     <input id="localServerContextInput" type="number" class="context-size-input" inputmode="numeric" value="${localServerContextSize}" />
                 </div>
@@ -658,9 +700,17 @@ function getHtml(params: {
                 <span class="status-divider__line"></span>
             </div>
             <div class="spacer"></div>
-            <label for="apiBaseURL">OpenAI compatible Base URL</label>
-            <div class="row">
-                <input id="apiBaseURL" type="text" class="grow" value="${apiBaseURL}" placeholder="http://localhost:8080/v1" />
+            <div class="setting-group">
+                <label for="apiBaseURL">OpenAI compatible Base URL</label>
+                <div class="row">
+                    <input id="apiBaseURL" type="text" class="grow" value="${apiBaseURL}" placeholder="http://localhost:8080/v1" />
+                </div>
+            </div>
+            <div class="setting-group">
+                <label for="model">Model</label>
+                <div class="row">
+                    <input id="model" type="text" class="grow" value="${model}" placeholder="qwen3-4b-2507" />
+                </div>
             </div>
             <div class="spacer"></div>
         </section>
@@ -735,11 +785,13 @@ function getHtml(params: {
         <h3 class="center">Detail Settings</h3>
         <section class="setup-card setup-card--status">
             <div class="spacer"></div>
-            <label for="commentLanguage">Comment Language</label>
-            <div class="row">
-                <input id="commentLanguage" type="text" class="grow" value="${commentLanguage}" placeholder="${defaultCommentLanguage}" />
+            <div class="setting-group">
+                <label for="commentLanguage">Comment Language</label>
+                <div class="row">
+                    <input id="commentLanguage" type="text" class="grow" value="${commentLanguage}" placeholder="${defaultCommentLanguage}" />
+                </div>
+                <div class="helper-text">(e.g. 'English', '日本語', '简体中文', 'Français')</div>
             </div>
-            <div class="helper-text">(e.g. 'English', '日本語', '简体中文', 'Français')</div>
             <div class="spacer"></div>
         </section>
         <div class="floating-controls">
@@ -754,6 +806,7 @@ function getHtml(params: {
             const serverStatusContainer = document.getElementById('serverStatus');
             const serverActionLink = document.getElementById('serverActionButton');
             const apiBaseURLInput = document.getElementById('apiBaseURL');
+            const modelInput = document.getElementById('model');
             const commentLanguageInput = document.getElementById('commentLanguage');
             const localServerContextSlider = document.getElementById('localServerContextSlider');
             const localServerContextInput = document.getElementById('localServerContextInput');
@@ -838,6 +891,17 @@ function getHtml(params: {
                     vscode.postMessage({ type: 'saveApiBaseURL', value });
                 }, 400);
             });
+
+            let modelSaveTimer = null;
+            if (modelInput instanceof HTMLInputElement) {
+                modelInput.addEventListener('input', () => {
+                    if (modelSaveTimer) clearTimeout(modelSaveTimer);
+                    modelSaveTimer = setTimeout(() => {
+                        const value = String(modelInput.value || '').trim();
+                        vscode.postMessage({ type: 'saveModel', value });
+                    }, 400);
+                });
+            }
 
             let commentLanguageSaveTimer = null;
             if (commentLanguageInput instanceof HTMLInputElement) {

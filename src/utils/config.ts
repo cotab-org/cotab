@@ -247,6 +247,13 @@ export async function setConfigApiBaseURL(url: string): Promise<void> {
         .update('cotab.llm.apiBaseURL', val, vscode.ConfigurationTarget.Global);
 }
 
+export async function setConfigModel(model: string): Promise<void> {
+    const trimmed = String(model || '').trim();
+    const val = trimmed !== '' ? trimmed : undefined;
+    await vscode.workspace.getConfiguration()
+        .update('cotab.llm.model', val, vscode.ConfigurationTarget.Global);
+}
+
 export async function setConfigHideOnStartup(hide: boolean): Promise<void> {
     await vscode.workspace.getConfiguration()
         .update('cotab.gettingStarted.hideOnStartup', hide, vscode.ConfigurationTarget.Global);

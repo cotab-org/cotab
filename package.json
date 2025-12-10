@@ -192,7 +192,7 @@
         "cotab.llm.model": {
           "type": "string",
           "default": "qwen/qwen3-4b-2507",
-          "description": "Model name to use",
+          "description": "Remote model name to use",
           "order": 208
         },
         "cotab.llm.temperature": {
