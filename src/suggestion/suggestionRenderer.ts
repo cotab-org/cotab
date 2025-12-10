@@ -360,8 +360,10 @@ export function renderSuggestions(editor: vscode.TextEditor): {
 						for (const seg of segs)
 						{
 							if (seg.type === 'add') {
+								// Use NBSP to prevent VS Code's CSS content collapsing spaces.
+								const contentText = seg.text.replace(/ /g, '\u00A0');
 								renderData.inlineOptions.push({range : new vscode.Range(line, seg.orgIdx, line, seg.orgIdx),
-									renderOptions: { after: { contentText: seg.text } },
+									renderOptions: { after: { contentText } },
 								});
 							} else if (seg.type === 'delete') {
 								renderData.deleteOptions.push({range: new vscode.Range(line, seg.orgIdx, line, seg.orgIdx + (seg.delete ?? 0))});
