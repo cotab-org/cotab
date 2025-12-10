@@ -215,7 +215,7 @@ export function processDiffAndApplyEdits(
 
     const preEdits = diffOperationsToLineEdits(trimmedOps, baseLine);
 
-    // 停止シンボルが無く、deleteが5以上続いた場合、差分ミスと判断し無効化する。
+    // If there is no stop symbol and five or more 'delete' operations follow consecutively, consider it a diff error and disable it.
     if (! isStopedSymbol &&
         3 <= preEdits.length &&
         preEdits[0].type === 'delete' &&
@@ -274,6 +274,25 @@ export function processDiffAndApplyEdits(
             if (isInsertionJudgment) {
                 edits[0].type = 'add';
             }
+        }
+    }
+
+    // In the case of Qwen3-Coder-30b-3b using recent llm.cpp,
+    // the initial output may sometimes not have leading whitespace.
+    // ※This issue was not present in the 2025 summer version, so it seems that some inference part has changed due to optimizations after that.
+    // Therefore, when the original has leading whitespace and the output does not, we correct the diff.
+    // By the way, for some reason, indents appear in the output starting from the second line,
+    // so it appears to be a compatibility issue between the model, assistant prompt, and llm.cpp implementation.
+    if (0 < edits.length && edits[0].type === 'change') {
+        const orgLine = documentTexts[edits[0].line];
+        const newLine = edits[0].newText;
+
+        const isOrgLineFirstSpace = orgLine.length > 0 && /\s/.test(orgLine[0]);
+        const isNewLineFirstSpace = newLine.length > 0 && /\s/.test(newLine[0]);
+        if (isOrgLineFirstSpace && !isNewLineFirstSpace) {
+            // Correct leading spaces
+            const orgLeadingSpaces = orgLine.length - orgLine.trimStart().length;
+            edits[0].newText = orgLine.substring(0, orgLeadingSpaces) + newLine;
         }
     }
 
