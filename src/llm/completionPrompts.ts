@@ -296,9 +296,23 @@ ${cachedSourceCodeWithLine}
 		cursorLineBefore = '';
 	}
 
+	/*
+	 * For some reason, Qwen3 ignores leading whitespace on the first line when generating output.
+	 * It's possible that there exists a token where "|" and whitespace are concatenated, and the "|" token for output is treated separately from normal processing.
+	 * Therefore, we will output only the line number, leaving "|" to the LLM's output.
+	 * This way, leading whitespace at the start of lines is correctly output.
+	 * Note that this phenomenon did not occur with Qwen3:4b, and it seems unlikely that applying this fix would degrade the output quality of Qwen3:4b.
+	 */
+	let cursorLineBeforeForQwen3Coder = cursorLineBefore;
 	// addend LineNumber Text
 	if (config.withLineNumber) {
+		const bEmpty = (cursorLineBefore === '');
 		cursorLineBefore = `${latestBeforeOutsideLastWithLineNumber+1}|${cursorLineBefore}`;
+		cursorLineBeforeForQwen3Coder = cursorLineBefore;
+
+		if (bEmpty) {
+			cursorLineBeforeForQwen3Coder = `${latestBeforeOutsideLastWithLineNumber+1}`;
+		}
 	}
 
 	//###########################
@@ -381,7 +395,7 @@ const assistantSourceCodeBlockBforeCursor =
 // ... existing code ...
 
 ${latestBeforeOutsideLastWithLine}${(yamlConfigMode.isNoInsertStartStopSymbolLatest) ? '' : ('\n'+startEditingHereSymbol)}
-${cursorLineBefore}`;
+${cursorLineBeforeForQwen3Coder}`;
 //===============================================
 
 
@@ -437,7 +451,7 @@ ${cursorLineBefore}`;
 		"latestAfterOutsideFirstWithLine": latestAfterOutsideFirstWithLine,
 		"assistantSourceCodeBlockBforeCursor": assistantSourceCodeBlockBforeCursor,
 		"cursorLineBefore": orgCursorLineBefore,
-		"cursorLineBeforeWithLine": cursorLineBefore,
+		"cursorLineBeforeWithLine": cursorLineBeforeForQwen3Coder,
 		"firstLineCode": latestFirstLineCode,
 		
 		// Additional prompts
@@ -520,7 +534,7 @@ ${cursorLineBefore}`;
 		systemPrompt: parsedSystemPrompt,
 		userPrompt: parsedUserPrompt,
 		assistantPrompt: parsedAssistantPrompt,
-		beforePlaceholderWithLF: cursorLineBefore,
+		beforePlaceholderWithLF: cursorLineBeforeForQwen3Coder,
 		yamlConfigMode,
 		handlebarsContext,
 	};

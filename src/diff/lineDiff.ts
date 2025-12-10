@@ -64,6 +64,26 @@ export function processDiffAndApplyEdits(
     const documentTexts = editorContext.documentText.fullText.split('\n');
     let origLines = documentTexts.slice(editorContext.aroundFromLine, editorContext.aroundMergeToLine);
     let newLines = cleaned.split(/\n/);
+    
+
+    // In the case of Qwen3-Coder-30b-3b using recent llama.cpp,
+    // the initial output may sometimes not have leading whitespace.
+    // ※This issue was not present in the 2025 summer version, so it seems that some inference part has changed due to optimizations after that.
+    // Therefore, when the original has leading whitespace and the output does not, we correct the diff.
+    // By the way, for some reason, indents appear in the output starting from the second line,
+    // so it appears to be a compatibility issue between the model, assistant prompt, and llama.cpp implementation.
+    if (0 < origLines.length && 0 < newLines.length) {
+        const orgLine = origLines[0];
+        const newLine = newLines[0];
+
+        const isOrgLineFirstSpace = orgLine.length > 0 && /\s/.test(orgLine[0]);
+        const isNewLineFirstSpace = newLine.length > 0 && /\s/.test(newLine[0]);
+        if (isOrgLineFirstSpace && !isNewLineFirstSpace) {
+            // Correct leading spaces
+            const orgLeadingSpaces = orgLine.length - orgLine.trimStart().length;
+            newLines[0] = orgLine.substring(0, orgLeadingSpaces) + newLine;
+        }
+    }
 
     if (origLines.length && newLines.length) {
 
@@ -274,25 +294,6 @@ export function processDiffAndApplyEdits(
             if (isInsertionJudgment) {
                 edits[0].type = 'add';
             }
-        }
-    }
-
-    // In the case of Qwen3-Coder-30b-3b using recent llm.cpp,
-    // the initial output may sometimes not have leading whitespace.
-    // ※This issue was not present in the 2025 summer version, so it seems that some inference part has changed due to optimizations after that.
-    // Therefore, when the original has leading whitespace and the output does not, we correct the diff.
-    // By the way, for some reason, indents appear in the output starting from the second line,
-    // so it appears to be a compatibility issue between the model, assistant prompt, and llm.cpp implementation.
-    if (0 < edits.length && edits[0].type === 'change') {
-        const orgLine = documentTexts[edits[0].line];
-        const newLine = edits[0].newText;
-
-        const isOrgLineFirstSpace = orgLine.length > 0 && /\s/.test(orgLine[0]);
-        const isNewLineFirstSpace = newLine.length > 0 && /\s/.test(newLine[0]);
-        if (isOrgLineFirstSpace && !isNewLineFirstSpace) {
-            // Correct leading spaces
-            const orgLeadingSpaces = orgLine.length - orgLine.trimStart().length;
-            edits[0].newText = orgLine.substring(0, orgLeadingSpaces) + newLine;
         }
     }
 
