@@ -93,7 +93,7 @@ Since the following edit history may be outdated, always make sure to check the 
 # Since the following source code may be outdated, always make sure to check the latest version when referring to it.
 {{sourceCodeBlock}}
 </OLD_CODE_INPUT>
-      
+
 <ERROR_LIST>
 Please always make sure to check the latest version when referring to it.
 \`\`\`yaml
@@ -122,7 +122,7 @@ The retrieved latest edit history is as follows:
 The retrieved latest source code is as follows:
 <LATEST_CODE_INPUT>
 # VERSION: 2
-{{latestSourceCodeBlockWithCache}}
+{{latestSourceCodeBlock}}
 # This latest code must be referenced, and any lines outside this range must be referenced to the original code provided by the user.
 </LATEST_CODE_INPUT>
 
@@ -132,12 +132,6 @@ You will output only the code block. and You will not forget to also output "{{s
 <LATEST_EDIT_HISTORY>
 {{lastEditHistoryCodeBlock}}
 </LATEST_EDIT_HISTORY>
-
-The latest cursor line is as follows:
-<LATEST_CURSOR_LINE_CODE_INPUT>
-# VERSION: 3
-{{latestCursorLineText}}
-</LATEST_CURSOR_LINE_CODE_INPUT>
 
 {{appendThinkPrompt}}{{additionalUserPrompt}}`;
 
