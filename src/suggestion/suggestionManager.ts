@@ -12,6 +12,7 @@ import { updateSuggestionsAndDecorations } from './suggestionUtils';
 import { getConfig, CotabConfig } from '../utils/config';
 import { logInfo, logError, logDebug } from '../utils/logger';
 import { showProgress, hideProgress, moveProgress } from '../utils/cotabUtil';
+import { serverManager } from '../managers/serverManager';
 
 export function registerSuggestionManager(disposables: vscode.Disposable[]) {
     suggestionManager = new SuggestionManager();
@@ -271,6 +272,8 @@ export class SuggestionManager implements vscode.Disposable {
             yamlConfigMode,
             handlebarsContext,
         } = buildCompletionPrompts(editorContext, codeBlocks, document.uri.toString());
+
+        serverManager.checkArgAndRestartServer(yamlConfigMode);
         
         const isOutput = true;
         if (isOutput) {

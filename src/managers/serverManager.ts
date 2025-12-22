@@ -5,6 +5,7 @@ import * as os from 'os';
 import { getConfig } from '../utils/config';
 import { logInfo, logDebug, logWarning, logError } from '../utils/logger';
 import { terminalCommand } from '../utils/terminalCommand';
+import { YamlConfigMode, getYamlConfigMode } from '../utils/yamlConfig';
 
 export function registerServerManager(disposables: vscode.Disposable[], context: vscode.ExtensionContext) {
     serverManager = new ServerManager(context);
@@ -246,10 +247,27 @@ class ServerManager implements vscode.Disposable {
 
     public async startServer() {
         if (! await terminalCommand.isRunningLocalLlamaServer()) {
-            terminalCommand.runLocalLlamaServer();
+            const filename = vscode.workspace.asRelativePath(vscode.window.activeTextEditor?.document.uri || '');
+            const yamlConfigMode = getYamlConfigMode(filename);
+            terminalCommand.runLocalLlamaServer(yamlConfigMode);
         }
         this.keepaliveServer!.keepalive();
         this.isManualStoped = false;    // clear flug
+    }
+
+    public async checkArgAndRestartServer(yamlConfigMode: YamlConfigMode) {
+        const args = terminalCommand.makeLocalLlamaServerArgs(yamlConfigMode);
+        const nowArgs = terminalCommand.getRunLocalArgs();
+        // early check
+        if (args.join(' ') !== nowArgs.join(' ')) {
+            // heavy call.
+            if (await terminalCommand.isRunningLocalLlamaServer()) {
+                await terminalCommand.stopLocalLlamaServer();
+            }
+            terminalCommand.runLocalLlamaServer(yamlConfigMode);
+        }
+        this.keepaliveServer!.keepalive();
+        this.isManualStoped = false;
     }
     
     public async stopServer(fromManual: boolean = false) {

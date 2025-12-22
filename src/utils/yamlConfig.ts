@@ -36,8 +36,9 @@ export interface YamlConfigMode {
     // each mode's extensions list is matched against the current file name to determine the applicable configuration.
     extensions: string[];
 
-    localServerArg?: string;
+    localServerCustom?: string;
     localServerContextSize?: number;
+    localServerCacheRam?: number;
     model?: string;
     temperature?: number;
     topP?: number;
@@ -457,11 +458,14 @@ modes:
         const mode = config.modes[i];
         yamlContent += `#  - mode: "${mode.mode}"\n`;
         yamlContent += `#    extensions: [${mode.extensions.map(ext => `"${ext}"`).join(', ')}]\n`;
-        if (mode.localServerArg !== undefined) {
-            yamlContent += `#    localServerArg: "${mode.localServerArg}"\n`;
+        if (mode.localServerCustom !== undefined) {
+            yamlContent += `#    localServerCustom: "${mode.localServerCustom}"\n`;
         }
         if (mode.localServerContextSize !== undefined) {
             yamlContent += `#    localServerContextSize: ${mode.localServerContextSize}\n`;
+        }
+        if (mode.localServerCacheRam !== undefined) {
+            yamlContent += `#    localServerCacheRam: ${mode.localServerCacheRam}\n`;
         }
         if (mode.model !== undefined) {
             yamlContent += `#    model: "${mode.model}"\n`;

@@ -7,11 +7,14 @@ import * as https from 'https';
 import * as os from 'os';
 import axios from 'axios';
 import { getConfig } from '../utils/config';
+import { localServerPresetArgs } from './localServerPresets';
+import type { LocalServerPreset } from './localServerPresets';
 import { isLocalhost } from '../llm/llmUtils';
 import { OSInfo, GetOSInfo } from '../utils/cotabUtil';
 import { logInfo, logWarning, logError, logServer, logTerminal, showLogWindow } from './logger';
 import { requestUpdateCotabMenuUntilChanged } from '../ui/menuIndicator';
 import { updateLlamaCppVersion } from './systemConfig';
+import { YamlConfigMode } from '../utils/yamlConfig';
 
 // Register helper (mirrors progressGutterIconManager)
 export function registerTerminalCommand(disposables: vscode.Disposable[]): void {
@@ -31,6 +34,7 @@ class TerminalCommand implements vscode.Disposable {
     private InstallTerminal: vscode.Terminal | undefined;
     private ServerProcess!: cp.ChildProcessWithoutNullStreams;
     private serverRunningCache: { result: boolean; timestamp: number } | null = null;
+    private runLocalArgs: string[] = [];
 
     private getInstallBaseDir(): string {
         if (process.platform === 'win32') {
@@ -564,19 +568,43 @@ class TerminalCommand implements vscode.Disposable {
         }
     }
 
-    public runLocalLlamaServer(): void {
+    public makeLocalLlamaServerArgs(yamlConfigMode: YamlConfigMode): string[] {
         const config = getConfig();
-        const args = config.localServerArg.split(' ');
+        let argsStr = yamlConfigMode.localServerCustom;
+        if (! argsStr) {
+            if (config.localServerPreset === 'Custom') {
+                argsStr = config.localServerCustom;
+            }
+            else {
+                argsStr = localServerPresetArgs[config.localServerPreset];
+            }
+            if (! argsStr) {
+                argsStr = config.localServerCustom;
+            }
+        }
+        const contextSize = yamlConfigMode.localServerContextSize || config.localServerContextSize;
+        const cacheRam = yamlConfigMode.localServerCacheRam || config.localServerCacheRam;
+        const args = argsStr.split(' ');
         if (!args.includes('-c') && !args.includes('--ctx-size')) {
-            args.push(`-c`, `${config.localServerContextSize}`);
+            args.push(`-c`, `${contextSize}`);
         }
         if (!args.includes('-kvu') && !args.includes('--kv-unified')) {
             args.push(`-kvu`);
         }
         if (!args.includes('-cram') && !args.includes('--cache-ram')) {
-            args.push(`-cram`, `${config.localServerCacheRam}`);
+            args.push(`-cram`, `${cacheRam}`);
         }
+        return args;
+    }
+
+    public runLocalLlamaServer(yamlConfigMode: YamlConfigMode): void {
+        const args = this.makeLocalLlamaServerArgs(yamlConfigMode);
+        this.runLocalArgs = args;
         this.runLocalLlamaServerInternal(args);
+    }
+
+    public getRunLocalArgs(): string[] {
+        return this.runLocalArgs;
     }
 
     private async runLocalLlamaServerInternal(args: string[], returnLogs: boolean = false): Promise<string[] | void> {
@@ -775,6 +803,7 @@ class TerminalCommand implements vscode.Disposable {
     }
 
     public async stopLocalLlamaServer(): Promise<void> {
+        this.runLocalArgs = [];
         try {
             const exec = util.promisify(cp.exec);
             if (process.platform === 'win32') {
@@ -799,6 +828,7 @@ class TerminalCommand implements vscode.Disposable {
     }
 
     public stopLocalLlamaServerSync(): void {
+        this.runLocalArgs = [];
         try {
             if (process.platform === 'win32') {
                 cp.execSync('taskkill /IM llama-server.exe /F', { stdio: 'ignore' });

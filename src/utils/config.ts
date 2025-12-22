@@ -3,8 +3,14 @@ import { BundledTheme } from "shiki";
 import { extensions } from 'vscode';
 import { execSync } from 'child_process';
 import { isDarkTheme } from './cotabUtil';
+import type { LocalServerPreset } from './localServerPresets';
+import { DEFAULT_LOCAL_SERVER_CUSTOM_ARGS, DEFAULT_LOCAL_SERVER_PRESET } from './localServerPresets';
+
+export type { LocalServerPreset } from './localServerPresets';
 
 let configCache: CotabConfig | null = null;
+
+export type LlamaCppVersion = 'Stable' | 'Latest' | 'Custom';
 
 export interface CotabConfig {
     // editor
@@ -30,12 +36,13 @@ export interface CotabConfig {
     hideOnStartup: boolean;
 
     // llm
-    llamaCppVersion: 'Stable' | 'Latest' | 'Custom';
+    llamaCppVersion: LlamaCppVersion;
     customLlamaCppVersion: string;  // like "b7010"
     provider: 'OpenAICompatible';
     settingApiBaseURL: string;
     apiBaseURL: string;
-    localServerArg: string;
+    localServerPreset: LocalServerPreset;
+    localServerCustom: string;
     localServerContextSize: number;
     // set the maximum cache size in MiB (default: 8192, -1 - no limit, 0 - disable) https://github.com/ggml-org/llama.cpp/pull/16391
     localServerCacheRam: number; 
@@ -155,12 +162,13 @@ function getConfigRaw(): CotabConfig {
         hideOnStartup: cfg.get<boolean>('cotab.gettingStarted.hideOnStartup', false),
 
         // llm
-        llamaCppVersion: cfg.get<'Stable' | 'Latest' | 'Custom'>('cotab.llm.llamaCppVersion', 'Stable'),
+        llamaCppVersion: cfg.get<LlamaCppVersion>('cotab.llm.llamaCppVersion', 'Stable'),
         customLlamaCppVersion: cfg.get<string>('cotab.llm.customLlamaCppVersion', 'b7314'),
         provider: cfg.get<'OpenAICompatible'>('cotab.llm.provider', 'OpenAICompatible'),
         settingApiBaseURL,
         apiBaseURL,
-        localServerArg: cfg.get<string>('cotab.llm.localServerArg', '-hf unsloth/Qwen3-4B-Instruct-2507-GGUF --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -ctk q8_0 -ctv q8_0'),
+        localServerPreset: cfg.get<LocalServerPreset>('cotab.llm.localServerPreset', DEFAULT_LOCAL_SERVER_PRESET),
+        localServerCustom: cfg.get<string>('cotab.llm.localServerCustom', DEFAULT_LOCAL_SERVER_CUSTOM_ARGS),
         localServerContextSize: cfg.get<number>('cotab.llm.localServerContextSize', 32768),
         localServerCacheRam: cfg.get<number>('cotab.llm.localServerCacheRam', 4096),
         model: cfg.get<string>('cotab.llm.model', 'qwen3-4b-2507'),
@@ -272,6 +280,17 @@ export async function setConfigCommentLanguage(language: string): Promise<void> 
 export async function setConfigLocalServerContextSize(size: number): Promise<void> {
     await vscode.workspace.getConfiguration()
         .update('cotab.llm.localServerContextSize', size, vscode.ConfigurationTarget.Global);
+}
+
+export async function setConfigLocalServerPreset(preset: LocalServerPreset): Promise<void> {
+    await vscode.workspace.getConfiguration()
+        .update('cotab.llm.localServerPreset', preset, vscode.ConfigurationTarget.Global);
+}
+
+export async function setConfigLocalServerCustom(custom: string): Promise<void> {
+    const value = String(custom ?? '');
+    await vscode.workspace.getConfiguration()
+        .update('cotab.llm.localServerCustom', value, vscode.ConfigurationTarget.Global);
 }
 
 

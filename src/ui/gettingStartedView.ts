@@ -1,9 +1,15 @@
 import * as vscode from 'vscode';
-import { getConfig, setConfigHideOnStartup, setConfigShowProgressSpinner, setConfigApiBaseURL, setConfigCommentLanguage, setConfigLocalServerContextSize, setConfigModel } from '../utils/config';
+import { getConfig, setConfigHideOnStartup, setConfigShowProgressSpinner, setConfigApiBaseURL, setConfigCommentLanguage, setConfigLocalServerContextSize, setConfigModel, setConfigLocalServerPreset, setConfigLocalServerCustom } from '../utils/config';
 import { terminalCommand, StablellamaCppVersion } from '../utils/terminalCommand';
 import { getAiClient } from '../llm/llmProvider';
 import { GetOSInfo } from '../utils/cotabUtil';
 import { buildLinkButtonSvgDataUri, buildNetworkServerLabelSvgDataUri } from './menuUtil';
+import { localServerPresetArgs, LOCAL_SERVER_PRESETS, isLocalServerPreset, LocalServerPreset } from '../utils/localServerPresets';
+
+const LOCAL_SERVER_PRESET_TOOLTIPS: Record<LocalServerPreset, string> = LOCAL_SERVER_PRESETS.reduce((acc, preset) => {
+    acc[preset] = localServerPresetArgs[preset] ?? '';
+    return acc;
+}, {} as Record<LocalServerPreset, string>);
 
 export function registerGettingStartedView(
     disposables: vscode.Disposable[],
@@ -224,7 +230,9 @@ async function showGettingStartedView(context: vscode.ExtensionContext): Promise
         showProgressSpinner: config.showProgressSpinner,
         settingCommentLanguage: config.settingCommentLanguage,
         defaultCommentLanguage: config.defaultCommentLanguage,
-        localServerContextSize: config.localServerContextSize
+        localServerContextSize: config.localServerContextSize,
+        localServerPreset: config.localServerPreset,
+        localServerCustom: config.localServerCustom
     });
 
     // Handle webview command
@@ -273,6 +281,17 @@ async function handleWebviewMessage(panel: vscode.WebviewPanel, msg: any): Promi
         await setConfigLocalServerContextSize(value);
         panel.webview.postMessage({ type: 'saved', key: 'localServerContextSize', value });
     }
+    else if (msg?.type === 'saveLocalServerPreset') {
+        const rawValue = String(msg.value || '');
+        const value: LocalServerPreset = isLocalServerPreset(rawValue) ? rawValue : 'Custom';
+        await setConfigLocalServerPreset(value);
+        panel.webview.postMessage({ type: 'saved', key: 'localServerPreset', value });
+    }
+    else if (msg?.type === 'saveLocalServerCustom') {
+        const value = String(msg.value ?? '');
+        await setConfigLocalServerCustom(value);
+        panel.webview.postMessage({ type: 'saved', key: 'localServerCustom', value });
+    }
     else if (msg?.type === 'executeCommand') {
         const command = String(msg.command || '');
         const args = Array.isArray(msg.args)
@@ -305,6 +324,8 @@ function getHtml(params: {
     settingCommentLanguage: string;
     defaultCommentLanguage: string;
     localServerContextSize: number;
+    localServerPreset: LocalServerPreset;
+    localServerCustom: string;
 }): string {
     const nonce = String(Date.now());
     const apiBaseURL = escapeHtml(params.apiBaseURL || '');
@@ -314,6 +335,20 @@ function getHtml(params: {
     const commentLanguage = escapeHtml(params.settingCommentLanguage || '');
     const defaultCommentLanguage = escapeHtml(params.defaultCommentLanguage || '');
     const localServerContextSize = Number.isFinite(params.localServerContextSize) ? params.localServerContextSize : 32768;
+    const localServerPresetValue = isLocalServerPreset(params.localServerPreset) ? params.localServerPreset : 'Custom';
+    const presetTooltipMap = LOCAL_SERVER_PRESETS.reduce((acc, preset) => {
+        acc[preset] = LOCAL_SERVER_PRESET_TOOLTIPS[preset] || '';
+        return acc;
+    }, {} as Record<LocalServerPreset, string>);
+    const presetTooltipMapJson = JSON.stringify(presetTooltipMap);
+    const localServerPresetOptions = LOCAL_SERVER_PRESETS.map((preset) => {
+        const label = escapeHtml(preset);
+        const selected = preset === localServerPresetValue ? 'selected' : '';
+        const tooltip = escapeHtml(presetTooltipMap[preset] || '');
+        return `<option value="${label}" ${selected} title="${tooltip}" data-tooltip="${tooltip}">${label}</option>`;
+    }).join('');
+    const localServerCustom = escapeHtml(params.localServerCustom || '');
+    const showLocalServerCustom = localServerPresetValue === 'Custom';
     const initialState = JSON.stringify(params.initial);
     // Prepare shared SVG URIs for consistent UI
     const assetsJson = JSON.stringify({
@@ -349,6 +384,14 @@ function getHtml(params: {
         label { display: block; margin-bottom: 6px; }
         input[type="text"],
         input[type="number"] { width: 100%; padding: 6px 8px; border: 1px solid var(--vscode-input-border); background: var(--vscode-input-background); color: var(--vscode-input-foreground); border-radius: 4px; }
+        .setting-group select {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid var(--vscode-input-border);
+            background: var(--vscode-input-background);
+            color: var(--vscode-input-foreground);
+            border-radius: 4px;
+        }
         input[type="number"] { -moz-appearance: textfield; }
         input[type="number"]::-webkit-outer-spin-button,
         input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
@@ -686,6 +729,18 @@ function getHtml(params: {
             <div class="spacer"></div>
             <div id="serverStatus" class="muted"></div>
             <a id="serverActionButton" class="server-action-link" style="display:none;" href="javascript:void(0)" title="server action"></a>
+            <div class="spacer"></div>
+            <div id="local-server-preset-container" class="setting-group">
+                <label for="localServerPresetSelect">Preset</label>
+                <div class="row">
+                    <select id="localServerPresetSelect" class="grow">
+                        ${localServerPresetOptions}
+                    </select>
+                </div>
+                <div class="row" id="localServerCustomGroup" style="${showLocalServerCustom ? '' : 'display:none;'}">
+                    <input id="localServerCustomInput" type="text" class="grow" value="${localServerCustom}" placeholder="Enter custom llama-server arguments" />
+                </div>
+            </div>
             <div id="context-size-container" class="setting-group" title="Required:&#10; - set 16k (16384) or more.&#10;&#10;Recommended:&#10; - set 32k (32768) or more.&#10;&#10;Reason:&#10; - The system prompt uses about 5k, and 1,000 lines of code use about 12k more.&#10; - so please set the context window to 20k (20480) or more.&#10;&#10;The default model (qwen3-4b-2507) VRAM usage:&#10; - 16k: about 4 GB&#10; - 32k: about 5.5 GB">
                 <label for="localServerContextSlider">Context Size</label>
                 <div class="row">
@@ -693,7 +748,6 @@ function getHtml(params: {
                     <input id="localServerContextInput" type="number" class="context-size-input" inputmode="numeric" value="${localServerContextSize}" />
                 </div>
             </div>
-            <div class="spacer"></div>
             <div class="status-divider">
                 <span class="status-divider__line"></span>
                 <span>OR</span>
@@ -810,10 +864,16 @@ function getHtml(params: {
             const commentLanguageInput = document.getElementById('commentLanguage');
             const localServerContextSlider = document.getElementById('localServerContextSlider');
             const localServerContextInput = document.getElementById('localServerContextInput');
+            const contextSizeContainer = document.getElementById('context-size-container');
+            const localServerPresetContainer = document.getElementById('local-server-preset-container');
+            const localServerPresetSelect = document.getElementById('localServerPresetSelect');
+            const localServerCustomGroup = document.getElementById('localServerCustomGroup');
+            const localServerCustomInput = document.getElementById('localServerCustomInput');
             const hideNext = document.getElementById('hideNext');
             const hideNextInline = document.getElementById('hideNextInline');
             const showProgressSpinnerCheckbox = document.getElementById('showProgressSpinner');
             const openSettingsBtn = document.getElementById('openSettingsBtn');
+            const presetTooltipMap = ${presetTooltipMapJson};
             const assets = ${assetsJson};
             console.log('[cotab] quickSetup assets loaded', assets);
 
@@ -830,6 +890,54 @@ function getHtml(params: {
                 container.appendChild(img);
             }
 
+            function setLocalServerControlsVisible(visible) {
+                const display = visible ? 'block' : 'none';
+                if (contextSizeContainer instanceof HTMLElement) {
+                    contextSizeContainer.style.display = display;
+                }
+                if (localServerPresetContainer instanceof HTMLElement) {
+                    localServerPresetContainer.style.display = display;
+                }
+            }
+
+            function updateLocalServerPresetTooltip(presetValue) {
+                if (!(localServerPresetSelect instanceof HTMLSelectElement)) {
+                    return;
+                }
+                const presetKey = presetValue || localServerPresetSelect.value || 'Custom';
+                const presetTooltip = (presetTooltipMap && typeof presetTooltipMap === 'object')
+                    ? (presetTooltipMap[presetKey] || '')
+                    : '';
+                let tooltip = presetTooltip || '';
+                if (presetKey === 'Custom' && localServerCustomInput instanceof HTMLInputElement) {
+                    const customValue = String(localServerCustomInput.value || '').trim();
+                    if (customValue) {
+                        tooltip = customValue;
+                        localServerCustomInput.title = customValue;
+                    } else {
+                        localServerCustomInput.removeAttribute('title');
+                    }
+                } else if (localServerCustomInput instanceof HTMLInputElement) {
+                    localServerCustomInput.removeAttribute('title');
+                }
+                if (tooltip) {
+                    localServerPresetSelect.title = tooltip;
+                } else {
+                    localServerPresetSelect.removeAttribute('title');
+                }
+            }
+
+            function toggleLocalServerCustomInput(presetValue) {
+                const showCustom = presetValue === 'Custom';
+                if (localServerCustomGroup instanceof HTMLElement) {
+                    localServerCustomGroup.style.display = showCustom ? '' : 'none';
+                }
+                if (localServerCustomInput instanceof HTMLInputElement) {
+                    localServerCustomInput.disabled = !showCustom;
+                }
+                updateLocalServerPresetTooltip(presetValue);
+            }
+
             function renderServerState() {
                 if (!serverStatusContainer || !serverActionLink) {
                     return;
@@ -840,36 +948,37 @@ function getHtml(params: {
                 delete serverActionLink.dataset.command;
 
                 console.log('[cotab] quickSetup render state', state);
+
                 if (state?.kind === 'network') {
                     renderSvgImage(serverStatusContainer, assets.networkLbl, 'Network Server Running');
                     serverActionLink.style.display = 'none';
-                    document.getElementById('context-size-container').style.display = 'none';
+                    setLocalServerControlsVisible(false);
                 } else if (state?.kind === 'start' && state?.command) {
                     serverActionLink.style.display = '';
                     serverStatusContainer.textContent = '';
                     renderSvgImage(serverActionLink, assets.startBtn, 'Start Server');
                     serverActionLink.dataset.command = state.command;
-                    document.getElementById('context-size-container').style.display = 'block';
+                    setLocalServerControlsVisible(true);
                 } else if (state?.kind === 'stop') {
                     serverActionLink.style.display = '';
                     serverStatusContainer.textContent = '';
                     renderSvgImage(serverActionLink, assets.stopBtn, 'Stop Server');
                     serverActionLink.dataset.command = state.command;
-                    document.getElementById('context-size-container').style.display = 'block';
+                    setLocalServerControlsVisible(true);
                 } else if (state?.kind === 'install' && state?.command) {
                     serverActionLink.style.display = '';
                     serverStatusContainer.textContent = '';
                     renderSvgImage(serverActionLink, assets.installBtn, 'Install Server');
                     serverActionLink.dataset.command = state.command;
-                    document.getElementById('context-size-container').style.display = 'block';
+                    setLocalServerControlsVisible(false);
                 } else if (state?.kind === 'unsupported') {
                     renderSvgImage(serverStatusContainer, assets.unsupportedLbl, 'Install Not Supported');
                     serverActionLink.style.display = 'none';
-                    document.getElementById('context-size-container').style.display = 'none';
+                    setLocalServerControlsVisible(false);
                 } else {
                     serverStatusContainer.textContent = '';
                     serverActionLink.style.display = 'none';
-                    document.getElementById('context-size-container').style.display = 'block';
+                    setLocalServerControlsVisible(true);
                 }
             }
 
@@ -915,6 +1024,7 @@ function getHtml(params: {
             }
 
             let localServerContextSaveTimer = null;
+            let localServerCustomSaveTimer = null;
 
             function normalizeLocalServerContextSize(value) {
                 return Number.isFinite(value) ? value : 32768;
@@ -986,6 +1096,49 @@ function getHtml(params: {
                     }
                     currentLocalServerContextSize = normalized;
                     syncLocalServerContextSize(normalized, { updateInput: false });
+                });
+            }
+
+            if (localServerPresetSelect instanceof HTMLSelectElement) {
+                toggleLocalServerCustomInput(localServerPresetSelect.value);
+                localServerPresetSelect.addEventListener('change', () => {
+                    const value = localServerPresetSelect.value;
+                    toggleLocalServerCustomInput(value);
+                    if (value === 'Custom' && localServerCustomInput instanceof HTMLInputElement) {
+                        localServerCustomInput.focus();
+                    }
+                    if (localServerCustomSaveTimer) {
+                        clearTimeout(localServerCustomSaveTimer);
+                        localServerCustomSaveTimer = null;
+                    }
+                    vscode.postMessage({ type: 'saveLocalServerPreset', value });
+                });
+            } else {
+                toggleLocalServerCustomInput('Custom');
+            }
+
+            if (localServerCustomInput instanceof HTMLInputElement) {
+                const scheduleLocalServerCustomSave = () => {
+                    updateLocalServerPresetTooltip('Custom');
+                    if (!(localServerPresetSelect instanceof HTMLSelectElement) || localServerPresetSelect.value !== 'Custom') {
+                        return;
+                    }
+                    if (localServerCustomSaveTimer) {
+                        clearTimeout(localServerCustomSaveTimer);
+                    }
+                    localServerCustomSaveTimer = setTimeout(() => {
+                        vscode.postMessage({
+                            type: 'saveLocalServerCustom',
+                            value: String(localServerCustomInput.value || '').trim()
+                        });
+                    }, 400);
+                };
+                localServerCustomInput.addEventListener('input', scheduleLocalServerCustomSave);
+                localServerCustomInput.addEventListener('blur', scheduleLocalServerCustomSave);
+                localServerCustomInput.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter') {
+                        scheduleLocalServerCustomSave();
+                    }
                 });
             }
 
