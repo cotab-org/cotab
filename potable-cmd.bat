@@ -651,6 +651,8 @@ exit /b 0
 	    )
 	    :: append potable nodejs path
 	    set "PATH=%POTABLE_NODEJS_ROOT%;%PATH%"
+        
+        powershell Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 
 	    :: output nodejs path and version
 	    call :WHERE_EXE npm --version
