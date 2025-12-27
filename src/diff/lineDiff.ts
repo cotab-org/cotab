@@ -5,6 +5,7 @@ import { computeCharDiff } from './charDiff';
 import { LineDiff, computeLineDiff, diffOperationsToLineEdits, processMaxLinesDiffOperations } from './lineDiffUtils';
 import { preprocessLLMOutput } from './lineDiffUtils';
 import { LineEdit } from '../suggestion/suggestionStore';
+import { getConfig } from '../utils/config';
 
 export interface DiffProcessResult {
     originalDiffOperations: LineDiff[];
@@ -56,7 +57,7 @@ export function processDiffAndApplyEdits(
 ): DiffProcessResult {
     //test();
     const withPrefix = beforePlaceholderWithLF + llmOutputText;
-    const { cleaned, isStopedSymbol, isStopedExistingComment } = preprocessLLMOutput(yamlConfigMode, withPrefix);
+    const { cleaned, isStopedSymbol, stoppedLineNo, isStopedExistingComment } = preprocessLLMOutput(yamlConfigMode, withPrefix);
     if (!cleaned.trim()) return { originalDiffOperations: [], edits: [], trimed: false, finalLineNumber: 0 };
 
     let baseLine = editorContext.aroundFromLine;
@@ -245,6 +246,13 @@ export function processDiffAndApplyEdits(
         preEdits[4].type === 'delete'
     ) {
         preEdits.length = 0;
+    }
+
+    // When the stop symbol is encountered and the edit line number is within the range, it is considered valids
+    if (0 < preEdits.length && isStopedSymbol && stoppedLineNo !== undefined) {
+        if (baseLine + stoppedLineNo < preEdits[0].line) {
+            preEdits.length = 0;
+        }
     }
     
     // ignore if out of range that first edit line

@@ -263,6 +263,7 @@ export function processMaxLinesDiffOperations(diffOperations: LineDiff[], origLi
 export function preprocessLLMOutput(yamlConfigMode: YamlConfigMode, text: string): {
     cleaned: string;
     isStopedSymbol: boolean;
+    stoppedLineNo: number | undefined;
     isStopedExistingComment: boolean;
 } {
 	const config = getConfig();
@@ -283,6 +284,13 @@ export function preprocessLLMOutput(yamlConfigMode: YamlConfigMode, text: string
     cleaned = cleaned.replace(new RegExp(`^[\s\S]*${startEditingHereSymbol}`, 'g'), '');
 
     const isStopedSymbol = cleaned.includes(stopEditingHereSymbol);
+    
+    let stoppedLineNo: number | undefined;
+    if (isStopedSymbol) {
+        const lines = cleaned.split('\n');
+        const stopIndex = lines.findIndex(line => line.includes(stopEditingHereSymbol));
+        stoppedLineNo = stopIndex !== -1 ? stopIndex : undefined;
+    }
 
     // Remove ###STOP_EDITING_HERE### lines (don't remove subsequent content)
     cleaned = cleaned.replace(new RegExp(`\n${stopEditingHereSymbol}`, 'g'), '');
@@ -309,5 +317,10 @@ export function preprocessLLMOutput(yamlConfigMode: YamlConfigMode, text: string
         }
     }
 
-    return { cleaned: cleaned.trim() === '' ? '' : cleaned, isStopedSymbol, isStopedExistingComment };
+    return {
+        cleaned: cleaned.trim() === '' ? '' : cleaned,
+        isStopedSymbol,
+        stoppedLineNo,
+        isStopedExistingComment,
+    };
 }
