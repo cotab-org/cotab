@@ -44,6 +44,7 @@ export interface CotabConfig {
     apiKey: string;
     localServerPreset: LocalServerPreset;
     localServerCustom: string;
+    localServerPort: number;
     localServerContextSize: number;
     // set the maximum cache size in MiB (default: 8192, -1 - no limit, 0 - disable) https://github.com/ggml-org/llama.cpp/pull/16391
     localServerCacheRam: number; 
@@ -141,7 +142,8 @@ function getConfigRaw(): CotabConfig {
     const lineHeight = configuredLineHeight > 0 ? configuredLineHeight : Math.round(fontSize * LINE_HEIGHT_RATIO);
     const themeName = getActiveThemeName();
     const settingApiBaseURL = cfg.get<string>('cotab.llm.apiBaseURL', '').trim();
-    const apiBaseURL = (settingApiBaseURL !== '') ? settingApiBaseURL : 'http://localhost:8080/v1';
+    const localServerPort = cfg.get<number>('cotab.llm.localServerPort', 9339);
+    const apiBaseURL = (settingApiBaseURL !== '') ? settingApiBaseURL : `http://127.0.0.1:${localServerPort}/v1`;
     return {
         // editor
         documentUri: uri,
@@ -171,6 +173,7 @@ function getConfigRaw(): CotabConfig {
         apiKey: cfg.get<string>('cotab.llm.apiKey', '').trim(),
         localServerPreset: cfg.get<LocalServerPreset>('cotab.llm.localServerPreset', DEFAULT_LOCAL_SERVER_PRESET),
         localServerCustom: cfg.get<string>('cotab.llm.localServerCustom', DEFAULT_LOCAL_SERVER_CUSTOM_ARGS),
+        localServerPort,
         localServerContextSize: cfg.get<number>('cotab.llm.localServerContextSize', 32768),
         localServerCacheRam: cfg.get<number>('cotab.llm.localServerCacheRam', 4096),
         model: cfg.get<string>('cotab.llm.model', 'qwen3-4b-2507'),

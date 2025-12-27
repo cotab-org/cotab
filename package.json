@@ -120,7 +120,7 @@
         "cotab.basic.autoStart": {
           "type": "boolean",
           "default": true,
-          "description": "Automatically start server when extension activates",
+          "description": "Automatically start server when extension activates. The cotab.llm.apiBaseURL setting must be blank.",
           "order": 103
         },
         "cotab.basic.autoStopOnIdleTime": {
@@ -170,7 +170,7 @@
         "cotab.llm.apiBaseURL": {
           "type": "string",
           "default": "",
-          "description": "OpenAI compatible Base URL (e.g. `http://localhost:8080/v1`) recommended llama-server",
+          "description": "OpenAI compatible Base URL (e.g. `http://localhost:8080/v1`) recommended llama-server (If you use auto-start the Local Server, leave it blank.)",
           "order": 204
         },
         "cotab.llm.apiKey": {
@@ -205,59 +205,65 @@
           "description": "Arguments for launching the local server (llama.cpp)",
           "order": 207
         },
+        "cotab.llm.localServerPort": {
+          "type": "number",
+          "default": 9339,
+          "description": "Port for the local server (llama.cpp)",
+          "order": 208
+        },
         "cotab.llm.localServerContextSize": {
           "type": "number",
           "default": 32768,
           "description": "Context size for the local server (llama.cpp)",
-          "order": 208
+          "order": 209
         },
         "cotab.llm.localServerCacheRam": {
           "type": "number",
           "default": 4096,
           "description": "the maximum ram backup cache size in MiB (-1 - no limit, 0 - disable) for the local server (llama.cpp) https://github.com/ggml-org/llama.cpp/pull/16391",
-          "order": 209
+          "order": 210
         },
         "cotab.llm.model": {
           "type": "string",
           "default": "qwen/qwen3-4b-2507",
           "description": "Remote model name to use",
-          "order": 210
+          "order": 211
         },
         "cotab.llm.temperature": {
           "type": "number",
           "default": 0.1,
           "description": "Creativity (0-1, lower values recommended. if -1, server's default setting is used)",
-          "order": 211
+          "order": 212
         },
         "cotab.llm.top_p": {
           "type": "number",
           "default": -1,
           "description": "Top-p sampling (if -1, server's default setting is used)",
-          "order": 212
+          "order": 213
         },
         "cotab.llm.top_k": {
           "type": "number",
           "default": -1,
           "description": "Top-k sampling (if -1, server's default setting is used)",
-          "order": 213
+          "order": 214
         },
         "cotab.llm.maxTokens": {
           "type": "number",
           "default": 256,
           "description": "Maximum number of tokens for LLM output",
-          "order": 214
+          "order": 215
         },
         "cotab.llm.maxOutputLines": {
           "type": "number",
           "default": 15,
           "description": "Maximum number of output lines from LLM",
-          "order": 215
+          "order": 216
         },
         "cotab.llm.timeoutMs": {
           "type": "number",
           "default": 30000,
           "description": "LLM call timeout (ms)",
-          "order": 216
+          "order": 217
         },
         "cotab.prompt.additionalSystemPrompt": {
           "type": "string",

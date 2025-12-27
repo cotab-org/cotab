@@ -480,17 +480,11 @@ async function startLlamaServer(): Promise<void> {
     // Hide immediately for best click response
     await closeCotabMenu();
     
-    try {
-        const config = getConfig();
-        const url = new URL(config.apiBaseURL);
-        const host = url.hostname || 'localhost';
-        const port = url.port || '8080';
-        
+    try {        
         // Check if server is already running
-        const isRunning = await isServerRunning();
-        if (isRunning) {
+        if (await terminalCommand.isRunningLocalLlamaServer()) {
             const choice = await vscode.window.showInformationMessage(
-                `Server is already running on ${host}:${port}. Do you want to restart it?`,
+                `Local server is already running. Do you want to restart it?`,
                 'Yes', 'No'
             );
             if (choice !== 'Yes') {

@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { getConfig } from '../utils/config';
+import { isCotabLocalhost } from '../llm/llmUtils';
 import { logInfo, logDebug, logWarning, logError } from '../utils/logger';
 import { terminalCommand } from '../utils/terminalCommand';
 import { YamlConfigMode, getYamlConfigMode } from '../utils/yamlConfig';
@@ -265,25 +266,15 @@ class ServerManager implements vscode.Disposable {
     }
 
     public async checkArgAndRestartServer(yamlConfigMode: YamlConfigMode) {
-        if (this.serverStartInProgress) {
-            return;
-        }
-        this.serverStartInProgress = true;
-        try {
-            const args = terminalCommand.makeLocalLlamaServerArgs(yamlConfigMode);
-            const nowArgs = terminalCommand.getRunLocalArgs();
-            // early check
-            if (args.join(' ') !== nowArgs.join(' ')) {
-                // heavy call.
-                if (await terminalCommand.isRunningLocalLlamaServer()) {
-                    await terminalCommand.stopLocalLlamaServer();
-                }
-                terminalCommand.runLocalLlamaServer(yamlConfigMode);
+        const args = terminalCommand.makeLocalLlamaServerArgs(yamlConfigMode);
+        const nowArgs = terminalCommand.getRunLocalArgs();
+        // early check
+        if (args.join(' ') !== nowArgs.join(' ')) {
+            // terminalCommand.isRunningLocalLlamaServer() is heavy call.
+            if (await terminalCommand.isRunningLocalLlamaServer()) {
+                await this.stopServer(this.isManualStoped);
+                await this.startServer();
             }
-            this.keepaliveServer!.keepalive();
-            this.isManualStoped = false;
-        } finally {
-            this.serverStartInProgress = false;
         }
     }
     
@@ -311,7 +302,8 @@ class ServerManager implements vscode.Disposable {
      * Auto-start during completion
      */
     public async autoStartOnCompletion() {
-        if (getConfig().serverAutoStart && !this.isManualStoped) {
+        const config = getConfig();
+        if (isCotabLocalhost(config.apiBaseURL) && config.serverAutoStart && !this.isManualStoped) {
             if (!(await terminalCommand.isRunningLocalLlamaServerWithCache())) {
                 logInfo('Auto-starting server for completion...');
                 await this.startServer();

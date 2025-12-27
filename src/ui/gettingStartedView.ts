@@ -736,7 +736,7 @@ function getHtml(params: {
         <section class="setup-card setup-card--status">
             <div class="spacer"></div>
             <div id="serverStatus" class="muted"></div>
-            <a id="serverActionButton" class="server-action-link" style="display:none;" href="javascript:void(0)" title="server action"></a>
+            <a id="serverActionButton" class="server-action-link" style="display:none;" href="javascript:void(0)" title="If you use auto-start, the &quot;OpenAI compatible Base URL&quot; setting must be blank."></a>
             <div class="spacer"></div>
             <div id="local-server-preset-container" class="setting-group">
                 <label for="localServerPresetSelect">Preset</label>
@@ -762,7 +762,7 @@ function getHtml(params: {
                 <span class="status-divider__line"></span>
             </div>
             <div class="spacer"></div>
-            <div class="setting-group">
+            <div class="setting-group" title="If you use auto-start the Local Server, leave it blank.">
                 <label for="apiBaseURL">OpenAI compatible Base URL</label>
                 <div class="row">
                     <input id="apiBaseURL" type="text" class="grow" value="${apiBaseURL}" placeholder="http://localhost:8080/v1" />

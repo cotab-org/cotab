@@ -310,18 +310,6 @@ abstract class BaseAiClient implements AiClient {
 		return this.resolvedBaseURL;
 	}
 
-	// Check if the URL is localhost
-	protected isLocalhost(): boolean {
-		const url = this.originalBaseURL.toLowerCase();
-		return url.includes('localhost') || 
-			   url.includes('127.0.0.1') || 
-			   url.includes('::1') ||
-			   url.startsWith('http://localhost') ||
-			   url.startsWith('https://localhost') ||
-			   url.startsWith('http://127.0.0.1') ||
-			   url.startsWith('https://127.0.0.1');
-	}
-
 	// Abstract methods - implemented in subclasses
 	protected abstract getApiBaseURL(resolvedURL: string): string;
 	protected abstract getCompletionsEndpoint(): string;
@@ -410,9 +398,7 @@ abstract class BaseAiClient implements AiClient {
 		} catch (error) {
 			logError(`Error in chatCompletions: ${error}`);
 			// auto-start on completion only for localhost.
-			if (this.isLocalhost()) {
-				await serverManager.autoStartOnCompletion();
-			}
+			await serverManager.autoStartOnCompletion();
 			return "";
 		} finally {
 			dispose();

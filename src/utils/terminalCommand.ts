@@ -9,7 +9,7 @@ import axios from 'axios';
 import { getConfig } from '../utils/config';
 import { localServerPresetArgs } from './localServerPresets';
 import type { LocalServerPreset } from './localServerPresets';
-import { isLocalhost } from '../llm/llmUtils';
+import { isCotabLocalhost } from '../llm/llmUtils';
 import { OSInfo, GetOSInfo } from '../utils/cotabUtil';
 import { logInfo, logWarning, logError, logServer, logTerminal, showLogWindow } from './logger';
 import { requestUpdateCotabMenuUntilChanged } from '../ui/menuIndicator';
@@ -594,6 +594,8 @@ class TerminalCommand implements vscode.Disposable {
         if (!args.includes('-cram') && !args.includes('--cache-ram')) {
             args.push(`-cram`, `${cacheRam}`);
         }
+        args.push('--host', '127.0.0.1');
+        args.push('--port', `${config.localServerPort}`);
         return args;
     }
 
@@ -800,20 +802,11 @@ class TerminalCommand implements vscode.Disposable {
         return { valid: false, result: false };
     }
 
-    private getApiBaseURL(): string {
-        const config = getConfig();
-        if (config.provider === 'OpenAICompatible') {
-            return config.apiBaseURL;
-        } else {
-            return config.apiBaseURL;
-        }
-    }
-
     private isEnableServerLayCache: boolean | undefined = undefined;
 
     // get server status
     public isEnableServerLazy(): boolean {
-        const isBaseURLLocalHost = isLocalhost(this.getApiBaseURL());
+        const isBaseURLLocalHost = isCotabLocalhost(getConfig().apiBaseURL);
 
         // If the API base URL is not localhost, server enabled.
         if (!isBaseURLLocalHost) {

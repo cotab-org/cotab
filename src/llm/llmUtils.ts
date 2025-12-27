@@ -154,12 +154,19 @@ export function withoutLineNumber(CodeBlock: string, removeNotHaveLineNumber: bo
 	}
 }
 
+/*
 export function isLocalhost(url: string): boolean {
-		return url.includes('localhost') || 
-			   url.includes('127.0.0.1') || 
-			   url.includes('::1') ||
-			   url.startsWith('http://localhost') ||
-			   url.startsWith('https://localhost') ||
-			   url.startsWith('http://127.0.0.1') ||
-			   url.startsWith('https://127.0.0.1');
+	const urlLower = url.toLowerCase();
+		return urlLower.includes('localhost') || 
+			   urlLower.includes('127.0.0.1') || 
+			   urlLower.includes('::1') ||
+			   urlLower.startsWith('http://localhost') ||
+			   urlLower.startsWith('https://localhost') ||
+			   urlLower.startsWith('http://127.0.0.1') ||
+			   urlLower.startsWith('https://127.0.0.1');
+}
+*/
+
+export function isCotabLocalhost(url: string): boolean {
+	return url === `http://127.0.0.1:${getConfig().localServerPort}/v1`;
 }
