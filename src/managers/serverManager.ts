@@ -210,6 +210,7 @@ class ServerManager implements vscode.Disposable {
     private keepaliveEditor: KeepaliveEditor | null = null;
     private keepaliveServer: KeepaliveServer | null = null;
     private isManualStoped: boolean = false;
+    private serverStartInProgress: boolean = false;
     private autoStopServerTimer: NodeJS.Timeout | null = null;
 
     constructor(context: vscode.ExtensionContext) {
@@ -246,28 +247,44 @@ class ServerManager implements vscode.Disposable {
     }
 
     public async startServer() {
-        if (! await terminalCommand.isRunningLocalLlamaServer()) {
-            const filename = vscode.workspace.asRelativePath(vscode.window.activeTextEditor?.document.uri || '');
-            const yamlConfigMode = getYamlConfigMode(filename);
-            terminalCommand.runLocalLlamaServer(yamlConfigMode);
+        if (this.serverStartInProgress) {
+            return;
         }
-        this.keepaliveServer!.keepalive();
-        this.isManualStoped = false;    // clear flug
+        this.serverStartInProgress = true;
+        try {
+            if (! await terminalCommand.isRunningLocalLlamaServer()) {
+                const filename = vscode.workspace.asRelativePath(vscode.window.activeTextEditor?.document.uri || '');
+                const yamlConfigMode = getYamlConfigMode(filename);
+                terminalCommand.runLocalLlamaServer(yamlConfigMode);
+            }
+            this.keepaliveServer!.keepalive();
+            this.isManualStoped = false;    // clear flug
+        } finally {
+            this.serverStartInProgress = false;
+        }
     }
 
     public async checkArgAndRestartServer(yamlConfigMode: YamlConfigMode) {
-        const args = terminalCommand.makeLocalLlamaServerArgs(yamlConfigMode);
-        const nowArgs = terminalCommand.getRunLocalArgs();
-        // early check
-        if (args.join(' ') !== nowArgs.join(' ')) {
-            // heavy call.
-            if (await terminalCommand.isRunningLocalLlamaServer()) {
-                await terminalCommand.stopLocalLlamaServer();
-            }
-            terminalCommand.runLocalLlamaServer(yamlConfigMode);
+        if (this.serverStartInProgress) {
+            return;
         }
-        this.keepaliveServer!.keepalive();
-        this.isManualStoped = false;
+        this.serverStartInProgress = true;
+        try {
+            const args = terminalCommand.makeLocalLlamaServerArgs(yamlConfigMode);
+            const nowArgs = terminalCommand.getRunLocalArgs();
+            // early check
+            if (args.join(' ') !== nowArgs.join(' ')) {
+                // heavy call.
+                if (await terminalCommand.isRunningLocalLlamaServer()) {
+                    await terminalCommand.stopLocalLlamaServer();
+                }
+                terminalCommand.runLocalLlamaServer(yamlConfigMode);
+            }
+            this.keepaliveServer!.keepalive();
+            this.isManualStoped = false;
+        } finally {
+            this.serverStartInProgress = false;
+        }
     }
     
     public async stopServer(fromManual: boolean = false) {

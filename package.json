@@ -2,7 +2,7 @@
   "name": "cotab",
   "displayName": "Cotab",
   "description": "This VS Code extension is an AI-powered multi-line autocomplete plugin designed with maximum privacy and security in mind by running entirely on a local LLM.",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "publisher": "cotab",
   "license": "Apache-2.0",
   "repository": {
@@ -173,6 +173,12 @@
           "description": "OpenAI compatible Base URL (e.g. `http://localhost:8080/v1`) recommended llama-server",
           "order": 204
         },
+        "cotab.llm.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "API key used as Bearer token for OpenAI compatible servers (Optional. You can leave this blank.)",
+          "order": 205
+        },
         "cotab.llm.localServerPreset": {
           "type": "string",
           "enum": [
@@ -191,67 +197,67 @@
           ],
           "default": "VRAM-6GB Qwen3-4B",
           "description": "Preset arguments for local server (llama.cpp). VRAM usage estimate is for context size 32k.",
-          "order": 205
+          "order": 206
         },
         "cotab.llm.localServerCustom": {
           "type": "string",
           "default": "-hf unsloth/Qwen3-4B-Instruct-2507-GGUF --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu -ctk q8_0 -ctv q8_0",
           "description": "Arguments for launching the local server (llama.cpp)",
-          "order": 206
+          "order": 207
         },
         "cotab.llm.localServerContextSize": {
           "type": "number",
           "default": 32768,
           "description": "Context size for the local server (llama.cpp)",
-          "order": 207
+          "order": 208
         },
         "cotab.llm.localServerCacheRam": {
           "type": "number",
           "default": 4096,
           "description": "the maximum ram backup cache size in MiB (-1 - no limit, 0 - disable) for the local server (llama.cpp) https://github.com/ggml-org/llama.cpp/pull/16391",
-          "order": 208
+          "order": 209
         },
         "cotab.llm.model": {
           "type": "string",
           "default": "qwen/qwen3-4b-2507",
           "description": "Remote model name to use",
-          "order": 209
+          "order": 210
         },
         "cotab.llm.temperature": {
           "type": "number",
           "default": 0.1,
           "description": "Creativity (0-1, lower values recommended. if -1, server's default setting is used)",
-          "order": 210
+          "order": 211
         },
         "cotab.llm.top_p": {
           "type": "number",
           "default": -1,
           "description": "Top-p sampling (if -1, server's default setting is used)",
-          "order": 211
+          "order": 212
         },
         "cotab.llm.top_k": {
           "type": "number",
           "default": -1,
           "description": "Top-k sampling (if -1, server's default setting is used)",
-          "order": 212
+          "order": 213
         },
         "cotab.llm.maxTokens": {
           "type": "number",
           "default": 256,
           "description": "Maximum number of tokens for LLM output",
-          "order": 213
+          "order": 214
         },
         "cotab.llm.maxOutputLines": {
           "type": "number",
           "default": 15,
           "description": "Maximum number of output lines from LLM",
-          "order": 214
+          "order": 215
         },
         "cotab.llm.timeoutMs": {
           "type": "number",
           "default": 30000,
           "description": "LLM call timeout (ms)",
-          "order": 215
+          "order": 216
         },
         "cotab.prompt.additionalSystemPrompt": {
           "type": "string",
