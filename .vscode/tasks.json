@@ -2,10 +2,22 @@
     "version": "2.0.0",
     "tasks": [
         {
+            "label": "npm: install",
+            "type": "npm",
+            "script": "install",
+            "group": "build",
+            "presentation": {
+                "panel": "shared",
+                "reveal": "silent",
+                "clear": false
+            }
+        },
+        {
             "label": "npm: compile",
             "type": "npm",
             "script": "compile",
             "group": "build",
+            "dependsOn": "npm: install",
             "presentation": {
                 "panel": "shared",
                 "reveal": "silent",
