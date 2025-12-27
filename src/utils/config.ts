@@ -41,6 +41,7 @@ export interface CotabConfig {
     provider: 'OpenAICompatible';
     settingApiBaseURL: string;
     apiBaseURL: string;
+    apiKey: string;
     localServerPreset: LocalServerPreset;
     localServerCustom: string;
     localServerContextSize: number;
@@ -167,6 +168,7 @@ function getConfigRaw(): CotabConfig {
         provider: cfg.get<'OpenAICompatible'>('cotab.llm.provider', 'OpenAICompatible'),
         settingApiBaseURL,
         apiBaseURL,
+        apiKey: cfg.get<string>('cotab.llm.apiKey', '').trim(),
         localServerPreset: cfg.get<LocalServerPreset>('cotab.llm.localServerPreset', DEFAULT_LOCAL_SERVER_PRESET),
         localServerCustom: cfg.get<string>('cotab.llm.localServerCustom', DEFAULT_LOCAL_SERVER_CUSTOM_ARGS),
         localServerContextSize: cfg.get<number>('cotab.llm.localServerContextSize', 32768),
@@ -253,6 +255,13 @@ export async function setConfigApiBaseURL(url: string): Promise<void> {
     const val = (trimed !== '') ? trimed : undefined;
     await vscode.workspace.getConfiguration()
         .update('cotab.llm.apiBaseURL', val, vscode.ConfigurationTarget.Global);
+}
+
+export async function setConfigApiKey(key: string): Promise<void> {
+    const trimmed = key.trim();
+    const val = trimmed !== '' ? trimmed : undefined;
+    await vscode.workspace.getConfiguration()
+        .update('cotab.llm.apiKey', val, vscode.ConfigurationTarget.Global);
 }
 
 export async function setConfigModel(model: string): Promise<void> {

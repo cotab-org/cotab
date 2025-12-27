@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { getConfig, setConfigHideOnStartup, setConfigShowProgressSpinner, setConfigApiBaseURL, setConfigCommentLanguage, setConfigLocalServerContextSize, setConfigModel, setConfigLocalServerPreset, setConfigLocalServerCustom } from '../utils/config';
+import { getConfig, setConfigHideOnStartup, setConfigShowProgressSpinner, setConfigApiBaseURL, setConfigApiKey, setConfigCommentLanguage, setConfigLocalServerContextSize, setConfigModel, setConfigLocalServerPreset, setConfigLocalServerCustom } from '../utils/config';
 import { terminalCommand, StablellamaCppVersion } from '../utils/terminalCommand';
 import { getAiClient } from '../llm/llmProvider';
 import { GetOSInfo } from '../utils/cotabUtil';
@@ -218,6 +218,7 @@ async function showGettingStartedView(context: vscode.ExtensionContext): Promise
     // view contents
     panel.webview.html = getHtml({
         apiBaseURL: config.settingApiBaseURL,
+        apiKey: config.apiKey,
         model: config.model,
         hideOnStartup: config.hideOnStartup,
         initial: await getServerSectionState(),
@@ -253,6 +254,11 @@ async function handleWebviewMessage(panel: vscode.WebviewPanel, msg: any): Promi
             setTimeout(async () => {
                 autoRefreshManager?.refresh();
             }, 500);
+    }
+    else if (msg?.type === 'saveApiKey') {
+        const value = String(msg.value || '').trim();
+        await setConfigApiKey(value);
+        panel.webview.postMessage({ type: 'saved', key: 'apiKey', value });
     }
     else if (msg?.type === 'saveModel') {
         const value = String(msg.value || '').trim();
@@ -311,6 +317,7 @@ async function handleWebviewMessage(panel: vscode.WebviewPanel, msg: any): Promi
 
 function getHtml(params: {
     apiBaseURL: string;
+    apiKey: string;
     model: string;
     hideOnStartup: boolean;
     initial: { kind: string; label: string; command?: string; };
@@ -329,6 +336,7 @@ function getHtml(params: {
 }): string {
     const nonce = String(Date.now());
     const apiBaseURL = escapeHtml(params.apiBaseURL || '');
+    const apiKey = escapeHtml(params.apiKey || '');
     const model = escapeHtml(params.model || '');
     const hideOnStartup = params.hideOnStartup ? 'checked' : '';
     const showProgressSpinner = params.showProgressSpinner ? 'checked' : '';
@@ -761,6 +769,12 @@ function getHtml(params: {
                 </div>
             </div>
             <div class="setting-group">
+                <label for="apiKey">API Key</label>
+                <div class="row">
+                    <input id="apiKey" type="password" class="grow" value="${apiKey}" placeholder="sk-... (Optional)" autocomplete="off" spellcheck="false" />
+                </div>
+            </div>
+            <div class="setting-group">
                 <label for="model">Model</label>
                 <div class="row">
                     <input id="model" type="text" class="grow" value="${model}" placeholder="qwen3-4b-2507" />
@@ -860,6 +874,7 @@ function getHtml(params: {
             const serverStatusContainer = document.getElementById('serverStatus');
             const serverActionLink = document.getElementById('serverActionButton');
             const apiBaseURLInput = document.getElementById('apiBaseURL');
+            const apiKeyInput = document.getElementById('apiKey');
             const modelInput = document.getElementById('model');
             const commentLanguageInput = document.getElementById('commentLanguage');
             const localServerContextSlider = document.getElementById('localServerContextSlider');
@@ -992,14 +1007,27 @@ function getHtml(params: {
                 }
             });
 
-            let saveTimer = null;
-            apiBaseURLInput.addEventListener('input', () => {
-                if (saveTimer) clearTimeout(saveTimer);
-                saveTimer = setTimeout(() => {
-                    const value = String(apiBaseURLInput.value || '').trim();
-                    vscode.postMessage({ type: 'saveApiBaseURL', value });
-                }, 400);
-            });
+            let apiBaseURLSaveTimer = null;
+            if (apiBaseURLInput instanceof HTMLInputElement) {
+                apiBaseURLInput.addEventListener('input', () => {
+                    if (apiBaseURLSaveTimer) clearTimeout(apiBaseURLSaveTimer);
+                    apiBaseURLSaveTimer = setTimeout(() => {
+                        const value = String(apiBaseURLInput.value || '').trim();
+                        vscode.postMessage({ type: 'saveApiBaseURL', value });
+                    }, 400);
+                });
+            }
+
+            let apiKeySaveTimer = null;
+            if (apiKeyInput instanceof HTMLInputElement) {
+                apiKeyInput.addEventListener('input', () => {
+                    if (apiKeySaveTimer) clearTimeout(apiKeySaveTimer);
+                    apiKeySaveTimer = setTimeout(() => {
+                        const value = String(apiKeyInput.value || '').trim();
+                        vscode.postMessage({ type: 'saveApiKey', value });
+                    }, 400);
+                });
+            }
 
             let modelSaveTimer = null;
             if (modelInput instanceof HTMLInputElement) {

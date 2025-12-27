@@ -281,12 +281,14 @@ abstract class BaseAiClient implements AiClient {
 	protected readonly originalBaseURL: string;
 	protected resolvedBaseURL: string | null = null;
 	protected readonly stopEditingHereSymbol: string;
+	protected readonly apiKey?: string;
 
 	constructor(baseURL: string, model: string, maxTokens: number,
 		temperature: number,
 		top_p: number,
 		top_k: number,
-		timeoutMs: number) {
+		timeoutMs: number,
+		apiKey?: string) {
 		this.model = model;
 		this.maxTokens = maxTokens;
 		this.temperature = temperature;
@@ -295,6 +297,7 @@ abstract class BaseAiClient implements AiClient {
 		this.timeoutMs = timeoutMs;
 		this.originalBaseURL = baseURL;
 		this.stopEditingHereSymbol = getConfig().stopEditingHereSymbol;
+		this.apiKey = apiKey?.trim() || undefined;
 	}
 
 	// Get URL resolved to IP address
@@ -335,7 +338,11 @@ abstract class BaseAiClient implements AiClient {
 		}
 
 		//logDebug(`axios.create`);
-		const http = axios.create({ baseURL: apiBaseURL, timeout });
+		const http = axios.create({
+			baseURL: apiBaseURL,
+			timeout,
+			headers: this.apiKey ? { Authorization: `Bearer ${this.apiKey}` } : undefined,
+		});
 
 		return http;
 	}
@@ -493,13 +500,15 @@ export function getAiClient(): AiClient {
 											config.temperature,
 											config.top_p,
 											config.top_k,
-											config.timeoutMs);
+											config.timeoutMs,
+											config.apiKey);
 	} else {
 		return new OpenAICompatibleClient(baseURL, config.model, config.maxTokens,
 											config.temperature,
 											config.top_p,
 											config.top_k,
-											config.timeoutMs);
+											config.timeoutMs,
+											config.apiKey);
 	}
 }
 
