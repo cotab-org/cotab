@@ -607,6 +607,37 @@ class TerminalCommand implements vscode.Disposable {
         return this.runLocalArgs;
     }
 
+    private getUnixProcessListCommand(): string {
+        return process.platform === 'darwin'
+            ? 'ps -axo pid=,comm=,command='
+            : 'ps -eo pid=,comm=,args=';
+    }
+
+    private extractUnixLocalLlamaServerPids(psOutput: string, normalizedBaseDirLower: string): number[] {
+        const pids: number[] = [];
+        const lines = (psOutput || '').split(/\r?\n/);
+        for (const rawLine of lines) {
+            const line = rawLine.trim();
+            if (!line) continue;
+            if (!line.includes(llamaServerExe)) continue;
+            const match = line.match(/^(\d+)\s+(.+)$/);
+            if (!match) continue;
+            const pid = parseInt(match[1], 10);
+            if (Number.isNaN(pid)) continue;
+            const commandWithArgsLower = match[2].toLowerCase();
+            if (commandWithArgsLower.includes(normalizedBaseDirLower) &&
+                commandWithArgsLower.includes(llamaServerExe)) {
+                pids.push(pid);
+            }
+        }
+        return pids;
+    }
+
+    private escapePathForPowerShell(pathValue: string): string {
+        // PowerShell single-quoted strings only need single quotes escaped.
+        return pathValue.replace(/'/g, "''");
+    }
+
     private async runLocalLlamaServerInternal(args: string[], returnLogs: boolean = false): Promise<string[] | void> {
         const logs: string[] = [];
         
@@ -719,25 +750,27 @@ class TerminalCommand implements vscode.Disposable {
     private async isRunningLocalLlamaServerInternal(): Promise<boolean> {
         try {
             const exec = util.promisify(cp.exec);
+            const installBaseDir = this.getInstallBaseDir();
+            const normalizedInstallBaseDir = path.normalize(installBaseDir);
+            const normalizedInstallBaseDirLower = normalizedInstallBaseDir.toLowerCase();
+            
             if (process.platform === 'win32') {
-                const { stdout } = await exec(`tasklist /FI "IMAGENAME eq ${llamaServerExe}"`);
-                return stdout?.toLowerCase().includes(llamaServerExe) ?? false;
-            }
-            else {
-                // Unix-like: check presence of process by inspecting stdout, not exception
-                const cmd = process.platform === 'darwin'
-                    ? 'ps -axo pid=,comm=,command='
-                    : 'ps -eo pid=,comm=,args=';
-                const { stdout } = await exec(cmd);
-                const lines = (stdout || '').split('\n');
-                for (const line of lines) {
-                    const text = line.trim();
-                    if (!text) continue;
-                    if (text.includes(llamaServerExe)) {
+                const windowsProcessName = llamaServerExe.replace('.exe', '');
+                const { stdout } = await exec(`powershell -NoProfile -Command "Get-Process -Name '${windowsProcessName}' -ErrorAction SilentlyContinue | Where-Object { $_.Path } | ForEach-Object { $_.Path }"`);
+                const processPaths = (stdout || '').split(/\r?\n/).map((p) => p.trim()).filter((p) => p.length > 0);
+                for (const processPath of processPaths) {
+                    const normalizedPath = path.normalize(processPath);
+                    if (normalizedPath.toLowerCase().startsWith(normalizedInstallBaseDirLower)) {
                         return true;
                     }
                 }
                 return false;
+            }
+            else {
+                const cmd = this.getUnixProcessListCommand();
+                const { stdout } = await exec(cmd);
+                const pids = this.extractUnixLocalLlamaServerPids(stdout, normalizedInstallBaseDirLower);
+                return pids.length > 0;
             }
         }
         catch (_) {
@@ -806,11 +839,30 @@ class TerminalCommand implements vscode.Disposable {
         this.runLocalArgs = [];
         try {
             const exec = util.promisify(cp.exec);
+            const installBaseDir = this.getInstallBaseDir();
+            
             if (process.platform === 'win32') {
-                await exec('taskkill /IM llama-server.exe /F');
+                const escapedBaseDir = this.escapePathForPowerShell(installBaseDir);
+                const windowsProcessName = llamaServerExe.replace('.exe', '');
+                await exec(`powershell -NoProfile -Command "Get-Process -Name '${windowsProcessName}' -ErrorAction SilentlyContinue | Where-Object { $_.Path -and $_.Path -like '${escapedBaseDir}*' } | Stop-Process -Force"`);
             } else {
-                await exec('pkill -f llama-server');
-                await new Promise(r => setTimeout(r, 2000));
+                const cmd = this.getUnixProcessListCommand();
+                const { stdout } = await exec(cmd);
+                const normalizedBaseDirLower = path.normalize(installBaseDir).toLowerCase();
+                const pidsToKill = this.extractUnixLocalLlamaServerPids(stdout, normalizedBaseDirLower);
+
+                if (pidsToKill.length === 0) {
+                    logInfo('Local llama-server is not running under install directory');
+                } else {
+                    for (const pid of pidsToKill) {
+                        try {
+                            process.kill(pid, 'SIGKILL');
+                        } catch (_) {
+                            // Ignore if process already terminated
+                        }
+                    }
+                    await new Promise(r => setTimeout(r, 2000));
+                }
             }
             logInfo('Server stopped successfully');
         }
@@ -830,10 +882,30 @@ class TerminalCommand implements vscode.Disposable {
     public stopLocalLlamaServerSync(): void {
         this.runLocalArgs = [];
         try {
+            const installBaseDir = this.getInstallBaseDir();
+            
             if (process.platform === 'win32') {
-                cp.execSync('taskkill /IM llama-server.exe /F', { stdio: 'ignore' });
+                const escapedBaseDir = this.escapePathForPowerShell(installBaseDir);
+                const windowsProcessName = llamaServerExe.replace('.exe', '');
+                const psCommand = `powershell -NoProfile -Command "Get-Process -Name '${windowsProcessName}' -ErrorAction SilentlyContinue | Where-Object { $_.Path -and $_.Path -like '${escapedBaseDir}*' } | Stop-Process -Force"`;
+                cp.execSync(psCommand, { stdio: 'ignore' });
             } else {
-                cp.execSync('pkill -f llama-server', { stdio: 'ignore' });
+                const cmd = this.getUnixProcessListCommand();
+                const stdout = cp.execSync(cmd, { encoding: 'utf8' });
+                const normalizedBaseDirLower = path.normalize(installBaseDir).toLowerCase();
+                const pidsToKill = this.extractUnixLocalLlamaServerPids(stdout, normalizedBaseDirLower);
+
+                if (pidsToKill.length === 0) {
+                    logInfo('Local llama-server is not running under install directory');
+                } else {
+                    for (const pid of pidsToKill) {
+                        try {
+                            process.kill(pid, 'SIGKILL');
+                        } catch (_) {
+                            // Ignore if process already terminated
+                        }
+                    }
+                }
             }
             logInfo('Server stopped successfully');
         }
