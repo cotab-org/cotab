@@ -3,6 +3,7 @@
 - Support: OpenAI Compatible API Key setting.
 - Update: Plugin categories and keywords.
 - Update: Remote model setting in getting started view.
+- Update: Buisness chat / proofreading prompt.
 - Fix: Poor completion prompt issue.
 - Fix: kill process to only installed llama-server.
 - Fix: Duplicate llama-server launch on auto-start issue.
