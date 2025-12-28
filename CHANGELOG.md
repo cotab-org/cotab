@@ -1,3 +1,13 @@
+## 0.2.0 - 2025/12/29
+- Support: Qwen3-30B-A3B-Instruct and preset settings.
+- Support: OpenAI Compatible API Key setting.
+- Update: Plugin categories and keywords.
+- Update: Remote model setting in getting started view.
+- Fix: Poor completion prompt issue.
+- Fix: kill process to only installed llama-server.
+- Fix: Duplicate llama-server launch on auto-start issue.
+- Fix: Edit history action type detection bug.
+- Fix: Erase last line issue.
 ## 0.1.4 - 2025/12/08
 - Fix: Slow performance bug since November 13, 2025.
 - Update: Install stable version of llama.cpp (b7314)
