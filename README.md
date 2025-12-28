@@ -6,7 +6,7 @@ It also offers a dedicated translation-only mode.
 
 ## Autocomplete
 ![Autocomplete Demo](doc/asset/cotab-tutorial-autocomplete1.gif)
-The programming languages supported depend on the AI model. Despite its compact size, the default model Qwen3-4b-2507 supports many languages.
+The programming languages supported depend on the AI model. Despite its compact size, the default model Qwen3-4B-Instruct-2507 supports many languages.
 
 ## Auto Comment Mode
 ![Comment Demo](doc/github-asset/cotab-demo-comment.gif)
@@ -61,7 +61,7 @@ A translation-only mode. It automatically translates comments in unfamiliar lang
 
 - Comment First
 
-  The default model (Qwen3-4b-2507) is compact yet highly capable, though it is not specifically designed for code completion. Unlike many recent cloud services, it may not immediately suggest the exact code you want to write. In such cases, writing a comment that describes the code you want first will help the model generate more precise code suggestions based on your description.
+  The default model (Qwen3-4B-Instruct-2507) is compact yet highly capable, though it is not specifically designed for code completion. Unlike many recent cloud services, it may not immediately suggest the exact code you want to write. In such cases, writing a comment that describes the code you want first will help the model generate more precise code suggestions based on your description.
   ![comment first](doc/github-asset/cotab-demo-comment-first.gif)
   
 - Edit Prompt
@@ -76,7 +76,7 @@ A translation-only mode. It automatically translates comments in unfamiliar lang
 ## Performance
 - **Recommend:** GeForce RTX 3000 series or later GPU (or equivalent) for optimal performance.
 
-- Cotab is optimized for llama-server and Qwen3-4b-2507 and is designed for high-speed operation. From the second request onward, even for source files over 1,000 lines, it understands the entire context and shows completions in about 0.6 seconds on an GeForce RTX 3070, even when the prompt exceeds 15,000 tokens and includes hundreds of reference symbols. After that, it continues to send completion requests on every keystroke and maintains that response time unless the cursor position changes significantly.
+- Cotab is optimized for llama-server and Qwen3-4B-Instruct-2507 and is designed for high-speed operation. From the second request onward, even for source files over 1,000 lines, it understands the entire context and shows completions in about 0.6 seconds on an GeForce RTX 3070, even when the prompt exceeds 15,000 tokens and includes hundreds of reference symbols. After that, it continues to send completion requests on every keystroke and maintains that response time unless the cursor position changes significantly.
 
 - AI workloads see significant performance improvements with the GeForce RTX 3000 series and later. A GeForce RTX 3000 series and later GPU or equivalent is recommended for comfortable response.
 

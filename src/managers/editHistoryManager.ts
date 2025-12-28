@@ -123,14 +123,18 @@ class EditHistoryManager implements vscode.Disposable {
                     const segments = computeCharDiff(originalText, newText);
                     let opType: 'add' | 'delete' | 'modify' | 'rename' | 'copy' | 'reject' = 'add';
                     {
-                        const filterdSegments = segments.filter(seg => seg.type !== 'keep');
-                        if (1 < filterdSegments.length) {
-                            opType = 'modify';
-                        } else if (0 == filterdSegments.length) {
-                            opType = 'delete';
-                        } else {
-                            opType = (filterdSegments[0].type === 'add') ? 'add' : 'delete';
-                        }
+                    const diffSegments = segments.filter(seg => seg.type !== 'keep');
+                    const hasAddSegment = diffSegments.some(seg => seg.type === 'add');
+                    const hasDeleteSegment = diffSegments.some(seg => seg.type === 'delete');
+                    if (diffSegments.length === 0) {
+                        opType = 'delete';
+                    } else if (hasAddSegment && !hasDeleteSegment) {
+                        opType = 'add';
+                    } else if (!hasAddSegment && hasDeleteSegment) {
+                        opType = 'delete';
+                    } else {
+                        opType = 'modify';
+                    }
                     }
                     
                     // For multiple lines, examine differences and count non-eq items
@@ -538,6 +542,11 @@ function inferEditOperation(evt: vscode.TextDocumentChangeEvent): EditOperation[
             text = text.replace(/\r?\n/g, '\n');
         }
 
+        // Ignore pure newline insertions (user just pressed Enter to move to next line)
+        if (type === 'add' && isPureLineBreakInsertion(change)) {
+            continue;
+        }
+
         if (originalText !== text || 0 < text.length) {
             result.push({
                 type,
@@ -551,4 +560,25 @@ function inferEditOperation(evt: vscode.TextDocumentChangeEvent): EditOperation[
         }
 	}
 	return result;
+}
+
+/**
+ * Detects "Enter key only" operations where VS Code inserted just a newline (and optional indentation),
+ * which should not be treated as an edit.
+ */
+function isPureLineBreakInsertion(change: vscode.TextDocumentContentChangeEvent): boolean {
+    if (change.rangeLength !== 0) {
+        return false;
+    }
+    if (!change.text) {
+        return false;
+    }
+
+    const normalized = change.text.replace(/\r/g, '');
+    if (!normalized.includes('\n')) {
+        return false;
+    }
+
+    const withoutNewlines = normalized.replace(/\n/g, '');
+    return withoutNewlines.trim().length === 0;
 }

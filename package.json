@@ -182,20 +182,22 @@
         "cotab.llm.localServerPreset": {
           "type": "string",
           "enum": [
-            "VRAM-6GB Qwen3-4B",
-            "VRAM-12GB Qwen3-Coder-30B:Q2",
-            "VRAM-16GB Qwen3-Coder-30B:Q3",
-            "VRAM-24GB Qwen3-Coder-30B",
+            "VRAM 6GB Balanced-Fast (Qwen3-4B-Instruct-2507:Q4)",
+            "VRAM 8GB HighQuality-VerySlow (Qwen3-Coder-30B:Q2)",
+            "VRAM 12GB HighQuality-Slow (Qwen3-Coder-30B:Q2)",
+            "VRAM 16GB HighQuality-Medium (Qwen3-Coder-30B:Q2)",
+            "VRAM 24GB VeryHighQuality-Medium (Qwen3-Coder-30B:Q4)",
             "Custom"
           ],
           "enumDescriptions": [
             "Model:Qwen3-4B-Instruct-2507\n\n-hf unsloth/Qwen3-4B-Instruct-2507-GGUF --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu -ctk q8_0 -ctv q8_0",
-            "Model:Qwen3-Coder-30B-A3B-Instruct-UD-IQ2_M\n\n-hf unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Qwen3-Coder-30B-A3B-Instruct-UD-IQ2_M --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu -ctk q8_0 -ctv q8_0 --n-cpu-moe 5",
-            "Model:Qwen3-Coder-30B-A3B-Instruct-UD-Q3_K_XL\n\n-hf unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Qwen3-Coder-30B-A3B-Instruct-UD-Q3_K_XL --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu -ctk q8_0 -ctv q8_0",
+            "Model:Qwen3-Coder-30B-A3B-Instruct-UD-IQ2_M\n\n-hf unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Qwen3-Coder-30B-A3B-Instruct-UD-IQ2_M --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu --n-cpu-moe 35",
+            "Model:Qwen3-Coder-30B-A3B-Instruct-UD-IQ2_M\n\n-hf unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Qwen3-Coder-30B-A3B-Instruct-UD-IQ2_M --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu --n-cpu-moe 11",
+            "Model:Qwen3-Coder-30B-A3B-Instruct-UD-IQ2_M\n\n-hf unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Qwen3-Coder-30B-A3B-Instruct-UD-IQ2_M --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu",
             "Model:Qwen3-Coder-30B-A3B-Instruct-UD-Q4_K_XL\n\n-hf unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Qwen3-Coder-30B-A3B-Instruct-UD-Q4_K_XL --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu",
             "Use cotab.llm.localServerCustom for custom settings"
           ],
-          "default": "VRAM-6GB Qwen3-4B",
+          "default": "VRAM 6GB Balanced-Fast (Qwen3-4B-Instruct-2507:Q4)",
           "description": "Preset arguments for local server (llama.cpp). VRAM usage estimate is for context size 32k.",
           "order": 206
         },
