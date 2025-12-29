@@ -3,3 +3,4 @@ node_modules
 workspace
 .vscode/settings.json
 *.vsix
+*.DS_Store
