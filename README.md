@@ -1,22 +1,27 @@
 # Cotab
+
+[English](README.md) | [日本語](README.ja.md) | [中文](README.zh-cn.md)
+
 This VS Code extension is an AI-powered multi-line autocomplete plugin designed with maximum privacy and security in mind by running entirely on a local LLM.
 
 It generates multiple lines of code using AI based not only on the entire file’s context but also on external symbols, errors, and prior edits, and presents them as autocomplete suggestions.
+Especially Qwen3-Coder-30B-A3B provides high-quality completion comparable to cloud services, and is optimized to be set up with a single click in an environment with VRAM 8GB.
+
 It also offers a dedicated translation-only mode.
 
 ## Autocomplete
 ![Autocomplete Demo](doc/asset/cotab-tutorial-autocomplete1.gif)
-The programming languages supported depend on the AI model. Despite its compact size, the default model Qwen3-4B-Instruct-2507 or high quality model Qwen3-Coder-30B-A3B supports many languages.
+The programming languages supported depend on the AI model. Despite its compact size, the default model Qwen3-4B-Instruct-2507 supports many languages. 
 
 ## Auto Comment Mode
 ![Comment Demo](doc/github-asset/cotab-demo-comment.gif)
 A dedicated mode that adds code comments. The AI understands the code at the cursor position and automatically adds detailed comments.
-Qwen3-4B-Instruct-2507 already delivers good comments, but this use case can tolerate a slight slowdown, so we recommend Qwen3-Coder-30B-A3B for the best results.
+Qwen3-4B-Instruct-2507 already delivers good comments, but this use case can tolerate a slowdown, so we recommend Qwen3-Coder-30B-A3B for the best results.
 
 ## Auto Translate Mode
 ![Translate Demo](doc/github-asset/cotab-demo-translate.gif)
 A translation-only mode. It automatically translates comments in unfamiliar languages, making code easier to understand.
-Qwen3-4B-Instruct-2507 also delivers high-quality translations, but in this use case, it is recommended to use Qwen3-Coder-30B-A3B for the best results, as slight performance degradation is tolerable.
+Qwen3-4B-Instruct-2507 also delivers high-quality translations, but in this use case, it is recommended to use Qwen3-Coder-30B-A3B for the best results, as performance degradation is tolerable.
 
 ## Feature
 - Prioritizes privacy, operates completely offline using local LLM
@@ -56,7 +61,7 @@ Qwen3-4B-Instruct-2507 also delivers high-quality translations, but in this use 
 - **Be especially careful when using pay-per-use API servers, as token consumption can be rapid**
 - When using a local server, **we strongly recommend single-user usage**
 
-  A local server is optimized for **single-user performance**.
+  A local server is optimized for **single-user**.
   Concurrent use by multiple users will significantly penalize inference and severely degrade response speed
 
 ## Tips for use
@@ -85,7 +90,7 @@ Qwen3-4B-Instruct-2507 also delivers high-quality translations, but in this use 
 ## Details
 - llama-server
 
-  You can also use OpenAI compatible APIs, but strongly recommend using llama-server. llama-server has low overhead and operates at the fastest speed among servers using llama.cpp as backend.
+  You can also use OpenAI compatible APIs, but we strongly recommend using llama-server. llama-server has low overhead and operates at the fastest speed among servers using llama.cpp as backend.
   Code completion frequently repeat requests and cancellations, so that overhead directly affects user experience.
   
 - Prompt Optimization

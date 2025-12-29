@@ -1,7 +1,7 @@
 {
   "name": "cotab",
   "displayName": "Cotab",
-  "description": "This VS Code extension is an AI-powered multi-line autocomplete plugin designed with maximum privacy and security in mind by running entirely on a local LLM.",
+  "description": "%description%",
   "version": "0.2.0",
   "publisher": "cotab",
   "license": "Apache-2.0",
@@ -55,47 +55,47 @@
     "commands": [
       {
         "command": "cotab.toggleEnabled",
-        "title": "Cotab: Enable/Disable"
+        "title": "%command.toggleEnabled%"
       },
       {
         "command": "cotab.openSettingsEnable",
-        "title": "Cotab: Open Enable Setting"
+        "title": "%command.openSettingsEnable%"
       },
       {
         "command": "cotab.cancelSuggestions",
-        "title": "Cotab: Cancel In-Progress Generation"
+        "title": "%command.cancelSuggestions%"
       },
       {
         "command": "cotab.acceptSuggestion",
-        "title": "Cotab: Accept Current Suggestion (All Lines)"
+        "title": "%command.acceptSuggestion%"
       },
       {
         "command": "cotab.acceptFirstLineSuggestion",
-        "title": "Cotab: Accept Current Suggestion (First Line)"
+        "title": "%command.acceptFirstLineSuggestion%"
       },
       {
         "command": "cotab.clearSuggestions",
-        "title": "Cotab: Clear All Suggestions"
+        "title": "%command.clearSuggestions%"
       },
       {
         "command": "cotab.server.install",
-        "title": "Cotab: [Server] Install or update - Easily install/update llama.cpp on the system via the web."
+        "title": "%command.server.install%"
       },
       {
         "command": "cotab.server.uninstall",
-        "title": "Cotab: [Server] Uninstall - Uninstall llama.cpp installed on the system"
+        "title": "%command.server.uninstall%"
       },
       {
         "command": "cotab.server.start",
-        "title": "Cotab: [Server] Start - Start the llama-server on the system"
+        "title": "%command.server.start%"
       },
       {
         "command": "cotab.server.stop",
-        "title": "Cotab: [Server] Stop - Stop the llama-server on the system"
+        "title": "%command.server.stop%"
       },
       {
         "command": "cotab.menu.clickstatusbar",
-        "title": "Cotab: [Menu] If you hover without clicking, the menu will appear!"
+        "title": "%command.menu.clickstatusbar%"
       }
     ],
     "configurationDefaults": {
@@ -108,37 +108,37 @@
         "cotab.basic.enabled": {
           "type": "boolean",
           "default": true,
-          "description": "Enable/disable the extension",
+          "description": "%config.basic.enabled%",
           "order": 101
         },
         "cotab.basic.disableForExtensions": {
           "type": "string",
           "default": "",
-          "description": "Disable the extension for extensions (comma separated list of file extensions. e.g. 'txt,json')",
+          "description": "%config.basic.disableForExtensions%",
           "order": 102
         },
         "cotab.basic.autoStart": {
           "type": "boolean",
           "default": true,
-          "description": "Automatically start server when extension activates. The cotab.llm.apiBaseURL setting must be blank.",
+          "description": "%config.basic.autoStart%",
           "order": 103
         },
         "cotab.basic.autoStopOnIdleTime": {
           "type": "number",
           "default": 300,
-          "description": "Idle timeout in seconds before auto-stopping server",
+          "description": "%config.basic.autoStopOnIdleTime%",
           "order": 104
         },
         "cotab.basic.commentLanguage": {
           "type": "string",
           "default": "",
-          "description": "Comment language. If empty, uses OS language (e.g. 'English', '日本語', '简体中文', 'Français')",
+          "description": "%config.basic.commentLanguage%",
           "order": 105
         },
         "cotab.basic.selectedPromptMode": {
           "type": "string",
           "default": "",
-          "description": "Used prompt settings mode. If empty, uses default coding prompt",
+          "description": "%config.basic.selectedPromptMode%",
           "order": 106
         },
         "cotab.llm.llamaCppVersion": {
@@ -149,13 +149,13 @@
             "Custom"
           ],
           "default": "Stable",
-          "description": "Installed version of llama.cpp (llama-server). (Custom: customLlamaCppVersion)",
+          "description": "%config.llm.llamaCppVersion%",
           "order": 201
         },
         "cotab.llm.customLlamaCppVersion": {
           "type": "string",
           "default": "b7314",
-          "description": "Custom version of llama.cpp (llama-server). like 'b7010' (only used when llamaCppVersion is Custom)",
+          "description": "%config.llm.customLlamaCppVersion%",
           "order": 202
         },
         "cotab.llm.provider": {
@@ -164,19 +164,19 @@
             "OpenAICompatible"
           ],
           "default": "OpenAICompatible",
-          "description": "LLM provider to use",
+          "description": "%config.llm.provider%",
           "order": 203
         },
         "cotab.llm.apiBaseURL": {
           "type": "string",
           "default": "",
-          "description": "OpenAI compatible Base URL (e.g. `http://localhost:8080/v1`) recommended llama-server (If you use auto-start the Local Server, leave it blank.)",
+          "description": "%config.llm.apiBaseURL%",
           "order": 204
         },
         "cotab.llm.apiKey": {
           "type": "string",
           "default": "",
-          "description": "API key used as Bearer token for OpenAI compatible servers (Optional. You can leave this blank.)",
+          "description": "%config.llm.apiKey%",
           "order": 205
         },
         "cotab.llm.localServerPreset": {
@@ -190,177 +190,177 @@
             "Custom"
           ],
           "enumDescriptions": [
-            "Model:Qwen3-4B-Instruct-2507\n\n-hf unsloth/Qwen3-4B-Instruct-2507-GGUF --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu -ctk q8_0 -ctv q8_0",
-            "Model:Qwen3-Coder-30B-A3B-Instruct-UD-IQ2_M\n\n-hf unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Qwen3-Coder-30B-A3B-Instruct-UD-IQ2_M --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu --n-cpu-moe 35",
-            "Model:Qwen3-Coder-30B-A3B-Instruct-UD-IQ2_M\n\n-hf unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Qwen3-Coder-30B-A3B-Instruct-UD-IQ2_M --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu --n-cpu-moe 11",
-            "Model:Qwen3-Coder-30B-A3B-Instruct-UD-IQ2_M\n\n-hf unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Qwen3-Coder-30B-A3B-Instruct-UD-IQ2_M --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu",
-            "Model:Qwen3-Coder-30B-A3B-Instruct-UD-Q4_K_XL\n\n-hf unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Qwen3-Coder-30B-A3B-Instruct-UD-Q4_K_XL --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu",
-            "Use cotab.llm.localServerCustom for custom settings"
+            "%config.llm.localServerPreset.enum.0%",
+            "%config.llm.localServerPreset.enum.1%",
+            "%config.llm.localServerPreset.enum.2%",
+            "%config.llm.localServerPreset.enum.3%",
+            "%config.llm.localServerPreset.enum.4%",
+            "%config.llm.localServerPreset.enum.5%"
           ],
           "default": "VRAM 6GB Balanced-Fast (Qwen3-4B-Instruct-2507:Q4)",
-          "description": "Preset arguments for local server (llama.cpp). VRAM usage estimate is for context size 32k.",
+          "description": "%config.llm.localServerPreset%",
           "order": 206
         },
         "cotab.llm.localServerCustom": {
           "type": "string",
           "default": "-hf unsloth/Qwen3-4B-Instruct-2507-GGUF --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu -ctk q8_0 -ctv q8_0",
-          "description": "Arguments for launching the local server (llama.cpp)",
+          "description": "%config.llm.localServerCustom%",
           "order": 207
         },
         "cotab.llm.localServerPort": {
           "type": "number",
           "default": 9339,
-          "description": "Port for the local server (llama.cpp)",
+          "description": "%config.llm.localServerPort%",
           "order": 208
         },
         "cotab.llm.localServerContextSize": {
           "type": "number",
           "default": 32768,
-          "description": "Context size for the local server (llama.cpp)",
+          "description": "%config.llm.localServerContextSize%",
           "order": 209
         },
         "cotab.llm.localServerCacheRam": {
           "type": "number",
           "default": 4096,
-          "description": "the maximum ram backup cache size in MiB (-1 - no limit, 0 - disable) for the local server (llama.cpp) https://github.com/ggml-org/llama.cpp/pull/16391",
+          "description": "%config.llm.localServerCacheRam%",
           "order": 210
         },
         "cotab.llm.model": {
           "type": "string",
           "default": "qwen/qwen3-4b-2507",
-          "description": "Remote model name to use",
+          "description": "%config.llm.model%",
           "order": 211
         },
         "cotab.llm.temperature": {
           "type": "number",
           "default": 0.1,
-          "description": "Creativity (0-1, lower values recommended. if -1, server's default setting is used)",
+          "description": "%config.llm.temperature%",
           "order": 212
         },
         "cotab.llm.top_p": {
           "type": "number",
           "default": -1,
-          "description": "Top-p sampling (if -1, server's default setting is used)",
+          "description": "%config.llm.top_p%",
           "order": 213
         },
         "cotab.llm.top_k": {
           "type": "number",
           "default": -1,
-          "description": "Top-k sampling (if -1, server's default setting is used)",
+          "description": "%config.llm.top_k%",
           "order": 214
         },
         "cotab.llm.maxTokens": {
           "type": "number",
           "default": 256,
-          "description": "Maximum number of tokens for LLM output",
+          "description": "%config.llm.maxTokens%",
           "order": 215
         },
         "cotab.llm.maxOutputLines": {
           "type": "number",
           "default": 15,
-          "description": "Maximum number of output lines from LLM",
+          "description": "%config.llm.maxOutputLines%",
           "order": 216
         },
         "cotab.llm.timeoutMs": {
           "type": "number",
           "default": 30000,
-          "description": "LLM call timeout (ms)",
+          "description": "%config.llm.timeoutMs%",
           "order": 217
         },
         "cotab.prompt.additionalSystemPrompt": {
           "type": "string",
           "default": "",
-          "markdownDescription": "Additional prompt to add to the default system prompt",
+          "markdownDescription": "%config.prompt.additionalSystemPrompt%",
           "order": 301
         },
         "cotab.prompt.additionalUserPrompt": {
           "type": "string",
           "default": "",
-          "markdownDescription": "Additional prompt to add to the default user prompt",
+          "markdownDescription": "%config.prompt.additionalUserPrompt%",
           "order": 302
         },
         "cotab.prompt.additionalAssistantThinkPrompt": {
           "type": "string",
           "default": "",
-          "markdownDescription": "Additional prompt to add to the default assistant thinking prompt",
+          "markdownDescription": "%config.prompt.additionalAssistantThinkPrompt%",
           "order": 303
         },
         "cotab.prompt.additionalAssistantOutputPrompt": {
           "type": "string",
           "default": "",
-          "markdownDescription": "Additional prompt to add to the default assistant output prompt",
+          "markdownDescription": "%config.prompt.additionalAssistantOutputPrompt%",
           "order": 304
         },
         "cotab.promptDetail.startEditingHereSymbol": {
           "type": "string",
           "default": "###START_EDITING_HERE###",
-          "description": "Symbol string indicating the start of editing",
+          "description": "%config.promptDetail.startEditingHereSymbol%",
           "order": 401
         },
         "cotab.promptDetail.stopEditingHereSymbol": {
           "type": "string",
           "default": "###STOP_EDITING_HERE###",
-          "description": "Symbol string indicating the end of editing",
+          "description": "%config.promptDetail.stopEditingHereSymbol%",
           "order": 402
         },
         "cotab.promptDetail.completeHereSymbol": {
           "type": "string",
           "default": "<|__EDITING_HERE__|>",
-          "description": "Symbol string inserted during code completion",
+          "description": "%config.promptDetail.completeHereSymbol%",
           "order": 403
         },
         "cotab.promptDetail.aroundBeforeLines": {
           "type": "number",
           "default": 0,
-          "description": "Number of lines to retrieve before cursor position (LLM inference target range)\n Recommended: 0 \n(Setting to 0 makes LLM output start from cursor line, stabilizing LLM output)",
+          "description": "%config.promptDetail.aroundBeforeLines%",
           "order": 404
         },
         "cotab.promptDetail.aroundAfterLines": {
           "type": "number",
           "default": 5,
-          "description": "Number of lines to retrieve after cursor position (edit target range)",
+          "description": "%config.promptDetail.aroundAfterLines%",
           "order": 405
         },
         "cotab.promptDetail.aroundMergeAfterLines": {
           "type": "number",
           "default": 20,
-          "description": "End line of surrounding code used during merge (edit target range)\nRecommended: cotab.promptDetail.aroundAfterLines + LLM output lines (~10) + about 5 lines",
+          "description": "%config.promptDetail.aroundMergeAfterLines%",
           "order": 406
         },
         "cotab.promptDetail.aroundCacheBeforeLines": {
           "type": "number",
           "default": 5,
-          "description": "Start line of surrounding code for cache utilization.\nIf cursor position doesn't exceed this line, source code in User Prompt won't be updated, enabling effective Prompt Cache usage.",
+          "description": "%config.promptDetail.aroundCacheBeforeLines%",
           "order": 407
         },
         "cotab.promptDetail.aroundCacheAfterLines": {
           "type": "number",
           "default": 15,
-          "description": "End line of surrounding code for cache utilization.\nIf cursor position doesn't exceed this line, source code in User Prompt won't be updated, enabling effective Prompt Cache usage.",
+          "description": "%config.promptDetail.aroundCacheAfterLines%",
           "order": 408
         },
         "cotab.promptDetail.aroundLatestAddBeforeLines": {
           "type": "number",
           "default": 15,
-          "description": "Start line of surrounding code for latest utilization.\nfinal latest lins is aroundBeforeLines + aroundLatestAddBeforeLines",
+          "description": "%config.promptDetail.aroundLatestAddBeforeLines%",
           "order": 409
         },
         "cotab.promptDetail.aroundLatestAddAfterLines": {
           "type": "number",
           "default": 15,
-          "description": "End line of surrounding code for latest utilization.\nfinal latest lins is aroundAfterLines + aroundLatestAddAfterLines",
+          "description": "%config.promptDetail.aroundLatestAddAfterLines%",
           "order": 410
         },
         "cotab.promptDetail.maxSymbolCharNum": {
           "type": "number",
           "default": 12000,
-          "description": "Maximum number of characters for symbols to include in symbol code blocks.\nApproximately 1000 characters allow for 20 symbol inputs.\nIn Qwen3:4b-Instruct-2507, approximately 1000 characters use about 250 tokens.",
+          "description": "%config.promptDetail.maxSymbolCharNum%",
           "order": 411
         },
         "cotab.promptDetail.enableCodeSummary": {
           "type": "boolean",
           "default": false,
-          "description": "Enable source code summary feature.\nIf enabled, the source code will be summarized and included in the prompt.",
+          "description": "%config.promptDetail.enableCodeSummary%",
           "order": 412
         },
         "cotab.detail.logLevel": {
@@ -372,19 +372,19 @@
             "DEBUG"
           ],
           "default": "INFO",
-          "description": "Log output level (ERROR: errors only, WARNING: warnings and above, INFO: info and above, DEBUG: everything)",
+          "description": "%config.detail.logLevel%",
           "order": 501
         },
         "cotab.ui.showProgressSpinner": {
           "type": "boolean",
           "default": true,
-          "description": "Show spinner icon while completing code completion",
+          "description": "%config.ui.showProgressSpinner%",
           "order": 601
         },
         "cotab.gettingStarted.hideOnStartup": {
           "type": "boolean",
           "default": false,
-          "description": "Do not show Getting Started view on next startup",
+          "description": "%config.gettingStarted.hideOnStartup%",
           "order": 901
         }
       }
@@ -419,6 +419,7 @@
     "@types/node": "^18.19.0",
     "@types/vscode": "^1.85.0",
     "@vscode/vsce": "^3.7.1",
+    "vscode-nls": "^5.2.0",
     "axios": "^1.7.7",
     "handlebars": "^4.7.8",
     "jsdom": "^26.1.0",
