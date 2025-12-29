@@ -63,7 +63,7 @@ export function activate(context: vscode.ExtensionContext) {
 	// Check plugin version on startup
 	const { prevVersion, currentVersion } = checkAndUpdatePluginVersion();
 
-    // Quick Setup
+    // GettingStartedView	
     registerGettingStartedView(context.subscriptions, context, prevVersion, currentVersion);
 
 	// Register viewChangelog

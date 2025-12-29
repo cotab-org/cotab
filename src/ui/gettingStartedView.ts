@@ -1,10 +1,23 @@
 import * as vscode from 'vscode';
+import * as nls from 'vscode-nls';
+import * as path from 'path';
 import { getConfig, setConfigHideOnStartup, setConfigShowProgressSpinner, setConfigApiBaseURL, setConfigApiKey, setConfigCommentLanguage, setConfigLocalServerContextSize, setConfigModel, setConfigLocalServerPreset, setConfigLocalServerCustom } from '../utils/config';
 import { terminalCommand, StablellamaCppVersion } from '../utils/terminalCommand';
 import { getAiClient } from '../llm/llmProvider';
 import { GetOSInfo } from '../utils/cotabUtil';
 import { buildLinkButtonSvgDataUri, buildNetworkServerLabelSvgDataUri } from './menuUtil';
 import { localServerPresetArgs, LOCAL_SERVER_PRESETS, isLocalServerPreset, LocalServerPreset } from '../utils/localServerPresets';
+
+// Configure nls and load message bundle
+// NOTE:
+// When bundled by webpack, vscode-nls can't always infer the caller file path.
+// Provide a stable, synthetic path so it can resolve messages from nls.metadata/header + nls.bundle.*.json.
+//
+// IMPORTANT (VS Code language pack mode):
+// When VS Code runs with language packs, vscode-nls may prefer external extension translations (downloaded via Marketplace).
+// If they are missing, it can fall back to the default (English) instead of using in-the-box `nls.bundle.<locale>.json`.
+// Force "standalone" bundle usage so our packaged `nls.bundle.ja.json` is used.
+const localize = nls.config({ bundleFormat: nls.BundleFormat.standalone })(path.join(__dirname, 'ui/gettingStartedView'));
 
 const LOCAL_SERVER_PRESET_TOOLTIPS: Record<LocalServerPreset, string> = LOCAL_SERVER_PRESETS.reduce((acc, preset) => {
     acc[preset] = localServerPresetArgs[preset] ?? '';
@@ -93,15 +106,13 @@ async function GetNewVersionNotice(prevVersion: string | undefined, currentVersi
         }
     </style>
                     <div class="reinstall-warning">
-                        <h2 class="warning-title">⚠️ Please Reinstall the Server !</h2>
+                        <h2 class="warning-title">${localize('gettingStarted.reinstallWarning.title', '⚠️ Please Reinstall the Server !')}</h2>
                         <p class="warning-message">
-                            The latest version of Server (llama.cpp) has a performance issue and the completion speed is significantly reduced. <br>
-                            Please reinstall to get better performance. <br>
-                            Current version: "b${installedVersion}". Stable version: "${StablellamaCppVersion}"
+                            ${localize('gettingStarted.reinstallWarning.message', 'The latest version of Server (llama.cpp) has a performance issue and the completion speed is significantly reduced. <br>\nPlease reinstall to get better performance. <br>\nCurrent version: "{0}". Stable version: "{1}"', `b${installedVersion}`, StablellamaCppVersion)}
                         </p>
                         <button class="install-button" onclick="executeCommand('cotab.server.install')">
                             <span class="button-icon">🔧</span>
-                            <span class="button-text">Click to Reinstall Server</span>
+                            <span class="button-text">${localize('gettingStarted.reinstallWarning.button', 'Click to Reinstall Server')}</span>
                         </button>
                     </div>
                 `;
@@ -176,19 +187,19 @@ let autoRefreshManager: AutoRefreshManager | null = null;
 
 async function getServerSectionState(): Promise<{ kind: 'stop' | 'network' | 'start' | 'install' | 'unsupported'; label: string; command?: string; }> {
     if (await terminalCommand.isRunningLocalLlamaServer()) {
-        return { kind: 'stop', label: 'Stop Server', command: 'cotab.server.stop' };
+        return { kind: 'stop', label: localize('gettingStarted.server.stop', 'Stop Server'), command: 'cotab.server.stop' };
     }
     else if (await isServerRunning()) {
-        return { kind: 'network', label: 'Network Server Running' };
+        return { kind: 'network', label: localize('gettingStarted.server.network', 'Network Server Running') };
     }
     else if (await terminalCommand.isInstalledLocalLlamaServer()) {
-        return { kind: 'start', label: 'Start Server', command: 'cotab.server.start' };
+        return { kind: 'start', label: localize('gettingStarted.server.start', 'Start Server'), command: 'cotab.server.start' };
     }
     else if (! (terminalCommand.isSupportMyInstall(await GetOSInfo()))) {
-        return { kind: 'unsupported', label: 'Install Not Supported' };
+        return { kind: 'unsupported', label: localize('gettingStarted.server.unsupported', 'Install Not Supported') };
     }
     else {
-        return { kind: 'install', label: 'Install Server', command: 'cotab.server.install' };
+        return { kind: 'install', label: localize('gettingStarted.server.install', 'Install Server'), command: 'cotab.server.install' };
     }
 }
 
@@ -201,7 +212,7 @@ async function showGettingStartedView(context: vscode.ExtensionContext): Promise
     // Create webview panel
     const panel = vscode.window.createWebviewPanel(
         'cotab.gettingStarted',
-        'Cotab Quick Setup',
+        localize('gettingStarted.title', 'Cotab Getting Started'),
         vscode.ViewColumn.Active,
         {
             enableScripts: true,
@@ -246,72 +257,88 @@ async function showGettingStartedView(context: vscode.ExtensionContext): Promise
  * Handle messages from webview
  */
 async function handleWebviewMessage(panel: vscode.WebviewPanel, msg: any): Promise<void> {
-    if (msg?.type === 'saveApiBaseURL') {
-        const value = String(msg.value || '').trim();
-        await setConfigApiBaseURL(value);
-        panel.webview.postMessage({ type: 'saved', key: 'apiBaseURL', value });
+    try {
+        if (msg?.type === 'saveApiBaseURL') {
+            const value = String(msg.value || '').trim();
+            await setConfigApiBaseURL(value);
+            panel.webview.postMessage({ type: 'saved', key: 'apiBaseURL', value });
             // Refresh state after command execution
             setTimeout(async () => {
                 autoRefreshManager?.refresh();
             }, 500);
-    }
-    else if (msg?.type === 'saveApiKey') {
-        const value = String(msg.value || '').trim();
-        await setConfigApiKey(value);
-        panel.webview.postMessage({ type: 'saved', key: 'apiKey', value });
-    }
-    else if (msg?.type === 'saveModel') {
-        const value = String(msg.value || '').trim();
-        await setConfigModel(value);
-        panel.webview.postMessage({ type: 'saved', key: 'model', value });
-    }
-    else if (msg?.type === 'setHideOnStartup') {
-        const value = Boolean(msg.value);
-        await setConfigHideOnStartup(value);
-        panel.webview.postMessage({ type: 'saved', key: 'hideOnStartup', value });
-    }
-    else if (msg?.type === 'setShowProgressSpinner') {
-        const value = Boolean(msg.value);
-        await setConfigShowProgressSpinner(value);
-        panel.webview.postMessage({ type: 'saved', key: 'showProgressSpinner', value });
-    }
-    else if (msg?.type === 'saveCommentLanguage') {
-        const value = String(msg.value || '').trim();
-        await setConfigCommentLanguage(value);
-        panel.webview.postMessage({ type: 'saved', key: 'commentLanguage', value });
-    }
-    else if (msg?.type === 'saveLocalServerContextSize') {
-        const rawValue = Number(msg.value);
-        const value = Number.isFinite(rawValue) ? rawValue : 32768;
-        
-        await setConfigLocalServerContextSize(value);
-        panel.webview.postMessage({ type: 'saved', key: 'localServerContextSize', value });
-    }
-    else if (msg?.type === 'saveLocalServerPreset') {
-        const rawValue = String(msg.value || '');
-        const value: LocalServerPreset = isLocalServerPreset(rawValue) ? rawValue : 'Custom';
-        await setConfigLocalServerPreset(value);
-        panel.webview.postMessage({ type: 'saved', key: 'localServerPreset', value });
-    }
-    else if (msg?.type === 'saveLocalServerCustom') {
-        const value = String(msg.value ?? '');
-        await setConfigLocalServerCustom(value);
-        panel.webview.postMessage({ type: 'saved', key: 'localServerCustom', value });
-    }
-    else if (msg?.type === 'executeCommand') {
-        const command = String(msg.command || '');
-        const args = Array.isArray(msg.args)
-            ? msg.args
-            : msg.args !== undefined
-                ? [msg.args]
-                : [];
-        if (command) {
-            await vscode.commands.executeCommand(command, ...args);
-            // Refresh state after command execution
-            setTimeout(async () => {
-                autoRefreshManager?.refresh();
-            }, 1000);
         }
+        else if (msg?.type === 'saveApiKey') {
+            const value = String(msg.value || '').trim();
+            await setConfigApiKey(value);
+            panel.webview.postMessage({ type: 'saved', key: 'apiKey', value });
+        }
+        else if (msg?.type === 'saveModel') {
+            const value = String(msg.value || '').trim();
+            await setConfigModel(value);
+            panel.webview.postMessage({ type: 'saved', key: 'model', value });
+        }
+        else if (msg?.type === 'setHideOnStartup') {
+            const value = Boolean(msg.value);
+            await setConfigHideOnStartup(value);
+            panel.webview.postMessage({ type: 'saved', key: 'hideOnStartup', value });
+        }
+        else if (msg?.type === 'setShowProgressSpinner') {
+            const value = Boolean(msg.value);
+            await setConfigShowProgressSpinner(value);
+            panel.webview.postMessage({ type: 'saved', key: 'showProgressSpinner', value });
+        }
+        else if (msg?.type === 'saveCommentLanguage') {
+            const value = String(msg.value || '').trim();
+            await setConfigCommentLanguage(value);
+            panel.webview.postMessage({ type: 'saved', key: 'commentLanguage', value });
+        }
+        else if (msg?.type === 'saveLocalServerContextSize') {
+            const rawValue = Number(msg.value);
+            const value = Number.isFinite(rawValue) ? rawValue : 32768;
+            
+            await setConfigLocalServerContextSize(value);
+            panel.webview.postMessage({ type: 'saved', key: 'localServerContextSize', value });
+        }
+        else if (msg?.type === 'saveLocalServerPreset') {
+            const rawValue = String(msg.value || '');
+            const value: LocalServerPreset = isLocalServerPreset(rawValue) ? rawValue : 'Custom';
+            await setConfigLocalServerPreset(value);
+            panel.webview.postMessage({ type: 'saved', key: 'localServerPreset', value });
+        }
+        else if (msg?.type === 'saveLocalServerCustom') {
+            const value = String(msg.value ?? '');
+            await setConfigLocalServerCustom(value);
+            panel.webview.postMessage({ type: 'saved', key: 'localServerCustom', value });
+        }
+        else if (msg?.type === 'executeCommand') {
+            const command = String(msg.command || '');
+            const args = Array.isArray(msg.args)
+                ? msg.args
+                : msg.args !== undefined
+                    ? [msg.args]
+                    : [];
+            if (command) {
+                await vscode.commands.executeCommand(command, ...args);
+                // Refresh state after command execution
+                setTimeout(async () => {
+                    autoRefreshManager?.refresh();
+                }, 1000);
+            }
+        }
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error('[cotab] Failed to save setting:', errorMessage);
+        vscode.window.showErrorMessage(
+            localize('gettingStarted.saveError', '設定の保存に失敗しました: {0}', errorMessage)
+        );
+        const settingKey = msg?.type ? 
+            msg.type.replace(/^save|^set/, '').replace(/^[A-Z]/, (c: string) => c.toLowerCase()) : 
+            'unknown';
+        panel.webview.postMessage({ 
+            type: 'error', 
+            key: settingKey,
+            error: errorMessage 
+        });
     }
 }
 
@@ -360,11 +387,11 @@ function getHtml(params: {
     const initialState = JSON.stringify(params.initial);
     // Prepare shared SVG URIs for consistent UI
     const assetsJson = JSON.stringify({
-        startBtn: buildNetworkServerLabelSvgDataUri('Start Local Server', 'blue'),
-        stopBtn: buildNetworkServerLabelSvgDataUri('Stop Local Server', 'red'),
-        installBtn: buildNetworkServerLabelSvgDataUri('Install Local Server', 'green'),
-        networkLbl: buildNetworkServerLabelSvgDataUri('Network Server Running', 'purple'),
-        unsupportedLbl: buildNetworkServerLabelSvgDataUri('Install Not Supported', 'gray')
+        startBtn: buildNetworkServerLabelSvgDataUri(localize('gettingStarted.server.start', 'Start Server'), 'blue'),
+        stopBtn: buildNetworkServerLabelSvgDataUri(localize('gettingStarted.server.stop', 'Stop Server'), 'red'),
+        installBtn: buildNetworkServerLabelSvgDataUri(localize('gettingStarted.server.install', 'Install Server'), 'green'),
+        networkLbl: buildNetworkServerLabelSvgDataUri(localize('gettingStarted.server.network', 'Network Server Running'), 'purple'),
+        unsupportedLbl: buildNetworkServerLabelSvgDataUri(localize('gettingStarted.server.unsupported', 'Install Not Supported'), 'gray')
     });
     return `<!DOCTYPE html>
 <html lang="en">
@@ -372,7 +399,7 @@ function getHtml(params: {
     <meta charset="UTF-8" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: https: http: vscode-resource:; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Cotab Quick Setup</title>
+    <title>Cotab Getting Started</title>
     <style>
         body { font-family: -apple-system, Segoe UI, Ubuntu, Helvetica, Arial, sans-serif; padding: 16px; padding-bottom: 96px; color: var(--vscode-foreground); background: var(--vscode-editor-background); }
         *, *::before, *::after { box-sizing: border-box; }
@@ -731,26 +758,26 @@ function getHtml(params: {
                 <span class="title-text">Cotab</span>
             </h1>
         </div>
-        <h2 class="center header-fill">Getting Started</h2>
-        <h3 class="center">Setup Server</h3>
+        <h2 class="center header-fill">${localize('gettingStarted.gettingStarted', 'Getting Started')}</h2>
+        <h3 class="center">${localize('gettingStarted.setupServer', 'Setup Server')}</h3>
         <section class="setup-card setup-card--status">
             <div class="spacer"></div>
             <div id="serverStatus" class="muted"></div>
-            <a id="serverActionButton" class="server-action-link" style="display:none;" href="javascript:void(0)" title="If you use auto-start, the &quot;OpenAI compatible Base URL&quot; setting must be blank."></a>
+            <a id="serverActionButton" class="server-action-link" style="display:none;" href="javascript:void(0)" title="${escapeHtml(localize('gettingStarted.server.autoStartTooltip', 'If you use auto-start, the "OpenAI compatible Base URL" setting must be blank.'))}"></a>
             <div class="spacer"></div>
             <div id="local-server-preset-container" class="setting-group">
-                <label for="localServerPresetSelect">Preset</label>
+                <label for="localServerPresetSelect">${localize('gettingStarted.preset', 'Preset')}</label>
                 <div class="row">
                     <select id="localServerPresetSelect" class="grow">
                         ${localServerPresetOptions}
                     </select>
                 </div>
                 <div class="row" id="localServerCustomGroup" style="${showLocalServerCustom ? '' : 'display:none;'}">
-                    <input id="localServerCustomInput" type="text" class="grow" value="${localServerCustom}" placeholder="Enter custom llama-server arguments" />
+                    <input id="localServerCustomInput" type="text" class="grow" value="${localServerCustom}" placeholder="${escapeHtml(localize('gettingStarted.customArgsPlaceholder', 'Enter custom llama-server arguments'))}" />
                 </div>
             </div>
-            <div id="context-size-container" class="setting-group" title="Required:&#10; - set 16k (16384) or more.&#10;&#10;Recommended:&#10; - set 32k (32768) or more.&#10;&#10;Reason:&#10; - The system prompt uses about 5k, and 1,000 lines of code use about 12k more.&#10; - so please set the context window to 20k (20480) or more.&#10;&#10;The default model (Qwen3-4B-Instruct-2507) VRAM usage:&#10; - 16k: about 4 GB&#10; - 32k: about 5.5 GB">
-                <label for="localServerContextSlider">Context Size</label>
+            <div id="context-size-container" class="setting-group" title="${escapeHtml(localize('gettingStarted.contextSizeTooltip', 'Required:\n - set 16k (16384) or more.\n\nRecommended:\n - set 32k (32768) or more.\n\nReason:\n - The system prompt uses about 5k, and 1,000 lines of code use about 12k more.\n - so please set the context window to 20k (20480) or more.\n\nThe default model (Qwen3-4B-Instruct-2507) VRAM usage:\n - 16k: about 4 GB\n - 32k: about 5.5 GB').replace(/\n/g, '&#10;'))}">
+                <label for="localServerContextSlider">${localize('gettingStarted.contextSize', 'Context Size')}</label>
                 <div class="row">
                     <input id="localServerContextSlider" type="range" class="range-input" min="8192" max="131072" step="4096" value="${localServerContextSize}" />
                     <input id="localServerContextInput" type="number" class="context-size-input" inputmode="numeric" value="${localServerContextSize}" />
@@ -758,24 +785,24 @@ function getHtml(params: {
             </div>
             <div class="status-divider">
                 <span class="status-divider__line"></span>
-                <span>OR</span>
+                <span>${localize('gettingStarted.or', 'OR')}</span>
                 <span class="status-divider__line"></span>
             </div>
             <div class="spacer"></div>
-            <div class="setting-group" title="If you use auto-start the Local Server, leave it blank.">
-                <label for="apiBaseURL">OpenAI compatible Base URL</label>
+            <div class="setting-group" title="${escapeHtml(localize('gettingStarted.apiBaseURLTooltip', 'If you use auto-start the Local Server, leave it blank.'))}">
+                <label for="apiBaseURL">${localize('gettingStarted.apiBaseURL', 'OpenAI compatible Base URL')}</label>
                 <div class="row">
                     <input id="apiBaseURL" type="text" class="grow" value="${apiBaseURL}" placeholder="http://localhost:8080/v1" />
                 </div>
             </div>
             <div class="setting-group">
-                <label for="apiKey">API Key</label>
+                <label for="apiKey">${localize('gettingStarted.apiKey', 'API Key')}</label>
                 <div class="row">
                     <input id="apiKey" type="password" class="grow" value="${apiKey}" placeholder="sk-... (Optional)" autocomplete="off" spellcheck="false" />
                 </div>
             </div>
             <div class="setting-group">
-                <label for="model">Model</label>
+                <label for="model">${localize('gettingStarted.model', 'Model')}</label>
                 <div class="row">
                     <input id="model" type="text" class="grow" value="${model}" placeholder="qwen3-4b-2507" />
                 </div>
@@ -783,7 +810,7 @@ function getHtml(params: {
             <div class="spacer"></div>
         </section>
         <div class="separator"></div>
-        <h3 class="center">Let's Get Autocompleting!</h3>
+        <h3 class="center">${localize('gettingStarted.letsGetAutocompleting', 'Let\'s Get Autocompleting!')}</h3>
         <section class="setup-card setup-card--hero">
             <div class="setup-card__content-block">
                 <div class="setup-card__media">
@@ -793,68 +820,68 @@ function getHtml(params: {
             <div class="spacer"></div>
             <table class="shortcut-table" style="margin: 0 auto;">
                 <thead>
-                    <tr><th>Command</th><th>Keybinding</th></tr>
+                    <tr><th>${localize('gettingStarted.command', 'Command')}</th><th>${localize('gettingStarted.keybinding', 'Keybinding')}</th></tr>
                 </thead>
                 <tbody>
-                    <tr><td>Accept All</td><td>Tab</td></tr>
-                    <tr><td>Accept First Line</td><td>Shift + Tab</td></tr>
-                    <tr><td>Reject</td><td>Esc</td></tr>
+                    <tr><td>${localize('gettingStarted.acceptAll', 'Accept All')}</td><td>Tab</td></tr>
+                    <tr><td>${localize('gettingStarted.acceptFirstLine', 'Accept First Line')}</td><td>Shift + Tab</td></tr>
+                    <tr><td>${localize('gettingStarted.reject', 'Reject')}</td><td>Esc</td></tr>
                 </tbody>
             </table>
             <div class="helper-text">
-                Note: By rejecting, you can change the next completion candidates.
+                ${localize('gettingStarted.rejectNote', 'Note: By rejecting, you can change the next completion candidates.')}
             </div>
         </section>
         <div class="separator"></div>
-        <h3 class="center">Show This Page Again</h3>
+        <h3 class="center">${localize('gettingStarted.showThisPageAgain', 'Show This Page Again')}</h3>
         <section class="setup-card setup-card--hero">
             <div class="setup-card__content-block">
                 <div class="setup-card__media">
                     <img src="${params.tutorialOpenGettingStartedUri}" class="setup-card__media-image" alt="Show progress spinner preview" />
                 </div>
                 <div class="setup-card__caption-group">
-                    <span class="setup-card__caption">Hover over the status bar. Don't click!</span>
+                    <span class="setup-card__caption">${localize('gettingStarted.hoverStatusBar', 'Hover over the status bar. Don\'t click!')}</span>
                     <label class="setup-checkbox">
                         <input id="hideNextInline" type="checkbox" ${hideOnStartup}/>
-                        <span class="setup-checkbox__label">Don't show this again</span>
+                        <span class="setup-checkbox__label">${localize('gettingStarted.dontShowAgain', 'Don\'t show this again')}</span>
                     </label>
                 </div>
             </div>
         </section>
-        <h2 class="center header-fill">Learn More</h2>
-        <h3 class="center">Progress Icon Description</h3>
+        <h2 class="center header-fill">${localize('gettingStarted.learnMore', 'Learn More')}</h2>
+        <h3 class="center">${localize('gettingStarted.progressIconDescription', 'Progress Icon Description')}</h3>
         <section class="setup-card setup-card--spinners">
             <div class="spinner-card">
                 <div class="spinner-card__icon">
-                    <img src="${params.spinnerAnalyzeUri}" class="spinner-card__image" alt="Analyzing" />
+                    <img src="${params.spinnerAnalyzeUri}" class="spinner-card__image" alt="${escapeHtml(localize('gettingStarted.analyzing', 'Analyzing'))}" />
                 </div>
-                <span class="spinner-card__label">Analyzing</span>
+                <span class="spinner-card__label">${localize('gettingStarted.analyzing', 'Analyzing')}</span>
             </div>
             <div class="spinner-card">
                 <div class="spinner-card__icon">
-                    <img src="${params.spinnerRedUri}" class="spinner-card__image" alt="Completing current line" />
+                    <img src="${params.spinnerRedUri}" class="spinner-card__image" alt="${escapeHtml(localize('gettingStarted.completingCurrentLine', 'Completing current line'))}" />
                 </div>
-                <span class="spinner-card__label">Completing<br>current line</span>
+                <span class="spinner-card__label">${localize('gettingStarted.completingCurrentLine', 'Completing<br>current line')}</span>
             </div>
             <div class="spinner-card">
                 <div class="spinner-card__icon">
-                    <img src="${params.spinnerNormalUri}" class="spinner-card__image" alt="Completing after current line" />
+                    <img src="${params.spinnerNormalUri}" class="spinner-card__image" alt="${escapeHtml(localize('gettingStarted.completingAfterCurrentLine', 'Completing after current line'))}" />
                 </div>
-                <span class="spinner-card__label">Completing<br>after current line</span>
+                <span class="spinner-card__label">${localize('gettingStarted.completingAfterCurrentLine', 'Completing<br>after current line')}</span>
             </div>
             <div class="setup-card__caption-group">
                 <label class="setup-checkbox">
                     <input id="showProgressSpinner" type="checkbox" ${showProgressSpinner}/>
-                    <span class="setup-checkbox__label">Show progress icon</span>
+                    <span class="setup-checkbox__label">${localize('gettingStarted.showProgressIcon', 'Show progress icon')}</span>
                 </label>
             </div>
         </section>
         <div class="separator"></div>
-        <h3 class="center">Detail Settings</h3>
+        <h3 class="center">${localize('gettingStarted.detailSettings', 'Detail Settings')}</h3>
         <section class="setup-card setup-card--status">
             <div class="spacer"></div>
             <div class="setting-group">
-                <label for="commentLanguage">Comment Language</label>
+                <label for="commentLanguage">${localize('gettingStarted.commentLanguage', 'Comment Language')}</label>
                 <div class="row">
                     <input id="commentLanguage" type="text" class="grow" value="${commentLanguage}" placeholder="${defaultCommentLanguage}" />
                 </div>
@@ -863,9 +890,9 @@ function getHtml(params: {
             <div class="spacer"></div>
         </section>
         <div class="floating-controls">
-            <label class="checkbox floating-label"><input id="hideNext" type="checkbox" ${hideOnStartup}/>Don't show this again</label>
+            <label class="checkbox floating-label"><input id="hideNext" type="checkbox" ${hideOnStartup}/>${localize('gettingStarted.dontShowAgain', 'Don\'t show this again')}</label>
             <div class="floating-divider"></div>
-            <button id="openSettingsBtn" class="floating-settings-btn" type="button" title="Open Cotab Settings">Open Settings</button>
+            <button id="openSettingsBtn" class="floating-settings-btn" type="button" title="${escapeHtml(localize('gettingStarted.openSettingsTooltip', 'Open Cotab Settings'))}">${localize('gettingStarted.openSettings', 'Open Settings')}</button>
         </div>
 
         <script nonce="${nonce}">

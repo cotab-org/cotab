@@ -2,7 +2,7 @@
   "name": "cotab",
   "displayName": "Cotab",
   "description": "%description%",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "publisher": "cotab",
   "license": "Apache-2.0",
   "repository": {
@@ -409,9 +409,9 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "npx webpack --mode production",
+    "compile": "npx webpack --mode production && node scripts/build-nls-bundles.js",
     "watch": "npx webpack --mode development --watch",
-    "build": "npx webpack --mode production"
+    "build": "npx webpack --mode production && node scripts/build-nls-bundles.js"
   },
   "devDependencies": {
     "@shikijs/transformers": "^3.11.0",
@@ -419,6 +419,7 @@
     "@types/node": "^18.19.0",
     "@types/vscode": "^1.85.0",
     "@vscode/vsce": "^3.7.1",
+    "vscode-nls-dev": "^4.0.4",
     "vscode-nls": "^5.2.0",
     "axios": "^1.7.7",
     "handlebars": "^4.7.8",

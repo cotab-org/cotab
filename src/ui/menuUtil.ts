@@ -42,6 +42,41 @@ const NETWORK_LABEL_GRADIENTS: Record<NetworkServerLabelTheme, { start: string; 
     gray: { start: '#4b4b4bff', end: '#6e6e6eff' },
 };
 
+/**
+ * Check if a character is a full-width character (Japanese, Chinese, Korean, etc.)
+ * Based on the comprehensive check used in textMeasurer.ts
+ */
+function isFullWidthChar(char: string): boolean {
+    const cp = char.codePointAt(0)!;
+    // Comprehensive check for full-width characters:
+    // - Hangul Jamo: 0x1100-0x115F
+    // - CJK Radicals Supplement, CJK Unified Ideographs Extension A, CJK Unified Ideographs: 0x2E80-0xA4CF (excluding 0x303F)
+    // - Hangul Syllables: 0xAC00-0xD7A3
+    // - CJK Compatibility Ideographs: 0xF900-0xFAFF
+    // - Vertical Forms: 0xFE10-0xFE19
+    // - CJK Compatibility Forms: 0xFE30-0xFE6F
+    // - Fullwidth ASCII, Fullwidth Digits: 0xFF00-0xFF60
+    // - Fullwidth Symbols: 0xFFE0-0xFFE6
+    // - Special brackets: 0x2329, 0x232A
+    // - Hiragana: 0x3040-0x309F
+    // - Katakana: 0x30A0-0x30FF
+    // - CJK Symbols and Punctuation: 0x3000-0x303F
+    return (
+        (cp >= 0x1100 && cp <= 0x115F) || // Hangul Jamo
+        cp === 0x2329 || cp === 0x232A || // Angle brackets
+        (cp >= 0x2E80 && cp <= 0xA4CF && cp !== 0x303F) || // CJK Radicals, Extension A, Unified Ideographs
+        (cp >= 0xAC00 && cp <= 0xD7A3) || // Hangul Syllables
+        (cp >= 0xF900 && cp <= 0xFAFF) || // CJK Compatibility Ideographs
+        (cp >= 0xFE10 && cp <= 0xFE19) || // Vertical Forms
+        (cp >= 0xFE30 && cp <= 0xFE6F) || // CJK Compatibility Forms
+        (cp >= 0xFF00 && cp <= 0xFF60) || // Fullwidth ASCII and Digits
+        (cp >= 0xFFE0 && cp <= 0xFFE6) || // Fullwidth Symbols
+        (cp >= 0x3040 && cp <= 0x309F) || // Hiragana
+        (cp >= 0x30A0 && cp <= 0x30FF) || // Katakana
+        (cp >= 0x3000 && cp <= 0x303F)    // CJK Symbols and Punctuation
+    );
+}
+
 export function buildNetworkServerLabelSvgDataUri(
     text: string = 'Network Server Running',
     theme: NetworkServerLabelTheme = 'green',
@@ -49,8 +84,21 @@ export function buildNetworkServerLabelSvgDataUri(
     const paddingX = 8;
     const height = 28;
     const fontSize = 12;
-    const approxCharW = 7;
-    const textWidth = Math.ceil(text.length * approxCharW);
+    const approxCharW = 7; // Half-width character width
+    const approxFullWidthCharW = 14; // Full-width character width (Japanese, Chinese, etc.)
+    
+    // Calculate text width considering full-width characters
+    let textWidth = 0;
+    for (let i = 0; i < text.length; i++) {
+        if (isFullWidthChar(text[i])) {
+            textWidth += approxFullWidthCharW;
+        } else {
+            textWidth += approxCharW;
+        }
+    }
+    
+    // Ensure minimum width for short text
+    textWidth = Math.max(80, Math.ceil(textWidth));
     const width = textWidth + paddingX * 2;
     const radius = 8;
 

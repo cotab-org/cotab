@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as nls from 'vscode-nls';
 import * as cp from 'child_process';
 import * as util from 'util';
 import * as fs from 'fs';
@@ -15,6 +16,9 @@ import { logInfo, logWarning, logError, logServer, logTerminal, showLogWindow } 
 import { requestUpdateCotabMenuUntilChanged } from '../ui/menuIndicator';
 import { updateLlamaCppVersion } from './systemConfig';
 import { YamlConfigMode } from '../utils/yamlConfig';
+
+// Configure nls and load message bundle
+const localize = nls.config({ bundleFormat: nls.BundleFormat.standalone })(path.join(__dirname, 'utils/terminalCommand'));
 
 // Register helper (mirrors progressGutterIconManager)
 export function registerTerminalCommand(disposables: vscode.Disposable[]): void {
@@ -489,7 +493,7 @@ class TerminalCommand implements vscode.Disposable {
                 return false;   // must false;
             }
             else {
-                vscode.window.showInformationMessage("Automatic install/upgrade is supported only for Mac and Windows for now. Download llama.cpp package manually and add the folder to the path. Visit github.com/ggml-org/llama.vscode/wiki for details.");
+                vscode.window.showInformationMessage(localize('terminalCommand.installNotSupported', 'Automatic install/upgrade is supported only for Mac and Windows for now. Download llama.cpp package manually and add the folder to the path. Visit github.com/ggml-org/llama.vscode/wiki for details.'));
                 return false;
             }
         } finally {
@@ -554,7 +558,7 @@ class TerminalCommand implements vscode.Disposable {
                 }
             }
             else {
-                vscode.window.showInformationMessage("Automatic uninstall is supported only for Mac and Windows for now. Please uninstall llama.cpp manually. Visit github.com/ggml-org/llama.vscode/wiki for details.");
+                vscode.window.showInformationMessage(localize('terminalCommand.uninstallNotSupported', 'Automatic uninstall is supported only for Mac and Windows for now. Please uninstall llama.cpp manually. Visit github.com/ggml-org/llama.vscode/wiki for details.'));
                 return false;
             }
             

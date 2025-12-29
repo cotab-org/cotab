@@ -1,4 +1,6 @@
 import * as vscode from 'vscode';
+import * as nls from 'vscode-nls';
+import * as path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { onChangedEnableExtension } from '../extension';
@@ -11,6 +13,9 @@ import { getYamlConfig, onDidChangeYamlConfig, getYamlConfigPromptModes, openYam
 import { buildLinkButtonSvgDataUri, buildNetworkServerLabelSvgDataUri } from './menuUtil';
 import { GetOSInfo } from '../utils/cotabUtil';
 const execAsync = promisify(exec);
+
+// Configure nls and load message bundle
+const localize = nls.config({ bundleFormat: nls.BundleFormat.standalone })(path.join(__dirname, 'ui/menuIndicator'));
 
 // Singleton instance ------------------------------------------------------
 export let menuIndicator: MenuIndicator;
@@ -199,18 +204,18 @@ async function buildMainMenuMarkdown(): Promise<vscode.MarkdownString> {
     //###########################################################
     // Header
     //###########################################################
-    md.appendMarkdown(`Code Completions\n`);
+    md.appendMarkdown(`${localize('menuIndicator.codeCompletions', 'Code Completions')}\n`);
 
     //###########################################################
     // Enable/disable toggle with checkbox style
     //###########################################################
     md.appendMarkdown(`\n\n---\n\n`);
-    const globalEnabledCheckbox = checkboxControl('Enable globally', isEnabled, 'command:cotab.toggleGlobalEnabled');
+    const globalEnabledCheckbox = checkboxControl(localize('menuIndicator.enableGlobally', 'Enable globally'), isEnabled, 'command:cotab.toggleGlobalEnabled');
     md.appendMarkdown(`${globalEnabledCheckbox}\n\n`);
 
     const languageId: string = vscode.window.activeTextEditor?.document.languageId || '';
     if (languageId) {
-        const extensionEnabledCheckbox = checkboxControl(`Enable for ${languageId}`,
+        const extensionEnabledCheckbox = checkboxControl(localize('menuIndicator.enableFor', 'Enable for {0}', languageId),
                                             getConfig().isExtensionEnabled(languageId),
                                             'command:cotab.toggleExtensionEnabled');
         md.appendMarkdown(`${extensionEnabledCheckbox}\n\n`);
@@ -348,26 +353,26 @@ function radioSvg(selected: boolean): string {
  * Create a stylish network server label with gradient background and status indicator
  */
 function createNetworkServerLabel(): string {
-	const uri = buildNetworkServerLabelSvgDataUri('Network Server Running', 'purple');
+	const uri = buildNetworkServerLabelSvgDataUri(localize('gettingStarted.server.network', 'Network Server Running'), 'purple');
 	return `![](${uri})`;
 }
 function createStopServerLabel(): string {
     //return linkButton('Stop Server', 'command:cotab.server.stop', '#d83b01', '#ffffff');
-	const uri = buildNetworkServerLabelSvgDataUri('Stop Server', 'red');
+	const uri = buildNetworkServerLabelSvgDataUri(localize('gettingStarted.server.stop', 'Stop Server'), 'red');
 	return `[![](${uri})](command:cotab.server.stop)`;
 }
 function createStartServerLabel(): string {
     //return linkButton('Start Server', 'command:cotab.server.start', '#007acc', '#ffffff');
-	const uri = buildNetworkServerLabelSvgDataUri('Start Local Server', 'blue');
+	const uri = buildNetworkServerLabelSvgDataUri(localize('gettingStarted.server.start', 'Start Server'), 'blue');
 	return `[![](${uri})](command:cotab.server.start)`;
 }
 function createInstallServerLabel(): string {
     //return linkButton('Install Server', 'command:cotab.server.install', '#2ea043', '#ffffff');
-	const uri = buildNetworkServerLabelSvgDataUri('Install Server', 'green');
+	const uri = buildNetworkServerLabelSvgDataUri(localize('gettingStarted.server.install', 'Install Server'), 'green');
 	return `[![](${uri})](command:cotab.server.install)`;
 }
 function createNotSupportedLabel(): string {
-	const uri = buildNetworkServerLabelSvgDataUri('Install Not Supported', 'gray')
+	const uri = buildNetworkServerLabelSvgDataUri(localize('gettingStarted.server.unsupported', 'Install Not Supported'), 'gray')
 	return `![](${uri})`;
 }
 
@@ -421,16 +426,17 @@ async function installLlamaServer(): Promise<void> {
     await closeCotabMenu();
     
     try {
-        vscode.window.showInformationMessage('Installing Server (llama.cpp) ...');
+        vscode.window.showInformationMessage(localize('menuIndicator.installingServer', 'Installing Server (llama.cpp) ...'));
         
         // Check if llama.cpp is already installed
         const isInstalled = await terminalCommand.isInstalledLocalLlamaServer();
         if (isInstalled) {
             const choice = await vscode.window.showInformationMessage(
-                'Server (llama.cpp) is already installed. Do you want to update?',
-                'Yes', 'No'
+                localize('menuIndicator.serverAlreadyInstalled', 'Server (llama.cpp) is already installed. Do you want to update?'),
+                localize('menuIndicator.yes', 'Yes'),
+                localize('menuIndicator.no', 'No')
             );
-            if (choice !== 'Yes') {
+            if (choice !== localize('menuIndicator.yes', 'Yes')) {
                 return;
             }
         }
@@ -443,7 +449,8 @@ async function installLlamaServer(): Promise<void> {
         
     }
     catch (error) {
-        vscode.window.showErrorMessage(`Server (llama.cpp) install failed: ${error}`);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(localize('menuIndicator.serverInstallFailed', 'Server (llama.cpp) install failed: {0}', errorMessage));
     }
 }
 
@@ -454,25 +461,27 @@ async function uninstallLlamaServer(): Promise<void> {
     try {
         const isInstalled = await terminalCommand.isInstalledLocalLlamaServer();
         if (! isInstalled) {
-            vscode.window.showInformationMessage('not installed Server (llama.cpp)');
+            vscode.window.showInformationMessage(localize('menuIndicator.serverNotInstalled', 'not installed Server (llama.cpp)'));
             return;
         }
         const choice = await vscode.window.showInformationMessage(
-            'Really uninstall the server (llama.cpp)?',
-            'Yes', 'No'
+            localize('menuIndicator.reallyUninstallServer', 'Really uninstall the server (llama.cpp)?'),
+            localize('menuIndicator.yes', 'Yes'),
+            localize('menuIndicator.no', 'No')
         );
-        if (choice !== 'Yes') {
+        if (choice !== localize('menuIndicator.yes', 'Yes')) {
             return;
         }
-        vscode.window.showInformationMessage('Uninstalling Server (llama.cpp) ...');
+        vscode.window.showInformationMessage(localize('menuIndicator.uninstallingServer', 'Uninstalling Server (llama.cpp) ...'));
         
         // Uninstall llama.cpp
         await terminalCommand.uninstallLocalLlamaCpp();
 
-        vscode.window.showInformationMessage('Uninstalled Server (llama.cpp)');
+        vscode.window.showInformationMessage(localize('menuIndicator.serverUninstalled', 'Uninstalled Server (llama.cpp)'));
     }
     catch (error) {
-        vscode.window.showErrorMessage(`Server (llama.cpp) uninstall failed: ${error}`);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(localize('menuIndicator.serverUninstallFailed', 'Server (llama.cpp) uninstall failed: {0}', errorMessage));
     }
 }
 
@@ -484,10 +493,11 @@ async function startLlamaServer(): Promise<void> {
         // Check if server is already running
         if (await terminalCommand.isRunningLocalLlamaServer()) {
             const choice = await vscode.window.showInformationMessage(
-                `Local server is already running. Do you want to restart it?`,
-                'Yes', 'No'
+                localize('menuIndicator.serverAlreadyRunning', 'Local server is already running. Do you want to restart it?'),
+                localize('menuIndicator.yes', 'Yes'),
+                localize('menuIndicator.no', 'No')
             );
-            if (choice !== 'Yes') {
+            if (choice !== localize('menuIndicator.yes', 'Yes')) {
                 return;
             }
             await stopLlamaServer();
@@ -496,7 +506,7 @@ async function startLlamaServer(): Promise<void> {
         // no await
         serverManager.startServer();
 
-        vscode.window.showInformationMessage(`Start llama-server`);
+        vscode.window.showInformationMessage(localize('menuIndicator.startServer', 'Start llama-server'));
     }
     catch (_) {
         
@@ -510,7 +520,7 @@ async function stopLlamaServer(): Promise<void> {
     // no await
     serverManager.stopServer(true);
     
-    vscode.window.showInformationMessage('Stop llama-server');
+    vscode.window.showInformationMessage(localize('menuIndicator.stopServer', 'Stop llama-server'));
 }
 
 async function isServerRunning(): Promise<boolean> {
