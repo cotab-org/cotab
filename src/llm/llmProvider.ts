@@ -57,7 +57,7 @@ async function processStreamingResponse(
 	const startTime = Date.now();
 	let firstDataReceived = false;
 
-	return new Promise(async (resolve, reject) => {
+	return new Promise((resolve, reject) => {
 		let onCompleteCalled = false; // Flag indicating whether onComplete was called
 		
 		const callOnComplete = (reason: CompletionEndReason) => {
@@ -134,6 +134,7 @@ async function processStreamingResponse(
 						}
 						// exceed context size (Llama.cpp specialization)
 						else if (processError(parsed)) {
+							continue;
 						}
 					} catch (e) {
 						// Ignore JSON parse errors
@@ -411,16 +412,16 @@ abstract class BaseAiClient implements AiClient {
 		const http = await this.createHttp(500);
 		
 		let response;
-        try {
+		try {
 			response = await http.get(this.getModelsEndpoint());
 		} catch {
 			return [];
 		}
 		
 		// Extract model names from the response
-		const models = response.data?.data?.map((model: any) => model.id) || 
-					  response.data?.models?.map((model: any) => model.name) || 
-					  [];
+		const models = response.data?.data?.map((model: any) => model.id) ||
+			response.data?.models?.map((model: any) => model.name) ||
+			[];
 
 		return models;
 	}

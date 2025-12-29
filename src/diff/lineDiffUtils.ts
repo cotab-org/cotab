@@ -238,7 +238,7 @@ export function diffOperationsToLineEdits(operations: LineDiff[], baseLine: numb
  */
 export function processMaxLinesDiffOperations(diffOperations: LineDiff[], origLines: string[]): LineDiff[] {
     const lastOrigIndex = origLines.length - 1;
-    let filtered = diffOperations.filter(op => op.originalIndex === undefined || op.originalIndex < lastOrigIndex);
+    const filtered = diffOperations.filter(op => op.originalIndex === undefined || op.originalIndex < lastOrigIndex);
 
     // Convert consecutive deletes from the end to keeps
     for (let k = filtered.length - 1; k >= 0; k--) {
@@ -281,7 +281,7 @@ export function preprocessLLMOutput(yamlConfigMode: YamlConfigMode, text: string
     cleaned = cleaned.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
     // Remove everything before ###START_EDITING_HERE###
-    cleaned = cleaned.replace(new RegExp(`^[\s\S]*${startEditingHereSymbol}`, 'g'), '');
+    cleaned = cleaned.replace(new RegExp(`^[\\s\\S]*${startEditingHereSymbol}`, 'g'), '');
 
     const isStopedSymbol = cleaned.includes(stopEditingHereSymbol);
     
@@ -293,10 +293,10 @@ export function preprocessLLMOutput(yamlConfigMode: YamlConfigMode, text: string
     }
 
     // Remove ###STOP_EDITING_HERE### lines (don't remove subsequent content)
-    cleaned = cleaned.replace(new RegExp(`\n${stopEditingHereSymbol}`, 'g'), '');
+    cleaned = cleaned.replace(new RegExp(`\\n${stopEditingHereSymbol}`, 'g'), '');
 
     // Remove "... existing code ..." line and everything after it
-    cleaned = cleaned.replace(new RegExp(`\n.*?\.\.\. existing code \.\.\.[\s\S]*`, 'g'), '');
+    cleaned = cleaned.replace(new RegExp(`\\n.*?\\.\\.\\. existing code \\.\\.\\.[\\s\\S]*`, 'g'), '');
 
     // Remove <|__EDITING_HERE__|> (all occurrences, treat as plain text)
     cleaned = cleaned.split(completeHereSymbol).join('');
@@ -308,7 +308,7 @@ export function preprocessLLMOutput(yamlConfigMode: YamlConfigMode, text: string
     const isStopedExistingComment = cleaned.endsWith('... existing code ...');
 
     // Remove "// ... existing code"
-    cleaned = cleaned.replace(new RegExp(`\n// \.\.\. existing code \.\.\.[\s\S]*`, 'g'), '');
+    cleaned = cleaned.replace(new RegExp(`\\n// \\.\\.\\. existing code \\.\\.\\.[\\s\\S]*`, 'g'), '');
 
     // Remove trailing newline, but do not remove the valid line that includes a line number.
     if (! hasLastLineNumbers) {

@@ -61,7 +61,7 @@ export function processDiffAndApplyEdits(
     if (!cleaned.trim()) return { originalDiffOperations: [], edits: [], trimed: false, finalLineNumber: 0 };
 
     let baseLine = editorContext.aroundFromLine;
-    let lastLineLine = editorContext.aroundToLine;
+    const lastLineLine = editorContext.aroundToLine;
     const documentTexts = editorContext.documentText.fullText.split('\n');
     let origLines = documentTexts.slice(editorContext.aroundFromLine, editorContext.aroundMergeToLine);
     let newLines = cleaned.split(/\n/);
@@ -202,25 +202,17 @@ export function processDiffAndApplyEdits(
     const filteredOps: LineDiff[] = [];
     let foundChange = false;
     let foundKeepAfterChange = false;
-    //if (yamlConfigMode.isNoCheckStopSymbol)
-    if (false)  // @todo because buildSvgDataUriWithShiki is not supported sepalated line
-    {
-        for (const op of diffOpsNoChecked) {
-            filteredOps.push(op);
+    // TODO: once buildSvgDataUriWithShiki supports separated lines, re-introduce the skip branch.
+    for (const op of diffOpsNoChecked) {
+        if (op.type === 'keep') {
+            if (foundChange) {
+                foundKeepAfterChange = true;
+                break;
+            }
         }
-    }
-    else {
-        for (const op of diffOpsNoChecked) {
-            if (op.type === 'keep') {
-                if (foundChange) {
-                    foundKeepAfterChange = true;
-                    break;
-                }
-            }
-            else {
-                foundChange = true;
-                filteredOps.push(op);
-            }
+        else {
+            foundChange = true;
+            filteredOps.push(op);
         }
     }
 

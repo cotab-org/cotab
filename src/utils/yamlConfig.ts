@@ -141,7 +141,7 @@ export interface YamlConfig {
 
 // Global cache
 let yamlConfigCache: YamlConfigCache | null = null;
-let onDidChangeConfigs: (() => void)[] = [];
+const onDidChangeConfigs: (() => void)[] = [];
 
 /**
  * Load YAML configuration from home directory .cotab/config.yaml
@@ -284,7 +284,7 @@ function getDefaultYamlConfig(): YamlConfig {
 }
 export function getYamlConfigPromptModes(): string[] {
     const yamlConfig = getYamlConfig();
-    let modes: string[] = [];
+    const modes: string[] = [];
     for (const mode of yamlConfig.modes) {
         if (mode.mode) {
             if (!modes.includes(mode.mode)) {

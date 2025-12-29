@@ -88,8 +88,18 @@ class TerminalCommand implements vscode.Disposable {
                 response.data.on('error', (err: any) => { if (!finished) reject(err); });
             });
         } catch (error) {
-            try { writer.close(); } catch (_) {}
-            try { if (fs.existsSync(filePath)) fs.unlinkSync(filePath); } catch (_) {}
+            try {
+                writer.close();
+            } catch (closeError) {
+                logWarning(`Failed to close download stream: ${closeError}`);
+            }
+            try {
+                if (fs.existsSync(filePath)) {
+                    fs.unlinkSync(filePath);
+                }
+            } catch (cleanupError) {
+                logWarning(`Failed to remove incomplete download '${filePath}': ${cleanupError}`);
+            }
             throw error;
         }
     }
@@ -171,7 +181,7 @@ class TerminalCommand implements vscode.Disposable {
         const platform = `-${osInfo.platform}`;
         let gpu = (osInfo.gpu === 'none' || osInfo.gpu === 'unknown') ? '' : `-${osInfo.gpu}`;
         const cpu = `-${osInfo.cpu}`;
-        let ext = '.zip'
+        const ext = '.zip'
         let cudartName = '';
         if (osInfo.platform === 'win' && osInfo.gpu === 'cuda') {
             gpu = `-${osInfo.gpu}${cudaVer}`;
@@ -194,7 +204,6 @@ class TerminalCommand implements vscode.Disposable {
     }> {
         const config = getConfig();
         if (config.llamaCppVersion === 'Stable' || config.llamaCppVersion === 'Custom') {
-            let mainBinary: any | undefined;
             let cudartBinary: any | undefined;
 
             const baseUrl = 'https://github.com/ggml-org/llama.cpp/releases/download/';
@@ -214,7 +223,7 @@ class TerminalCommand implements vscode.Disposable {
 
             const name = `llama-${tag}-${mainName}`;
             const dlUrl = `${baseUrl}/${tag}/${name}`;
-            mainBinary = {
+            const mainBinary = {
                 name: name,
                 browser_download_url: dlUrl,
             }
@@ -293,7 +302,9 @@ class TerminalCommand implements vscode.Disposable {
                     logTerminal('[Install] Cleaning existing install directory...');
                     fs.rmSync(installDir, { recursive: true, force: true });
                 }
-            } catch (_) {}
+            } catch (cleanupError) {
+                logWarning(`[Install] Failed to clean install directory: ${cleanupError}`);
+            }
             fs.mkdirSync(installDir, { recursive: true });
 
             // Download llama.cpp binary
@@ -305,7 +316,11 @@ class TerminalCommand implements vscode.Disposable {
             logTerminal('[Install] Extracting llama.cpp archive...');
             await this.extractZip(mainZipPath, installDir);
             
-            try { fs.unlinkSync(mainZipPath); } catch (_) {}
+            try {
+                fs.unlinkSync(mainZipPath);
+            } catch (removeError) {
+                logWarning(`[Install] Failed to remove archive ${mainZipPath}: ${removeError}`);
+            }
 
             // Download CUDA runtime
             if (osInfo.gpu === 'cuda' && cudartBinary) {
@@ -321,7 +336,11 @@ class TerminalCommand implements vscode.Disposable {
                 logTerminal('[Install] Extracting CUDA runtime into server directory...');
                 await this.extractZip(cudartZipPath, serverDir);
                 
-                try { fs.unlinkSync(cudartZipPath); } catch (_) {}
+                try {
+                    fs.unlinkSync(cudartZipPath);
+                } catch (removeCudaError) {
+                    logWarning(`[Install] Failed to remove CUDA archive ${cudartZipPath}: ${removeCudaError}`);
+                }
             }
 
             logTerminal('[Install] ########################################');
@@ -384,8 +403,6 @@ class TerminalCommand implements vscode.Disposable {
             const stdout = error.stdout + '\n' + error.stderr;
             terminal.sendText(`echo "Output: ${stdout.trim()}"`);
             return { success: false, stdout, stderr: error.message, terminal };
-        }
-        finally {
         }
     }
 
@@ -540,7 +557,7 @@ class TerminalCommand implements vscode.Disposable {
             }
             else if (osInfo.platform === 'macos') {
                 // If on macOS/Windows, also attempt package-manager uninstall to clean system installs
-                let terminalCommand = process.platform === 'darwin' ? "brew uninstall llama.cpp" : process.platform === 'win32' ? "winget uninstall llama.cpp" : "";
+                const terminalCommand = process.platform === 'darwin' ? "brew uninstall llama.cpp" : process.platform === 'win32' ? "winget uninstall llama.cpp" : "";
                 if (terminalCommand) {
                     const {success, stdout, terminal} = await this.command(this.InstallTerminal, terminalCommand, false);
                     terminal?.sendText(`echo "##############################"`);

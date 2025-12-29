@@ -1,3 +1,4 @@
+import * as dns from 'dns';
 import { logDebug, logWarning, logError } from '../utils/logger';
 import { getConfig } from '../utils/config';
 
@@ -46,7 +47,6 @@ async function resolveDomainToIP(hostname: string): Promise<string | null> {
 	// DNS resolution if cache is invalid or doesn't exist
 	try {
 		logDebug(`DNS resolution started: ${hostname}`);
-		const dns = require('dns');
 		
 		const addresses = await new Promise<string[]>((resolve, reject) => {
 			dns.lookup(hostname, { all: true }, (err: any, addresses: any) => {
@@ -126,16 +126,14 @@ export function withLineNumberCodeBlock(CodeBlock: string,
 		const lines = CodeBlock.split('\n');
 		let counter = 1;
 		const withLine = lines.map((line, idx) => {
-    							const trimmed = line.trim();
-								const hit = ignores.find(ignore => { return ignore.key === trimmed; });
-								if (hit) {
-									return (hit.isAddSpace??false) ? `\n${line}\n\n ` : line;
-								}
-								else {
-									LastLineNumber = startLineNumber + counter++;
-									return `${LastLineNumber}|${line}`;
-								}
-							});
+			const trimmed = line.trim();
+			const hit = ignores.find(ignore => ignore.key === trimmed);
+			if (hit) {
+				return (hit.isAddSpace ?? false) ? `\n${line}\n\n ` : line;
+			}
+			LastLineNumber = startLineNumber + counter++;
+			return `${LastLineNumber}|${line}`;
+		});
 		return { CodeBlock: withLine.join('\n').replace(/```/g, '\\`\\`\\`'), LastLineNumber };
 	}
 	else {

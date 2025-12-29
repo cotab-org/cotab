@@ -205,7 +205,7 @@ export function getYamlDefaultCommentPrompt(): YamlConfigMode {
 	return {
 		mode: 'Comment',
 		extensions: ['*'],
-    	placeholderSymbol: "<|INSERT_AN_EXPLANATION_OF_THE_CODE_STARTING_FROM_THE_NEXT_LINE_BELOW_THIS_MARKER|>",
+		placeholderSymbol: "<|INSERT_AN_EXPLANATION_OF_THE_CODE_STARTING_FROM_THE_NEXT_LINE_BELOW_THIS_MARKER|>",
 		isDispOverwrite: true,
 		isNoHighligh: true,
 		isForceOverlay: true,

@@ -50,7 +50,7 @@ function addRejectHistory(editor: vscode.TextEditor) {
     // second edit if first edit void for e.g."/**"
     if (! (/[\p{L}]/u.test(firstEdit.newText) || /[\p{L}]/u.test(firstEdit.newText)) &&
         1 < suggestions.edits.length) {
-	    firstEdit = suggestions.edits[1];
+        firstEdit = suggestions.edits[1];
     }
         
 	if (firstEdit) {
@@ -113,7 +113,7 @@ export async function acceptSuggestionCmdInternal(isFullAccept: boolean = true) 
 
 	// Do nothing if already processing
 	if (! isProcessingSuggestion) {
-	    isProcessingSuggestion = true;
+        isProcessingSuggestion = true;
         const success = await acceptSuggestionInternal(isFullAccept);
         isProcessingSuggestion = false;
 
@@ -209,7 +209,7 @@ async function acceptSuggestionInternal(isFullAccept: boolean) {
     }
     
     // Whether there are suggestions not yet applied
-    let hasUnappliedSuggestion = false;
+    const hasUnappliedSuggestion = false;
 
     // Apply grouped edits
     for (const group of groupedEdits) {

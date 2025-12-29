@@ -12,9 +12,9 @@ export function updateSuggestionsAndDecorations(
 ): { isCompletedFirstLine: boolean, inlineCompletionItems: vscode.InlineCompletionItem[]} {
     const activeEditor = vscode.window.activeTextEditor;
 
-    if (!suggestionData.edits.length) {
+	if (!suggestionData.edits.length) {
 		clearSuggestions(documentUri);
-    	if (activeEditor && activeEditor.document.uri.toString() === documentUri.toString()) {
+        if (activeEditor && activeEditor.document.uri.toString() === documentUri.toString()) {
 			clearAllDecorations(activeEditor);
 		}
 		return {isCompletedFirstLine:false, inlineCompletionItems:[]};

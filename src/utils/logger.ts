@@ -61,7 +61,11 @@ export function logTerminal(message: string) {
 }
 
 export function showLogWindow(preserveFocus: boolean = false) {
-	try { channel.show(preserveFocus); } catch (_) {}
+	try {
+		channel.show(preserveFocus);
+	} catch (error) {
+		logDebug(`Failed to show log window: ${error}`);
+	}
 }
 
 

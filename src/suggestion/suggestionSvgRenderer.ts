@@ -281,8 +281,8 @@ async function convertShikiHtmlToSvgGut(
 			const style = el.getAttribute("style") || "";
 			const colorMatch = extractColorFromStyle(style);
 			const classes = el.getAttribute("class") || "";
-			let appendStyle = (defaultColorAttr && ! colorMatch) ? defaultColorAttr : "";
-			let fillColor = colorMatch || defaultColor;
+			const appendStyle = (defaultColorAttr && ! colorMatch) ? defaultColorAttr : "";
+			const fillColor = colorMatch || defaultColor;
 			let fill = fillColor ? ` fill="${fillColor}"` : "";
 			if (classes.includes("highlighted")) {
 				fill = ` fill="${overlayColors.backgroundColor}"`;
@@ -371,7 +371,11 @@ async function getOrCreateHighlighter(themeName: string, languageId: string): Pr
 			const themeObj = await tryLoadThemeObject(themeName);
 			try {
 				const highlighter = await shiki.createHighlighter({ themes: [themeObj ?? themeName], langs: [lang] });
-				try { highlighter.setTheme((themeObj as any)?.name ?? themeName); } catch {}
+				try {
+					highlighter.setTheme((themeObj as any)?.name ?? themeName);
+				} catch (themeError) {
+					logDebug(`Failed to apply theme '${themeName}': ${themeError}`);
+				}
 				return highlighter;
 			} catch (e) {
 				logDebug(`Failed to create highlighter for lang '${lang}': ${e}`);
@@ -382,7 +386,11 @@ async function getOrCreateHighlighter(themeName: string, languageId: string): Pr
 						logDebug(`Trying fallback to 'c' language for highlighter`);
 						const fallbackTheme = isDarkTheme() ? 'dark-plus' : 'light-plus';
 						const highlighter = await shiki.createHighlighter({ themes: [fallbackTheme], langs: ['c'] });
-						try { highlighter.setTheme(fallbackTheme); } catch {}
+						try {
+							highlighter.setTheme(fallbackTheme);
+						} catch (fallbackThemeError) {
+							logDebug(`Failed to apply fallback theme '${fallbackTheme}': ${fallbackThemeError}`);
+						}
 						return highlighter;
 					} catch (fallbackError) {
 						logDebug(`Fallback to 'c' also failed: ${fallbackError}`);
@@ -392,7 +400,11 @@ async function getOrCreateHighlighter(themeName: string, languageId: string): Pr
 				// Finally create a highlighter for plain text
 				const fallback = isDarkTheme() ? 'dark-plus' : 'light-plus';
 				const highlighter = await shiki.createHighlighter({ themes: [fallback], langs: ['text'] });
-				try { highlighter.setTheme(fallback); } catch {}
+				try {
+					highlighter.setTheme(fallback);
+				} catch (plainThemeError) {
+					logDebug(`Failed to apply plain fallback theme '${fallback}': ${plainThemeError}`);
+				}
 				return highlighter;
 			}
 		})();
@@ -437,14 +449,18 @@ async function tryLoadThemeObject(themeName: string): Promise<any | null> {
 				}
 			}
 		}
-	} catch {}
+	} catch (error) {
+		logDebug(`Failed to load theme '${themeName}': ${error}`);
+	}
 	return null;
 }
 
 function tryGetDefaultForeground(highlighter: any): string | undefined {
 	try {
 		return highlighter.getForegroundColor?.();
-	} catch {}
+	} catch (foregroundError) {
+		logDebug(`Failed to get default foreground color: ${foregroundError}`);
+	}
 	return undefined;
 }
 

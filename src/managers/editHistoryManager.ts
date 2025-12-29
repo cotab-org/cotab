@@ -67,7 +67,7 @@ class EditHistoryManager implements vscode.Disposable {
 	 */
 	addEdit(op: EditOperation) {
 
-		let last = this.edits[this.edits.length - 1];
+		const last = this.edits[this.edits.length - 1];
 
 		if (last) {
             // Reject operations are only kept once, so if the last operation is a reject, remove it
@@ -112,13 +112,10 @@ class EditHistoryManager implements vscode.Disposable {
                     );
 
                     // For delete operations, get original text from cache, new text is empty string
-                    let originalText: string;
-                    let newText: string;
-
                     let isNewOperation = false;
                     
-                    originalText = this.lineCacheManager.getCacheText(op.document, readRange).replace(/\r?\n/g, '\n').replace(/\n$/, '');
-                    newText = op.document.getText(readRange).replace(/\r?\n/g, '\n').replace(/\n$/, '');
+                    const originalText = this.lineCacheManager.getCacheText(op.document, readRange).replace(/\r?\n/g, '\n').replace(/\n$/, '');
+                    const newText = op.document.getText(readRange).replace(/\r?\n/g, '\n').replace(/\n$/, '');
 
                     const segments = computeCharDiff(originalText, newText);
                     let opType: 'add' | 'delete' | 'modify' | 'rename' | 'copy' | 'reject' = 'add';
@@ -204,7 +201,7 @@ class EditHistoryManager implements vscode.Disposable {
                 // Detect and apply rename
                 detectRenameAndApply(op);
 
-			    this.edits.push(op);
+                this.edits.push(op);
             }
 		}
         if (EditHistoryManager.MAX_EDIT_HISTORY < this.edits.length) {
@@ -279,12 +276,10 @@ class LineCacheManager {
 
         // Reduce line numbers after the line
         if (0 < addLineCount) {
-            let newCache = new Map<number, string>();
-            for(let [line, text] of cache) {
-                if (addLine < line) {
-                    line += addLineCount;
-                }
-                newCache.set(line, text);
+            const newCache = new Map<number, string>();
+            for (const [lineNumber, lineText] of cache) {
+                const adjustedLine = (addLine < lineNumber) ? lineNumber + addLineCount : lineNumber;
+                newCache.set(adjustedLine, lineText);
             }
             this.lineCacheMap.set(doc.uri.toString(), newCache);
         }
@@ -307,12 +302,10 @@ class LineCacheManager {
 
         // Reduce line numbers after deletion line
         const delLineNum = range.end.line - range.start.line;
-        let newCache = new Map<number, string>();
-        for(let [line, text] of cache) {
-            if (range.start.line < line) {
-                line -= delLineNum;
-            }
-            newCache.set(line, text);
+        const newCache = new Map<number, string>();
+        for (const [lineNumber, lineText] of cache) {
+            const adjustedLine = (range.start.line < lineNumber) ? lineNumber - delLineNum : lineNumber;
+            newCache.set(adjustedLine, lineText);
         }
         this.lineCacheMap.set(doc.uri.toString(), newCache);
     }

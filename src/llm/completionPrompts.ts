@@ -26,7 +26,7 @@ interface CursorLineCache {
 	documentUri: string;
 	cursorLine: number;
 	text: string;
-};
+}
 
 let cursorLineCache: CursorLineCache | undefined = undefined;
 
@@ -276,21 +276,27 @@ ${cachedSourceCodeWithLine}
 	const latestAfterOutsideFirstWithLine = withLineNumberCodeBlock(latestAfterOutsideFirst, editorContext.aroundToLine).CodeBlock;
 	
 	// Insert placeholder at cursor position
-	let { aroundSnippetWithPlaceholder,
+	
+	const {
+		aroundSnippetWithPlaceholder,
 		beforePlaceholderWithLF,
-		cursorLineBefore,
+		cursorLineBefore : orgCursorLineBefore,
 		cursorLineAfter,
-		afterPlaceholder
-	} = insertCursorHere(latestAroundSnippetLines.join('\n'),
-						editorContext.cursorLine, (cursorAlwaysHead) ? 0 :editorContext.cursorCharacter, editorContext.aroundFromLine,
-						placeholder);
+		afterPlaceholder,
+	} = insertCursorHere(
+		latestAroundSnippetLines.join('\n'),
+		editorContext.cursorLine,
+		(cursorAlwaysHead) ? 0 : editorContext.cursorCharacter,
+		editorContext.aroundFromLine,
+		placeholder
+	);
 	const aroundSnippetWithPlaceholderWithLine = withLineNumberCodeBlock(aroundSnippetWithPlaceholder, editorContext.aroundFromLine).CodeBlock;
 	let aroundSnippetWithPlaceholderWithLineWithCache = aroundSnippetWithPlaceholderWithLine;
 	let latestCursorLineText = '';
 	
 	// Whether to make code up to cursor position column already output to Assistant
 	// Note: Can guarantee characters before cursor but can't complete at positions before cursor.
-	const orgCursorLineBefore = cursorLineBefore;
+	let cursorLineBefore = orgCursorLineBefore;
 	const outputedCursorLineBefore = false;
 	if (!outputedCursorLineBefore) {
 		cursorLineBefore = '';
@@ -428,7 +434,7 @@ ${cursorLineBeforeForQwen3Coder}`;
 	const { cursorErrorCodeBlock, otherErrorCodeBlock } = makeYamlFromErrors(editorContext, codeBlocks.errorContext);
 	
 	// Create Handlebars context
-	let handlebarsContext = {
+	const handlebarsContext = {
 		// Basic information
 		"languageId": editorContext.languageId,
 		"relativePath": editorContext.relativePath,

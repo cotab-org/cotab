@@ -3,6 +3,7 @@ import { BundledTheme } from "shiki";
 import { extensions } from 'vscode';
 import { execSync } from 'child_process';
 import { isDarkTheme } from './cotabUtil';
+import { logDebug } from './logger';
 import type { LocalServerPreset } from './localServerPresets';
 import { DEFAULT_LOCAL_SERVER_CUSTOM_ARGS, DEFAULT_LOCAL_SERVER_PRESET } from './localServerPresets';
 
@@ -338,7 +339,9 @@ function getOsLocale(): string {
 					// For macOS/Linux, try Intl API as fallback
 					candidate = new Intl.DateTimeFormat().resolvedOptions().locale;
 				}
-			} catch {}
+			} catch (localeError) {
+				logDebug(`Failed to detect OS locale: ${localeError}`);
+			}
 		}
 
 	// 3) Final fallback to VS Code UI language
@@ -367,7 +370,9 @@ function getDisplayLanguageName(locale: string): string {
 		const dn = new (Intl as any).DisplayNames([locale], { type: 'language' });
 		const name = dn?.of(locale);
 		if (typeof name === 'string' && 0 < name.length) return name;
-	} catch {}
+	} catch (displayNameError) {
+		logDebug(`Failed to resolve display language name: ${displayNameError}`);
+	}
 
 	// Fallback (major languages only)
 	const autonyms: Record<string, string> = {
@@ -400,7 +405,9 @@ function getActiveThemeName(): string {
 		const cfg = vscode.workspace.getConfiguration('workbench');
 		const theme = cfg.get<string>('colorTheme');
 		if (theme && theme.length) return theme;
-	} catch {}
+	} catch (themeError) {
+		logDebug(`Failed to read active theme: ${themeError}`);
+	}
     
 	return isDarkTheme() ? 'Dark+ (default dark)' : 'Light+ (default light)';
 }

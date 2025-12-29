@@ -92,7 +92,7 @@ class ClipboardManager implements vscode.Disposable {
 		isCacheOnly: boolean,
 		activeTextEditor?: vscode.TextEditor
 	) {
-		let clipboardText = await this.readClipboardText();
+		const clipboardText = await this.readClipboardText();
 
 		// First time: cache current value and exit
 		if (this.lastText === '') {

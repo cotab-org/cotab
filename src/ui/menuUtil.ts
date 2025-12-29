@@ -10,7 +10,8 @@ export function escapeXml(s: string): string {
 }
 
 export function buildLinkButtonSvgDataUri(label: string, bgColor: string, fgColor: string): string {
-    const text = label.replace(/[`\\\[\]\(\)]/g, '');
+    // eslint-disable-next-line no-useless-escape -- literal [ ] ( ) and backslash must be escaped for removal
+    const text = label.replace(/[\[\]()\\`]/g, '');
     const paddingX = 14;
     const fontSize = 12;
     const approxCharW = 7; // Approximate width

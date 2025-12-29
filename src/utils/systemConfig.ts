@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import * as vscode from 'vscode';
+import packageJson from '../../package.json';
 import { logDebug, logError, logInfo } from './logger';
 
 // Callback type for plugin update notification
@@ -150,7 +151,6 @@ export function checkAndUpdatePluginVersion(): {
     currentVersion: string;
 } {
     
-	const packageJson = require('../../package.json');
 	const currentVersion = packageJson.version;
     
     const config = getSystemConfig();

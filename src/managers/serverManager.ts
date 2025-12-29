@@ -88,7 +88,11 @@ class KeepaliveEditor implements vscode.Disposable {
             this.timer = null;
         }
         if (this.filePath) {
-            try { fs.unlinkSync(this.filePath); } catch {}
+            try {
+                fs.unlinkSync(this.filePath);
+            } catch (error) {
+                logDebug(`keepalive file removal failed: ${error}`);
+            }
         }
     }
     
@@ -142,7 +146,7 @@ class KeepaliveEditor implements vscode.Disposable {
             return 1;
         }
     }
-};
+}
 
 class KeepaliveServer implements vscode.Disposable {
     private disposables: vscode.Disposable[] = [];
@@ -204,7 +208,7 @@ class KeepaliveServer implements vscode.Disposable {
             logDebug(`initKeepalive failed: ${e}`);
         }
     }
-};
+}
 
 class ServerManager implements vscode.Disposable {
     private disposables: vscode.Disposable[] = [];

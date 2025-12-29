@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { SimpleLocker } from './cotabUtil';
+import { logDebug } from './logger';
 
 type PendingEntry = {
 	resolve: (widths: number[]) => void;
@@ -67,10 +68,18 @@ function setCharWidthCache(fontKey: string, data: { singleByteWidth: number, dou
 	charWidthCaches.set(fontKey, data);
 }
 
+function disposePanelSafely(reason: string): void {
+	try {
+		panelInstance?.dispose();
+	} catch (error) {
+		logDebug(`Failed to dispose text measurer panel (${reason}): ${error}`);
+	}
+}
+
 function kickIdleTimer(): void {
 	if (idleTimer) clearTimeout(idleTimer);
 	idleTimer = setTimeout(() => {
-		try { panelInstance?.dispose(); } catch {}
+		disposePanelSafely('idle timeout');
 	}, IDLE_DISPOSE_MS);
 }
 
@@ -97,7 +106,7 @@ async function ensurePanel(): Promise<vscode.WebviewPanel | undefined> {
 				bridgePromises.delete(message.id);
 				// Close immediately for character width measurement. Otherwise dispose on idle
 				if (message.isCharWidthMeasurement) {
-					setTimeout(() => { try { panelInstance?.dispose(); } catch {} }, 100);
+					setTimeout(() => disposePanelSafely('char width measurement complete'), 100);
 				} else {
 					kickIdleTimer();
 				}
@@ -253,7 +262,7 @@ export async function measureTextsWidthPx(fontFamily: string, fontSize: number, 
 		let widthPx = 0;
 		let column = 0;
 		for (let i = 0; i < text.length; i++) {
-			let cp = text.codePointAt(i)!;
+			const cp = text.codePointAt(i)!;
 			if (cp > 0xffff) i++;
 			if (cp === 0x0d || cp === 0x0a) continue;
 			if (cp === 0x09) { // tab

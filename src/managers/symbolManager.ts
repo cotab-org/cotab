@@ -393,13 +393,10 @@ function removeHeadKeyword(content: string): string {
 	// Trim whitespace at both ends
 	let result = content.trim();
 
-	while (true) {
-		const match = result.match(LEADING_KEYWORD_REGEX);
-		if (!match) {
-			break;
-		}
-
+	let match = result.match(LEADING_KEYWORD_REGEX);
+	while (match) {
 		result = result.slice(match[0].length).trimStart();
+		match = result.match(LEADING_KEYWORD_REGEX);
 	}
 
 	return result;
@@ -413,7 +410,7 @@ function removeOuterScope(outerContents: string[], content: string): string {
 
     // Escape RegExp meta‑characters in each parent scope string to safely build a pattern
     const escaped = outerContents.map(name =>
-        name.replace(/[\\^$.*+?()\[\]{}|]/g, '\\$&')
+        name.replace(/[\\[\]^$.*+?(){}|]/g, '\\$&')
     );
 
     // Separator pattern that matches a dot (.) or double colon (::)

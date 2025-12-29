@@ -118,7 +118,7 @@ export class SuggestionManager implements vscode.Disposable {
     ): Promise<vscode.InlineCompletionItem[]> {
         logDebug(`called: provideInlineCompletionItems`);
         
-	    const startTime = Date.now();
+        const startTime = Date.now();
 
         // Cancel if there's an existing request
         this.cancelCurrentRequest();
@@ -206,7 +206,7 @@ export class SuggestionManager implements vscode.Disposable {
         const client = getAiClient();
 
         // Simple async function that waits until suggestions for the cursor line are ready
-        let currentCursorLine = position.line;
+        const currentCursorLine = position.line;
         let cursorLineReady = false;
         let cursorLineInlineCompletions: vscode.InlineCompletionItem[] = [];
         const waitForCursorLine = async (): Promise<vscode.InlineCompletionItem[]> => {
@@ -376,7 +376,7 @@ ${assistantPrompt}
             return [];
         }
 
-        let streamCount = this.streamCount + 1;
+        const streamCount = this.streamCount + 1;
 		logDebug(`Time to pre process reception: ${streamCount}th time ${Date.now() - startTime}ms`);
         try {
             this.streamCount++;

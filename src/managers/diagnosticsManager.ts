@@ -37,12 +37,12 @@ class DiagnosticsManager implements vscode.Disposable {
         const startLine = Math.max(line - 0, 0);
         const endLine = line + 3;
         
-        let diagnosticsMap = new Map<string, vscode.Diagnostic[]>();
+        const diagnosticsMap = new Map<string, vscode.Diagnostic[]>();
         for (const [uri, diagnotics] of diagnosticsAll) {
             // Check same document language
             const diagnosticsDocument = vscode.workspace.textDocuments.find((doc) => doc.uri.toString() === uri.toString());
             if (!diagnosticsDocument) continue;
-            if (diagnosticsDocument.languageId !== document.languageId)　continue;
+            if (diagnosticsDocument.languageId !== document.languageId) continue;
 
             const filteredDiagnostics: vscode.Diagnostic[] = [];
             for(const diagnotic of diagnotics) {

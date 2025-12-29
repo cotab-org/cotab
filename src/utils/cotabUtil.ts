@@ -27,12 +27,12 @@ export class SimpleLocker {
     public isLocked(): boolean {
         return this.locked;
     }
-};
+}
 
 //###########################################################################
 
 let isPhaseLock = false;
-let prevPhase: GutterIconPhase | undefined;;
+let prevPhase: GutterIconPhase | undefined;
 export function lockProgress(isLock: boolean) {
     isPhaseLock = isLock;
 }
@@ -111,9 +111,9 @@ export interface OSInfo {
     platform: PlatformType;
     gpu: GpuType;
     cpu: CpuType;
-};
+}
 
-let cachedOsInfo: OSInfo = {
+const cachedOsInfo: OSInfo = {
     platform: 'unknown',
     gpu: 'unknown',
     cpu: 'unknown',
@@ -206,9 +206,10 @@ function detectCpuInternal(): { archLabel: CpuType; raw: string } {
 async function detectGpu(): Promise<GpuType> {
     const osType = await detectPlatform();
     switch(osType) {
-        case 'win':
+        case 'win': {
             const hasNvidia = await isWindowsNvidiaGpuPresent();
             return hasNvidia ? 'cuda' : 'vulkan';
+        }
         case 'macos':
             return 'none';
         case 'ubuntu':
@@ -249,7 +250,7 @@ function parseOsRelease(content: string): Record<string, string> {
   for (const line of lines) {
     const m = line.match(/^([^=]+)=(.*)$/);
     if (!m) continue;
-    let key = m[1];
+    const key = m[1];
     let val = m[2];
     // Remove quotes from value if present
     if (val.startsWith('"') && val.endsWith('"')) {

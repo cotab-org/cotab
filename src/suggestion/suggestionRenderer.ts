@@ -187,7 +187,7 @@ interface RenderData {
 	// option
 	isNoHighligh: boolean;
 	isNoItalic: boolean;
-};
+}
 
 let prevRenderData: RenderData;
 

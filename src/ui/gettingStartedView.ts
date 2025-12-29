@@ -34,7 +34,7 @@ export function registerGettingStartedView(
     }));
 
     // On setup, auto-show (only if hideOnStartup is off)
-    let show = ! getConfig().hideOnStartup;
+    const show = ! getConfig().hideOnStartup;
     //const additionalHtmlPromise = GetNewVersionNotice(prevVersion, currentVersion);
     if (show) {
         // Delayed display (wait for initialization to complete after setup)

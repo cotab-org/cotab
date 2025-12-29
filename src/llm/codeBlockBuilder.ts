@@ -48,7 +48,7 @@ export interface DiagnosticsContext {
 }
 
 export function makeYamlFromEditHistoryActions(editHistoryActions: EditHistoryAction[]): string {
-	let codeBlocks: string[] = [];
+	const codeBlocks: string[] = [];
 
 	for (const action of editHistoryActions) {
 		let codeBlock = '';
@@ -81,7 +81,7 @@ export function makeYamlFromErrors(editorContext: EditorContext, diagnosticsCont
 	let cursorErrorYaml = '';
 	let otherErrorYaml = '';
 
-	let makeContent = (uri: string, diag: vscode.Diagnostic) => {
+	const makeContent = (uri: string, diag: vscode.Diagnostic) => {
 		const isCurrent = editorContext.documentUri === uri.toString();
 
 		// ignore cannot open source file. because referencing libraries etc. always causes this.
@@ -224,7 +224,7 @@ class CodeBlockBuilder {
 		const cachedSymbols = symbolManager.getFilesByLanguageId(editorContext.languageId);
 
 		const config = getConfig();
-		let symbolCodeBlocks: string[] = [];
+		const symbolCodeBlocks: string[] = [];
 		let charTotalCount = 0;
 		for (const cachedSymbol of cachedSymbols) {
 			if (cachedSymbol.symbols.length === 0) continue;
@@ -269,7 +269,7 @@ ${block.replace(/```/g, '\\`\\`\\`')}
 	}
 
 	private buildEditHistoryActions(editorContext: EditorContext, currentCursorLine: number): EditHistoryAction[] {
-		let histories: string[] = [];
+		const histories: string[] = [];
 		const editHistory = editHistoryManager.getEdits();
 		logInfo(`Edit history: ${editHistory.length} items`);
 
@@ -336,7 +336,7 @@ ${block.replace(/```/g, '\\`\\`\\`')}
 	private buildErrorContext(editorContext: EditorContext, currentCursorLine: number): DiagnosticsContext {
 		const diagnosticsMap = diagnosticsManager.getErrors(editorContext.document, currentCursorLine);
 		
-		let errorContext: DiagnosticsContext = {
+		const errorContext: DiagnosticsContext = {
 			cursorError: [],
 			otherErrors: []
 		};
@@ -370,7 +370,7 @@ ${block.replace(/```/g, '\\`\\`\\`')}
 		const topErrorList = sortedErrorList.slice(0, 6);
 
 		// cursor line 
-		let cursorError = [];
+		const cursorError = [];
 		for(const error of topErrorList) {
 			if (error[1] === editorContext.documentUri &&
 			error[2].range.start.line === currentCursorLine) {

@@ -12,6 +12,7 @@ import { serverManager } from '../managers/serverManager';
 import { getYamlConfig, onDidChangeYamlConfig, getYamlConfigPromptModes, openYamlConfig } from '../utils/yamlConfig';
 import { buildLinkButtonSvgDataUri, buildNetworkServerLabelSvgDataUri } from './menuUtil';
 import { GetOSInfo } from '../utils/cotabUtil';
+import { logDebug } from '../utils/logger';
 const execAsync = promisify(exec);
 
 // Configure nls and load message bundle
@@ -508,8 +509,8 @@ async function startLlamaServer(): Promise<void> {
 
         vscode.window.showInformationMessage(localize('menuIndicator.startServer', 'Start llama-server'));
     }
-    catch (_) {
-        
+    catch (error) {
+        logDebug(`Failed to start llama-server: ${error}`);
     }
 }
 
