@@ -144,6 +144,13 @@ function getConfigRaw(): CotabConfig {
     const settingApiBaseURL = cfg.get<string>('cotab.llm.apiBaseURL', '').trim();
     const localServerPort = cfg.get<number>('cotab.llm.localServerPort', 9339);
     const apiBaseURL = (settingApiBaseURL !== '') ? settingApiBaseURL : `http://127.0.0.1:${localServerPort}/v1`;
+    const logLevelStr = cfg.get<string>('cotab.detail.logLevel', 'INFO');
+    const logLevel = logLevelStr === 'ERROR' ? LogLevel.error :
+                    logLevelStr === 'WARNING' ? LogLevel.warning :
+                    logLevelStr === 'INFO' ? LogLevel.info :
+                    logLevelStr === 'DEBUG' ? LogLevel.debug :
+                    LogLevel.info;
+
     return {
         // editor
         documentUri: uri,
@@ -212,7 +219,7 @@ function getConfigRaw(): CotabConfig {
         showProgressSpinner: cfg.get<boolean>('cotab.ui.showProgressSpinner', true),
 
         // detail
-        logLevel: cfg.get<LogLevel>('cotab.detail.logLevel', LogLevel.info),
+        logLevel: logLevel,
         
         isCurrentEnabled(): boolean {
             const languageId: string = vscode.window.activeTextEditor?.document.languageId || '';

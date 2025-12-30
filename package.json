@@ -366,12 +366,12 @@
         "cotab.detail.logLevel": {
           "type": "string",
           "enum": [
-            "error",
-            "warning",
-            "info",
-            "debug"
+            "ERROR",
+            "WARNING",
+            "INFO",
+            "DEBUG"
           ],
-          "default": "info",
+          "default": "INFO",
           "description": "%config.detail.logLevel%",
           "order": 501
         },
