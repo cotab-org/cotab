@@ -192,6 +192,24 @@ async function updateCotabMenu(isReset: boolean = false): Promise<string> {
     }
 }
 
+/**
+ * Localizes prompt mode name for display
+ */
+function getLocalizedPromptMode(mode: string): string {
+    if (mode === 'Coding') {
+        return localize('menuIndicator.promptMode.Coding', 'Coding');
+    } else if (mode === 'Comment') {
+        return localize('menuIndicator.promptMode.Comment', 'Comment');
+    } else if (mode === 'Translate') {
+        return localize('menuIndicator.promptMode.Translate', 'Translate');
+    } else if (mode === 'Proofreading(experimental)') {
+        return localize('menuIndicator.promptMode.Proofreading(experimental)', 'Proofreading(experimental)');
+    } else if (mode === 'BusinessChat(experimental)') {
+        return localize('menuIndicator.promptMode.BusinessChat(experimental)', 'BusinessChat(experimental)');
+    }
+    return mode;
+}
+
 async function buildMainMenuMarkdown(): Promise<vscode.MarkdownString> {
     const config = getConfig();
     const isEnabled = config.enabled;
@@ -226,7 +244,8 @@ async function buildMainMenuMarkdown(): Promise<vscode.MarkdownString> {
     const selectedPromptMode = getConfig().selectedPromptMode || 'Coding';
     for (const mode of getYamlConfigPromptModes()) {
         const isEnabled = (mode === selectedPromptMode);
-        const promptRadio = radioControl(`${mode}`, isEnabled, `command:cotab.selectedPromptMode${mode}`);
+        const displayMode = getLocalizedPromptMode(mode);
+        const promptRadio = radioControl(`${displayMode}`, isEnabled, `command:cotab.selectedPromptMode${mode}`);
         md.appendMarkdown(`${promptRadio}\n\n`);
     }
 
