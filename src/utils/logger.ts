@@ -17,16 +17,7 @@ export enum LogLevel {
 // Get current log level
 function getCurrentLogLevel(): LogLevel {
 	const config = getConfig();
-	const levelStr = config.logLevel;
-	
-	switch (levelStr.toUpperCase()) {
-		case 'ERROR': return LogLevel.error;
-		case 'WARNING': return LogLevel.warning;
-		case 'INFO': return LogLevel.info;
-		case 'DEBUG': return LogLevel.debug;
-		case 'SERVER': return LogLevel.server;
-		default: return LogLevel.info;
-	}
+	return config.logLevel;
 }
 
 // Log output function
