@@ -36,7 +36,6 @@ class TerminalCommand implements vscode.Disposable {
     private installTerminal: vscode.Terminal | undefined;
     private serverProcess!: cp.ChildProcessWithoutNullStreams;
     private serverRunningCache: { result: boolean; timestamp: number } | null = null;
-    private runLocalArgs: string[] = [];
 
     private getInstallBaseDir(): string {
         if (process.platform === 'win32') {
@@ -621,14 +620,8 @@ class TerminalCommand implements vscode.Disposable {
         return args;
     }
 
-    public runLocalLlamaServer(yamlConfigMode: YamlConfigMode): void {
-        const args = this.makeLocalLlamaServerArgs(yamlConfigMode);
-        this.runLocalArgs = args;
+    public runLocalLlamaServer(args: string[]): void {
         this.runLocalLlamaServerInternal(args);
-    }
-
-    public getRunLocalArgs(): string[] {
-        return this.runLocalArgs;
     }
 
     private getUnixProcessListCommand(): string {
@@ -851,7 +844,6 @@ class TerminalCommand implements vscode.Disposable {
     }
 
     public async stopLocalLlamaServer(): Promise<void> {
-        this.runLocalArgs = [];
         try {
             const exec = util.promisify(cp.exec);
             const installBaseDir = this.getInstallBaseDir();
@@ -895,7 +887,6 @@ class TerminalCommand implements vscode.Disposable {
     }
 
     public stopLocalLlamaServerSync(): void {
-        this.runLocalArgs = [];
         try {
             const installBaseDir = this.getInstallBaseDir();
             

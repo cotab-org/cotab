@@ -13,7 +13,7 @@ import { registerStatusBarManager, statusBarManager } from './ui/statusBarManage
 import { registerProgressGutterIcon } from './ui/progressGutterIconManager';
 import { registerMenuIndicator } from './ui/menuIndicator';
 import { registerTerminalCommand } from './utils/terminalCommand';
-import { registerServerManager, autoStopServerOnExit } from './managers/serverManager';
+import { registerServerManager, stopServerOnExit } from './managers/serverManager';
 import { registerYamlConfig } from './utils/yamlConfig';
 import { registerGettingStartedView } from './ui/gettingStartedView';
 import { checkAndUpdatePluginVersion } from './utils/systemConfig';
@@ -34,15 +34,27 @@ export function onChangedEnableExtension(enabled: boolean) {
 	cotabPrevEnabled = enabled;
 }
 
-export function activate(context: vscode.ExtensionContext) {	
+export function activate(context: vscode.ExtensionContext) {
+	// Module that enables activation even when auto-complete is disabled
+	activateBasic(context);
+	
+	// Activate Cotab Enable Modules
+	onChangedEnableExtension(getConfig().enabled);
+
+	// Display welcome message
+	activateWelcomeModule(context);
+}
+
+function activateBasic(context: vscode.ExtensionContext): void {
+
 	// watch config enable change
 	registerConfigWatcher(context.subscriptions, () => {
 		onChangedEnableExtension(getConfig().enabled)
 	});
 
-	registerYamlConfig(cotabDisposables);
+	registerYamlConfig(context.subscriptions);
 
-	registerTerminalCommand(cotabDisposables);
+	registerTerminalCommand(context.subscriptions);
 
 	// Always display bottom-right status bar menu
 	registerStatusBarManager(context.subscriptions);
@@ -52,9 +64,9 @@ export function activate(context: vscode.ExtensionContext) {
 	
     // Register server manager
     registerServerManager(context.subscriptions, context);
-	
-	// Activate Cotab Enable Modules
-	onChangedEnableExtension(getConfig().enabled);
+}
+
+function activateWelcomeModule(context: vscode.ExtensionContext): void {
 
 	// Check plugin version on startup
 	const { prevVersion, currentVersion } = checkAndUpdatePluginVersion();
@@ -67,7 +79,7 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {
-	autoStopServerOnExit();
+	stopServerOnExit();
 
 	cotabDeactive();
 }
@@ -97,8 +109,8 @@ function cotabActive() {
 }
 
 function cotabDeactive() {
+	statusBarManager.reset();
+
 	cotabDisposables.forEach(disposable => disposable.dispose());
 	cotabDisposables.length = 0;
-
-	statusBarManager.reset();
 }

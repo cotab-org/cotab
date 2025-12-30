@@ -13,13 +13,18 @@ export function registerServerManager(disposables: vscode.Disposable[], context:
     disposables.push(serverManager);
 }
 
-export function autoStopServerOnExit() {
-    serverManager!.autoStopServerOnExit();
+export function stopServerOnExit() {
+    serverManager!.stopServerOnExit();
 }
 
 // Singleton instance
 export let serverManager: ServerManager;
 
+/**
+ * Class to manage the lifecycle status of VSCode instances
+ * When multiple VSCode instances are running,
+ * Provides a keepalive feature to prevent the server from stopping until the last VSCode exits
+ */
 class KeepaliveEditor implements vscode.Disposable {
     private disposables: vscode.Disposable[] = [];
     private dir: string | null = null;
@@ -62,7 +67,9 @@ class KeepaliveEditor implements vscode.Disposable {
 
     private start() {
         if (!this.filePath) return;
-        const writeOnce = () => {
+
+        // Keepalive write function
+        const writeKeepalive = () => {
                 try {
                     // Create the file if it does not exist
                     if (!fs.existsSync(this.filePath!)) {
@@ -70,16 +77,19 @@ class KeepaliveEditor implements vscode.Disposable {
                     }
                     // Update timestamp only
                     fs.utimesSync(this.filePath!, new Date(), new Date());
-                } catch (e) {
+                }
+                catch (e) {
                     logDebug(`keepalive update failed: ${e}`);
                 }
             };
         
-        writeOnce();
+        // first keepalive
+        writeKeepalive();
+
         if (this.timer) {
             clearInterval(this.timer);
         }
-        this.timer = setInterval(writeOnce, this.intervalMs);
+        this.timer = setInterval(writeKeepalive, this.intervalMs);
     }
 
     private stop() {
@@ -87,10 +97,13 @@ class KeepaliveEditor implements vscode.Disposable {
             clearInterval(this.timer);
             this.timer = null;
         }
+
+        // Remove the keepalive file when stopping
         if (this.filePath) {
             try {
                 fs.unlinkSync(this.filePath);
-            } catch (error) {
+            }
+            catch (error) {
                 logDebug(`keepalive file removal failed: ${error}`);
             }
         }
@@ -118,7 +131,8 @@ class KeepaliveEditor implements vscode.Disposable {
             const files = fs.readdirSync(this.dir).filter(f => /^instance-.*\.hb$/.test(f));
             const now = Date.now();
             const active: string[] = [];
-            
+
+            // Process each keepalive file to determine active instances
             files.forEach(f => {
                 try {
                     const full = path.join(this.dir!, f);
@@ -148,10 +162,17 @@ class KeepaliveEditor implements vscode.Disposable {
     }
 }
 
+/**
+ * Class to manage server alive status
+ * While the server is running, periodically update timestamps to
+ * track server status and use it for decisions on auto-stop or restart
+ */
 class KeepaliveServer implements vscode.Disposable {
     private disposables: vscode.Disposable[] = [];
     private filePath: string | null = null;
     private readonly aliveMs = 60000; // 60s
+    private getArgsCache: string[] | null = null;
+    private getArgsCacheTime: number = 0;
     
     constructor(context: vscode.ExtensionContext) {
         this.init(context);
@@ -197,6 +218,38 @@ class KeepaliveServer implements vscode.Disposable {
         return false;
     }
 
+    // By saving the server's startup arguments to a file, other VSCode instances can also know the startup arguments.
+    public async setArgs(args: string[]): Promise<void> {
+        this.getArgsCache = args;
+        this.getArgsCacheTime = Date.now();
+
+        const argsStr = args.join('\n');
+        try {
+            await fs.promises.writeFile(this.filePath!, argsStr, 'utf8');
+        } catch (e) {
+            logDebug(`Failed to write server args: ${e}`);
+        }
+    }
+
+    // Server launch arguments. Since these are saved to a file, other VSCode instances can also know the launch arguments.
+    public async getArgs(): Promise<string[]> {
+        // The cache expiration time is 3 seconds
+        const now = Date.now();
+        if (this.getArgsCache && (now - this.getArgsCacheTime) < 3000) {
+            return this.getArgsCache;
+        }
+        this.getArgsCacheTime = now;
+        
+        try {
+            const argsStr = await fs.promises.readFile(this.filePath!, 'utf8');
+            this.getArgsCache = argsStr.split('\n');
+            return this.getArgsCache;
+        } catch (e) {
+            logDebug(`Failed to read server args: ${e}`);
+            return [];
+        }
+    }
+
     private init(context: vscode.ExtensionContext) {
         try {
             const base = context.globalStorageUri?.fsPath || path.join(os.tmpdir(), 'cotab');
@@ -239,28 +292,33 @@ class ServerManager implements vscode.Disposable {
     }
 
     /**
-     * Auto-stop handling (when VSCode exits)
+     * Stop server (when VSCode exits)
      * Ensure no failure due to disposal order; called from extension.ts.
+     * Called also at plugin exit, and since wait cannot be used when plugin exits, it must be a synchronous function.
      */
-    public autoStopServerOnExit() {
-        if (getConfig().serverAutoStart) {
-            if (!this.keepaliveEditor!.isOtherVSCodeRunning()) {
-                logInfo('This is the last VS Code instance, stopping server...');
-                this.stopServerForceSync();
-            }
+    public stopServerOnExit() {
+        if (!this.keepaliveEditor!.isOtherVSCodeRunning()) {
+            logInfo('This is the last VS Code instance, stopping server...');
+
+            // Called also at plugin exit, and since wait cannot be used when plugin exits, it must be a synchronous function.
+            this.stopServerForceSync();
         }
     }
 
     public async startServer() {
+        // Prevent re-entrance
         if (this.serverStartInProgress) {
             return;
         }
         this.serverStartInProgress = true;
+        
         try {
             if (! await terminalCommand.isRunningLocalLlamaServer()) {
                 const filename = vscode.workspace.asRelativePath(vscode.window.activeTextEditor?.document.uri || '');
                 const yamlConfigMode = getYamlConfigMode(filename);
-                terminalCommand.runLocalLlamaServer(yamlConfigMode);
+                const args = terminalCommand.makeLocalLlamaServerArgs(yamlConfigMode);
+                terminalCommand.runLocalLlamaServer(args);
+                this.keepaliveServer!.setArgs(args);
             }
             this.keepaliveServer!.keepalive();
             this.isManualStoped = false;    // clear flug
@@ -271,9 +329,9 @@ class ServerManager implements vscode.Disposable {
 
     public async checkArgAndRestartServer(yamlConfigMode: YamlConfigMode) {
         const args = terminalCommand.makeLocalLlamaServerArgs(yamlConfigMode);
-        const nowArgs = terminalCommand.getRunLocalArgs();
+        const serverArg = await this.keepaliveServer!.getArgs();
         // early check
-        if (args.join(' ') !== nowArgs.join(' ')) {
+        if (args.join(' ') !== serverArg.join(' ')) {
             // terminalCommand.isRunningLocalLlamaServer() is heavy call.
             if (await terminalCommand.isRunningLocalLlamaServer()) {
                 await this.stopServer(this.isManualStoped);
