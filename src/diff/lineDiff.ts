@@ -241,7 +241,7 @@ export function processDiffAndApplyEdits(
 
     // When the stop symbol is encountered and the edit line number is within the range, it is considered valids
     if (0 < preEdits.length && isStopedSymbol && stoppedLineNo !== undefined) {
-        if (baseLine + stoppedLineNo < preEdits[0].line) {
+        if (baseLine + stoppedLineNo <= preEdits[0].line) {
             preEdits.length = 0;
         }
     }
