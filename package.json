@@ -366,12 +366,12 @@
         "cotab.detail.logLevel": {
           "type": "string",
           "enum": [
-            "ERROR",
-            "WARNING",
-            "INFO",
-            "DEBUG"
+            "error",
+            "warning",
+            "info",
+            "debug"
           ],
-          "default": "INFO",
+          "default": "info",
           "description": "%config.detail.logLevel%",
           "order": 501
         },
@@ -420,8 +420,8 @@
     "@types/jsdom": "^21.1.7",
     "@types/node": "^18.19.0",
     "@types/vscode": "^1.85.0",
-    "@typescript-eslint/eslint-plugin": "^7.0.0",
-    "@typescript-eslint/parser": "^7.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
     "@vscode/vsce": "^3.7.1",
     "eslint": "^8.57.0",
     "vscode-nls-dev": "^4.0.4",

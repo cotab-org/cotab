@@ -1,10 +1,9 @@
 import * as vscode from 'vscode';
 import { getMergedSuggestions, clearSuggestions, getSuggestions } from './suggestionStore';
 import { clearAllDecorations, renderSuggestions, reRenderSuggestions } from './suggestionRenderer';
-import { logInfo, logDebug, logWarning, logError } from '../utils/logger';
+import { logInfo, logDebug, logError } from '../utils/logger';
 import { suggestionManager } from './suggestionManager';
 import { computeCharDiff } from '../diff/charDiff';
-import { statusBarManager } from '../ui/statusBarManager';
 import { editHistoryManager } from '../managers/editHistoryManager';
 
 // Flag to prevent duplicate processing

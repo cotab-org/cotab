@@ -219,8 +219,8 @@ export function getYamlDefaultCommentPrompt(): YamlConfigMode {
 		userPrompt: defaultUserPrompt,
 		assistantPrompt: defaultAssistantPrompt,
 		appendThinkPromptReject: defaultAppendThinkPromptReject,	// Qwen3:4b-Instruct-2507 does not react to rejection almost, so omitted.
-//	appendOutputPromptReject: defaultAppendOutputPromptReject,
-//	analyzeSystemPrompt: defaultAnalyzeSystemPrompt,
-//	analyzeUserPrompt: defaultAnalyzeUserPrompt
+//		appendOutputPromptReject: defaultAppendOutputPromptReject,
+		analyzeSystemPrompt: defaultAnalyzeSystemPrompt,
+		analyzeUserPrompt: defaultAnalyzeUserPrompt
 	};
 }

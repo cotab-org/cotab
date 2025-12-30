@@ -4,7 +4,7 @@ import { logDebug } from '../utils/logger';
 import { withLineNumberCodeBlock } from './llmUtils';
 import { getYamlConfigMode, YamlConfigMode } from '../utils/yamlConfig';
 import { parseHandlebarsTemplate } from '../utils/cotabUtil';
-import { CodeBlocks, EditHistoryAction, makeYamlFromEditHistoryActions, makeYamlFromErrors } from '../llm/codeBlockBuilder';
+import { CodeBlocks, makeYamlFromEditHistoryActions, makeYamlFromErrors } from '../llm/codeBlockBuilder';
 import { beforeTruncatedText, afterTruncatedText } from '../managers/largeFileManager'
 
 // Prompt cache type definition
@@ -213,7 +213,7 @@ export function buildCompletionPrompts(editorContext: EditorContext,
 		assistantPrompt: string;
 		beforePlaceholderWithLF: string;
 		yamlConfigMode: YamlConfigMode;
-		handlebarsContext: any;
+		handlebarsContext: any;// eslint-disable-line @typescript-eslint/no-explicit-any
 	} {
 	const config = getConfig();
 	let placeholder = config.completeHereSymbol;
@@ -237,9 +237,9 @@ export function buildCompletionPrompts(editorContext: EditorContext,
 
 	// Code blocks & Latest surrounding code blocks & Cached source code
 	const {
-		sourceCode,
+	//	sourceCode,
 		cachedSourceCode,
-		startPosition,
+	//	startPosition,
 		cachedStartPosition,
 		latestBeforeOutsideLines,
 		latestAroundSnippetLines,
@@ -257,7 +257,7 @@ export function buildCompletionPrompts(editorContext: EditorContext,
 											{ key: beforeTruncatedText, isAddSpace: true },
 											{ key: afterTruncatedText, isAddSpace: true },
 										]
-									).CodeBlock;
+									).codeBlock;
 //===============================================
 const sourceCodeBlock =
 //===============================================
@@ -270,19 +270,19 @@ ${cachedSourceCodeWithLine}
 	const latestBeforeOutsideLast = latestBeforeOutsideLines.slice(-editorContext.aroundLatestAddBeforeLines).join('\n');
 	const latestAfterOutsideFirst = latestAfterOutsideLines.slice(0, editorContext.aroundLatestAddAfterLines).join('\n');
 	const {
-		CodeBlock: latestBeforeOutsideLastWithLine,
-		LastLineNumber: latestBeforeOutsideLastWithLineNumber
+		codeBlock: latestBeforeOutsideLastWithLine,
+		lastLineNumber: latestBeforeOutsideLastWithLineNumber
 	} = withLineNumberCodeBlock(latestBeforeOutsideLast, editorContext.aroundFromLine-editorContext.aroundLatestAddBeforeLines);
-	const latestAfterOutsideFirstWithLine = withLineNumberCodeBlock(latestAfterOutsideFirst, editorContext.aroundToLine).CodeBlock;
+	const latestAfterOutsideFirstWithLine = withLineNumberCodeBlock(latestAfterOutsideFirst, editorContext.aroundToLine).codeBlock;
 	
 	// Insert placeholder at cursor position
 	
 	const {
 		aroundSnippetWithPlaceholder,
-		beforePlaceholderWithLF,
+	//	beforePlaceholderWithLF,
 		cursorLineBefore : orgCursorLineBefore,
-		cursorLineAfter,
-		afterPlaceholder,
+	//	cursorLineAfter,
+	//	afterPlaceholder,
 	} = insertCursorHere(
 		latestAroundSnippetLines.join('\n'),
 		editorContext.cursorLine,
@@ -290,7 +290,7 @@ ${cachedSourceCodeWithLine}
 		editorContext.aroundFromLine,
 		placeholder
 	);
-	const aroundSnippetWithPlaceholderWithLine = withLineNumberCodeBlock(aroundSnippetWithPlaceholder, editorContext.aroundFromLine).CodeBlock;
+	const aroundSnippetWithPlaceholderWithLine = withLineNumberCodeBlock(aroundSnippetWithPlaceholder, editorContext.aroundFromLine).codeBlock;
 	let aroundSnippetWithPlaceholderWithLineWithCache = aroundSnippetWithPlaceholderWithLine;
 	let latestCursorLineText = '';
 	

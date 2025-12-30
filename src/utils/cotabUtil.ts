@@ -4,11 +4,9 @@ import * as cp from 'child_process';
 import * as util from 'util';
 import * as Handlebars from 'handlebars';
 import * as fs from 'fs/promises';
-import * as path from 'path';
 import { statusBarManager, StatusBarPhase } from '../ui/statusBarManager';
 import { progressGutterIconManager, GutterIconPhase } from '../ui/progressGutterIconManager';
 import { logError } from './logger';
-import { platform } from 'os';
 
 //################################################################
 
@@ -45,7 +43,7 @@ export function showProgress(phase: StatusBarPhase, pos: vscode.Position) {
         progressGutterIconManager?.show(pos, prevPhase);
     }
     else {
-        const gutterIconPhase = StatusBarPhaseToGutterIconPhase(phase);
+        const gutterIconPhase = statusBarPhaseToGutterIconPhase(phase);
         progressGutterIconManager?.show(pos, gutterIconPhase);
         statusBarManager?.setPhase(phase);
 
@@ -60,7 +58,7 @@ export function hideProgress() {
     statusBarManager?.reset();
 }
 
-function StatusBarPhaseToGutterIconPhase(phase: StatusBarPhase): GutterIconPhase | undefined {
+function statusBarPhaseToGutterIconPhase(phase: StatusBarPhase): GutterIconPhase | undefined {
     let gutterIconPhase: GutterIconPhase | undefined = undefined;
     switch (phase) {
         case 'analyzing': gutterIconPhase = 'analyzing'; break;
@@ -80,7 +78,7 @@ function StatusBarPhaseToGutterIconPhase(phase: StatusBarPhase): GutterIconPhase
  * @param context Context to pass to template
  * @returns Parsed string
  */
-export function parseHandlebarsTemplate(template: string, context: any): string {
+export function parseHandlebarsTemplate(template: string, context: any): string { // eslint-disable-line @typescript-eslint/no-explicit-any
 	try {
 		const compiledTemplate = Handlebars.compile(template, {
 			noEscape: true
@@ -121,7 +119,7 @@ const cachedOsInfo: OSInfo = {
 
 let isOsInfocached = false;
 
-export async function GetOSInfo(): Promise<OSInfo> {
+export async function getOsInfo(): Promise<OSInfo> {
     if (isOsInfocached) return cachedOsInfo;
 
     cachedOsInfo.platform = await detectPlatform();
@@ -227,7 +225,7 @@ async function readFileIfExists(filePath: string): Promise<string | null> {
   try {
     const buf = await fs.readFile(filePath, 'utf8');
     return buf;
-  } catch (e) {
+  } catch (_e) {
     return null;
   }
 }

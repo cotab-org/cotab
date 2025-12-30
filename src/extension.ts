@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import { registerLargeFileManager } from './managers/largeFileManager';
 import { registerSuggestionManager } from './suggestion/suggestionManager';
-import { logDebug, logInfo } from './utils/logger';
 import { registerSuggestionCommands } from './suggestion/suggestionCommands';
 import { registerAutoSuggestionTrigger } from './suggestion/suggestionTriggerRegister';
 import { registerSymbolManager } from './managers/symbolManager';
@@ -21,7 +20,6 @@ import { checkAndUpdatePluginVersion } from './utils/systemConfig';
 import { registerViewChangelog } from './ui/viewChangelog';
 
 const cotabDisposables: vscode.Disposable[] = [];
-let cotabContext: vscode.ExtensionContext;
 let cotabPrevEnabled: boolean = false;
 
 export function onChangedEnableExtension(enabled: boolean) {
@@ -55,8 +53,6 @@ export function activate(context: vscode.ExtensionContext) {
     // Register server manager
     registerServerManager(context.subscriptions, context);
 	
-	cotabContext = context;
-
 	// Activate Cotab Enable Modules
 	onChangedEnableExtension(getConfig().enabled);
 

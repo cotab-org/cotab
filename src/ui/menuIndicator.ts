@@ -1,19 +1,16 @@
 import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
 import * as path from 'path';
-import { exec } from 'child_process';
-import { promisify } from 'util';
 import { onChangedEnableExtension } from '../extension';
 import { getConfig, setConfigGlobalEnabled, setConfigExtensionEnabled, setConfigSelectedPromptMode } from '../utils/config';
 import { statusBarManager } from './statusBarManager';
 import { terminalCommand } from '../utils/terminalCommand';
 import { getAiClient } from '../llm/llmProvider';
 import { serverManager } from '../managers/serverManager';
-import { getYamlConfig, onDidChangeYamlConfig, getYamlConfigPromptModes, openYamlConfig } from '../utils/yamlConfig';
-import { buildLinkButtonSvgDataUri, buildNetworkServerLabelSvgDataUri } from './menuUtil';
-import { GetOSInfo } from '../utils/cotabUtil';
+import { onDidChangeYamlConfig, getYamlConfigPromptModes, openYamlConfig } from '../utils/yamlConfig';
+import { buildNetworkServerLabelSvgDataUri } from './menuUtil';
+import { getOsInfo } from '../utils/cotabUtil';
 import { logDebug } from '../utils/logger';
-const execAsync = promisify(exec);
 
 // Configure nls and load message bundle
 const localize = nls.config({ bundleFormat: nls.BundleFormat.standalone })(path.join(__dirname, 'ui/menuIndicator'));
@@ -26,7 +23,7 @@ export function registerMenuIndicator(disposables: vscode.Disposable[]): void {
     disposables.push(menuIndicator);
     
     disposables.push(
-        vscode.window.onDidChangeActiveTextEditor(editor => {
+        vscode.window.onDidChangeActiveTextEditor(_editor => {
             setTimeout(() => {
                 requestUpdateCotabMenu();
             }, 200);
@@ -247,7 +244,7 @@ async function buildMainMenuMarkdown(): Promise<vscode.MarkdownString> {
     else if (await terminalCommand.isInstalledLocalLlamaServer()) {
         serverStatus = createStartServerLabel();
     }
-    else if (! (terminalCommand.isSupportMyInstall(await GetOSInfo()))) {
+    else if (! (terminalCommand.isSupportMyInstall(await getOsInfo()))) {
         serverStatus = createNotSupportedLabel();
     }
     else {
@@ -273,19 +270,23 @@ async function buildMainMenuMarkdown(): Promise<vscode.MarkdownString> {
 /**
  * Generate button-style SVG as data URI image and return Markdown link to specified command.
  */
+/* unused
 function linkButton(label: string, commandLink: string, bgColor: string, fgColor: string): string {
 	const uri = buildLinkButtonSvgDataUri(label, bgColor, fgColor);
 	return `[![](${uri})](${commandLink})`;
 }
+*/
 
 // escapeXml is provided by shared module via SVG builders
 
 // Checkbox-style link (visual only, executes command on click)
+/* unused
 function checkboxLink(label: string, checked: boolean, commandLink: string): string {
     const box = checked ? '[x]' : '[ ]';
     const text = `${box} ${label}`;
     return `[${text}](${commandLink})`;
 }
+*/
 
 // VS Code-style checkbox (SVG) + make entire label clickable
 function checkboxControl(label: string, checked: boolean, commandLink: string): string {

@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import { logDebug, logInfo } from '../utils/logger';
 import { EditorDocumentText } from '../utils/editorContext';
 import { CodeBlocks } from '../llm/codeBlockBuilder';
 import { getConfig } from '../utils/config';
@@ -103,10 +102,10 @@ class LargeFileManager implements vscode.Disposable {
 
     public setExceedContextSize(
         documentUri: string,
-        documentText: string,
+        _documentText: string,
         codeBlocks: CodeBlocks,
         messages: string[],
-        handlebarsContext: any,
+        handlebarsContext: any, // eslint-disable-line @typescript-eslint/no-explicit-any
         contextSize: number,
         promptSize: number,
     ) {

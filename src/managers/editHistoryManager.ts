@@ -39,7 +39,7 @@ class EditHistoryManager implements vscode.Disposable {
     private disposables: vscode.Disposable[] = [];
 
 	// Maximum number of edits to save
-	private static readonly MAX_EDIT_HISTORY = 5;
+	private static readonly maxEditHistory = 5;
 
     // Edit history
 	private readonly edits: EditOperation[] = [];
@@ -204,7 +204,7 @@ class EditHistoryManager implements vscode.Disposable {
                 this.edits.push(op);
             }
 		}
-        if (EditHistoryManager.MAX_EDIT_HISTORY < this.edits.length) {
+        if (EditHistoryManager.maxEditHistory < this.edits.length) {
             this.edits.shift(); // Remove from oldest
         }
 	}

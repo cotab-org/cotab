@@ -11,6 +11,10 @@ interface DomainCache {
 const domainCache = new Map<string, DomainCache>();
 const CACHE_DURATION = 4 * 60 * 60 * 1000; // 4 hours (milliseconds)
 
+function toErrorMessage(error: unknown): string {
+	return error instanceof Error ? error.message : String(error);
+}
+
 // Display cache status
 function logCacheStatus(): void {
 	logDebug(`Domain cache status:`);
@@ -49,14 +53,14 @@ async function resolveDomainToIP(hostname: string): Promise<string | null> {
 		logDebug(`DNS resolution started: ${hostname}`);
 		
 		const addresses = await new Promise<string[]>((resolve, reject) => {
-			dns.lookup(hostname, { all: true }, (err: any, addresses: any) => {
+			dns.lookup(hostname, { all: true }, (err: NodeJS.ErrnoException | null, addresses: dns.LookupAddress[]) => {
 				if (err) {
 					reject(err);
 				} else {
 					// Prioritize IPv4 addresses
 					const ipv4Addresses = addresses
-						.filter((addr: any) => addr.family === 4)
-						.map((addr: any) => addr.address);
+						.filter((addr) => addr.family === 4)
+						.map((addr) => addr.address);
 					resolve(ipv4Addresses);
 				}
 			});
@@ -73,8 +77,8 @@ async function resolveDomainToIP(hostname: string): Promise<string | null> {
 		logWarning(`No IPv4 address found: ${hostname}`);
 		return null;
 		
-	} catch (error: any) {
-		logError(`DNS resolution failed: ${hostname} - ${error.message}`);
+	} catch (error: unknown) {
+		logError(`DNS resolution failed: ${hostname} - ${toErrorMessage(error)}`);
 		return null;
 	}
 }
@@ -103,8 +107,8 @@ async function convertURLToIP(url: string): Promise<string> {
 		logWarning(`IP address conversion failed, using original URL: ${url}`);
 		return url;
 		
-	} catch (error: any) {
-		logError(`URL conversion error: ${error.message}`);
+	} catch (error: unknown) {
+		logError(`URL conversion error: ${toErrorMessage(error)}`);
 		return url;
 	}
 }
@@ -115,40 +119,40 @@ export {
 	logCacheStatus
 };
 
-export function withLineNumberCodeBlock(CodeBlock: string,
+export function withLineNumberCodeBlock(codeBlock: string,
 	startLineNumber: number = 0, ignores: {key: string; isAddSpace?: boolean}[] = []): {
-		CodeBlock: string;
-		LastLineNumber: number;
+		codeBlock: string;
+		lastLineNumber: number;
 	} {
 	startLineNumber = Math.max(startLineNumber, 0);
-	let LastLineNumber = startLineNumber;
+	let lastLineNumber = startLineNumber;
 	if (getConfig().withLineNumber) {
-		const lines = CodeBlock.split('\n');
+		const lines = codeBlock.split('\n');
 		let counter = 1;
-		const withLine = lines.map((line, idx) => {
+		const withLine = lines.map((line, _idx) => {
 			const trimmed = line.trim();
 			const hit = ignores.find(ignore => ignore.key === trimmed);
 			if (hit) {
 				return (hit.isAddSpace ?? false) ? `\n${line}\n\n ` : line;
 			}
-			LastLineNumber = startLineNumber + counter++;
-			return `${LastLineNumber}|${line}`;
+			lastLineNumber = startLineNumber + counter++;
+			return `${lastLineNumber}|${line}`;
 		});
-		return { CodeBlock: withLine.join('\n').replace(/```/g, '\\`\\`\\`'), LastLineNumber };
+		return { codeBlock: withLine.join('\n').replace(/```/g, '\\`\\`\\`'), lastLineNumber };
 	}
 	else {
-		return {CodeBlock: CodeBlock.replace(/```/g, '\\`\\`\\`'), LastLineNumber};
+		return {codeBlock: codeBlock.replace(/```/g, '\\`\\`\\`'), lastLineNumber};
 	}
 }
-export function withoutLineNumber(CodeBlock: string, removeNotHaveLineNumber: boolean = false): { CodeBlock: string; hasLastLineNumbers: boolean } {
+export function withoutLineNumber(codeBlock: string, removeNotHaveLineNumber: boolean = false): { codeBlock: string; hasLastLineNumbers: boolean } {
 	if (getConfig().withLineNumber) {
-		const lines = CodeBlock.split('\n');
+		const lines = codeBlock.split('\n');
 		const hasLastLineNumbers = (lines.length > 0 && lines[lines.length - 1].match(/^\d+\|/)) ? true : false;
 		const filteredLines = (removeNotHaveLineNumber) ? lines.filter((line) => line.match(/^\d+\|/)) : lines;
-		const withoutLine = filteredLines.map((line, idx) => line.replace(/^\d+\|/, ''));
-		return { CodeBlock: withoutLine.join('\n'), hasLastLineNumbers };
+		const withoutLine = filteredLines.map((line, _idx) => line.replace(/^\d+\|/, ''));
+		return { codeBlock: withoutLine.join('\n'), hasLastLineNumbers };
 	} else {
-		return { CodeBlock, hasLastLineNumbers: false };
+		return { codeBlock, hasLastLineNumbers: false };
 	}
 }
 

@@ -5,7 +5,6 @@ import { computeCharDiff } from './charDiff';
 import { LineDiff, computeLineDiff, diffOperationsToLineEdits, processMaxLinesDiffOperations } from './lineDiffUtils';
 import { preprocessLLMOutput } from './lineDiffUtils';
 import { LineEdit } from '../suggestion/suggestionStore';
-import { getConfig } from '../utils/config';
 
 export interface DiffProcessResult {
     originalDiffOperations: LineDiff[];
@@ -103,7 +102,7 @@ export function processDiffAndApplyEdits(
         const newTrimIdx = newLines.findIndex(l => l.trim() !== '');
 
         if (0 <= origTrimIdx && 0 <= newTrimIdx) {
-            const origHead = origLines[origTrimIdx];//.replace(/^\s+/, '');
+            //const origHead = origLines[origTrimIdx];//.replace(/^\s+/, '');
             const newHead = newLines[newTrimIdx];//.replace(/^\s+/, '');
 
             // There's a possibility of incorrectly outputting the line above
@@ -274,14 +273,11 @@ export function processDiffAndApplyEdits(
         const orgText = documentTexts[edits[0].line].trim();
         if (0 < orgText.length) {
             const segs = computeCharDiff(orgText, newText);
-            // countup delete
-            let deleteCount = 0;
             let deleteLength = 0;
             let isInsertionJudgment = false;
             for (const seg of segs) {
                 if (seg.type === 'delete') {
                     deleteLength += (seg.delete??0);
-                    deleteCount++;
                     
                     if (deleteLength === orgText.length ||
                         (deleteLength / orgText.length) >= 0.5) {

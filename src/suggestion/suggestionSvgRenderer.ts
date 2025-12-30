@@ -2,13 +2,14 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as shiki from 'shiki';
-import { transformerNotationHighlight, transformerNotationWordHighlight } from '@shikijs/transformers';
 import { logDebug } from '../utils/logger';
 import { JSDOM } from 'jsdom';
 import { measureTextsWidthPx } from '../utils/textMeasurer';
 import { getConfig } from '../utils/config';
 import { SimpleLocker, isDarkTheme } from '../utils/cotabUtil';
 import { CharDiffSegment } from '../diff/charDiff';
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 export interface OverlaySegment {
 	line: number;
@@ -99,11 +100,11 @@ async function renderSvgOverlaysInternal(
 		const sorted = segments.slice().sort((a, b) => a.line - b.line || a.column - b.column);
 		const sliced = sorted.slice(dispIdx);
 
-		const themeName = getConfig().theme;
+		//const themeName = getConfig().theme;
 		const languageId = editor.document.languageId;
-		const highlighter = await getOrCreateHighlighter(themeName, languageId);
-		const overlayColors = getOverlayColors();
-		const defaultColor = tryGetDefaultForeground(highlighter) || (isUnfinished ? overlayColors.unfinishedFontColor : overlayColors.fontColor);
+		//const highlighter = await getOrCreateHighlighter(themeName, languageId);
+		//const overlayColors = getOverlayColors();
+		//const defaultColor = tryGetDefaultForeground(highlighter) || (isUnfinished ? overlayColors.unfinishedFontColor : overlayColors.fontColor);
 
 		const decos: vscode.DecorationOptions[] = [];
 		const svgUri = await buildSvgDataUriWithShiki(
@@ -151,7 +152,7 @@ export function clearSvgOverlays(editor: vscode.TextEditor): void {
 	}
 }
 
-type ShikiHighlighter = any;
+type ShikiHighlighter = any;	// eslint-disable-line @typescript-eslint/no-explicit-any
 
 async function buildSvgDataUriWithShiki(
 	segments: OverlaySegment[],
@@ -455,6 +456,7 @@ async function tryLoadThemeObject(themeName: string): Promise<any | null> {
 	return null;
 }
 
+/*
 function tryGetDefaultForeground(highlighter: any): string | undefined {
 	try {
 		return highlighter.getForegroundColor?.();
@@ -463,6 +465,7 @@ function tryGetDefaultForeground(highlighter: any): string | undefined {
 	}
 	return undefined;
 }
+*/
 
 function escapeXml(unsafe: string): string {
 	return unsafe
@@ -511,7 +514,7 @@ function mapLanguageIdToShikiLang(languageId: string): string {
 		'plaintext': 'txt',
 		'cpp': 'c', // Treat C++ as C (avoid regex errors)
 		'c': 'c',
-		'c++': 'c',
+		'c++': 'c', // eslint-disable-line @typescript-eslint/naming-convention
 	};
 	return map[languageId] || languageId;
 }

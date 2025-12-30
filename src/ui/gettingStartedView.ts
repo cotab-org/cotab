@@ -2,10 +2,10 @@ import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
 import * as path from 'path';
 import { getConfig, setConfigHideOnStartup, setConfigShowProgressSpinner, setConfigApiBaseURL, setConfigApiKey, setConfigCommentLanguage, setConfigLocalServerContextSize, setConfigModel, setConfigLocalServerPreset, setConfigLocalServerCustom } from '../utils/config';
-import { terminalCommand, StablellamaCppVersion } from '../utils/terminalCommand';
+import { terminalCommand } from '../utils/terminalCommand';
 import { getAiClient } from '../llm/llmProvider';
-import { GetOSInfo } from '../utils/cotabUtil';
-import { buildLinkButtonSvgDataUri, buildNetworkServerLabelSvgDataUri } from './menuUtil';
+import { getOsInfo } from '../utils/cotabUtil';
+import { buildNetworkServerLabelSvgDataUri } from './menuUtil';
 import { localServerPresetArgs, LOCAL_SERVER_PRESETS, isLocalServerPreset, LocalServerPreset } from '../utils/localServerPresets';
 
 // Configure nls and load message bundle
@@ -27,8 +27,8 @@ const LOCAL_SERVER_PRESET_TOOLTIPS: Record<LocalServerPreset, string> = LOCAL_SE
 export function registerGettingStartedView(
     disposables: vscode.Disposable[],
     context: vscode.ExtensionContext,
-    prevVersion: string | undefined, 
-    currentVersion: string): void {
+    _prevVersion: string | undefined, 
+    _currentVersion: string): void {
     disposables.push(vscode.commands.registerCommand('cotab.gettingStarted.show', async () => {
         await showGettingStartedView(context);
     }));
@@ -41,7 +41,7 @@ export function registerGettingStartedView(
         setTimeout(() => { void showGettingStartedView(context); }, 500);
     }
 }
-
+/*
 async function GetNewVersionNotice(prevVersion: string | undefined, currentVersion: string): Promise<string> {
     let additionalHtml = '';
     if (prevVersion !== '' && prevVersion !== '0') {
@@ -121,6 +121,7 @@ async function GetNewVersionNotice(prevVersion: string | undefined, currentVersi
     }
     return additionalHtml;
 }
+*/
 
 /**
  * Auto refresh manager for webview panels
@@ -195,7 +196,7 @@ async function getServerSectionState(): Promise<{ kind: 'stop' | 'network' | 'st
     else if (await terminalCommand.isInstalledLocalLlamaServer()) {
         return { kind: 'start', label: localize('gettingStarted.server.start', 'Start Server'), command: 'cotab.server.start' };
     }
-    else if (! (terminalCommand.isSupportMyInstall(await GetOSInfo()))) {
+    else if (! (terminalCommand.isSupportMyInstall(await getOsInfo()))) {
         return { kind: 'unsupported', label: localize('gettingStarted.server.unsupported', 'Install Not Supported') };
     }
     else {
@@ -256,6 +257,7 @@ async function showGettingStartedView(context: vscode.ExtensionContext): Promise
 /**
  * Handle messages from webview
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function handleWebviewMessage(panel: vscode.WebviewPanel, msg: any): Promise<void> {
     try {
         if (msg?.type === 'saveApiBaseURL') {

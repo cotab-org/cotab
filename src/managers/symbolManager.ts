@@ -167,7 +167,7 @@ class SymbolManager implements vscode.Disposable {
 					try {
 						await this.symbolCacheManager.cacheDocumentSymbols(uri);
 					} catch (error) {
-						logDebug(`Failed to cache symbols for open tab: ${uri.toString()}`);
+						logDebug(`Failed to cache symbols for open tab: ${uri.toString()}. Error: ${error}`);
 					}
 				}
 			}

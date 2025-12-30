@@ -103,10 +103,11 @@ export function registerAutoSuggestionTrigger(disposables: vscode.Disposable[]) 
 		})
 	);
 
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const onExec = (vscode.commands as any).onDidExecuteCommand;
 	if (onExec) {
 		localDisposables.push(
-			onExec((e: any) => {
+			onExec((e: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
 				const cmd = e?.command as string | undefined;
 				if (!cmd) return;
 				const editor = vscode.window.activeTextEditor;

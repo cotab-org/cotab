@@ -2,8 +2,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 //import { setOnUpdatedPlugin } from '../utils/systemConfig';
-import { terminalCommand, StablellamaCppVersion } from '../utils/terminalCommand';
-import { getConfig } from '../utils/config';
+import { terminalCommand } from '../utils/terminalCommand';
 
 let changelogPanel: vscode.WebviewPanel | undefined = undefined;
 let extensionContext: vscode.ExtensionContext | undefined = undefined;
@@ -29,8 +28,8 @@ export async function onUpdatedPlugin(oldVersion: string | undefined, newVersion
     const [oldMajor, oldMinor, oldPatch] = oldVersion?.split('.').map(x => parseInt(x, 10)) ?? [0, 0, 0];
     const oldVersionNumber = oldMajor * 10000 + oldMinor * 100 + oldPatch;
     
-    const [newMajor, newMinor, newPatch] = newVersion.split('.').map(x => parseInt(x, 10)) ?? [0, 0, 0];
-    const newVersionNumber = newMajor * 10000 + newMinor * 100 + newPatch;
+//  const [newMajor, newMinor, newPatch] = newVersion.split('.').map(x => parseInt(x, 10)) ?? [0, 0, 0];
+//  const newVersionNumber = newMajor * 10000 + newMinor * 100 + newPatch;
     /*
     if (getConfig().llamaCppVersion === 'Stable') {
         // Check if llama.cpp is installed

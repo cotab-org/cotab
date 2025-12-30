@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import { getMergedSuggestions, LineEdit } from './suggestionStore';
 import { computeCharDiff } from '../diff/charDiff';
-import { logInfo, logDebug } from '../utils/logger';
 import { getVisualWidth } from './suggestionUtils';
 import { isDarkTheme } from '../utils/cotabUtil';
 import { renderSvgOverlays, clearSvgOverlays, setupSvgRenderer, disposeSvgRenderer, OverlaySegment } from './suggestionSvgRenderer';
@@ -67,7 +66,7 @@ function makeOverlaySuggestions(editor: vscode.TextEditor,
 	let dispMinLeftSpaceWidth = -1;
 	for (let j = suggestionCount; j < suggestionList.length; j++) {
 		const suggestion = suggestionList[j];
-		const line = suggestion.editedLine ?? suggestion.line;
+		//const line = suggestion.editedLine ?? suggestion.line;
 
 		const newText = suggestion.newText.replace(/ /g, '\u00A0');
 		const {newText: visualText, width: visualWidth} = getVisualWidthHelper(newText);
@@ -128,11 +127,11 @@ function makeOverlaySuggestions(editor: vscode.TextEditor,
 		const {newText: visualNewTextWithSpace, width: visualWidthWithSpace} = getVisualWidthHelper(newLine);
 		const visualNewText = visualNewTextWithSpace.slice(dispMinLeftSpaceWidth);
 		const visualWidth = visualWidthWithSpace - dispMinLeftSpaceWidth;
-		const range = new vscode.Range(line, insIdx, line, insIdx);
+		//const range = new vscode.Range(line, insIdx, line, insIdx);
 		// Remove leading whitespace and put the count of that whitespace in paddingLeft.
 		const paddingLeft = visualNewText.match(/^\s*/)?.[0]?.length ?? 0;
 		const paddingRight = dispMaxWidth - visualWidth;
-		const marginLeft = visualDispPos - visualInsIdx;
+		//const marginLeft = visualDispPos - visualInsIdx;
 		const decolateText = visualNewText.slice(paddingLeft);
 		
 		// Build overlay segment for SVG renderer
@@ -215,7 +214,7 @@ export function renderSuggestions(editor: vscode.TextEditor): {
 
 	let appendLineNum = 0;
 	let suggestionList: LineEdit[] = [];
-	for (const [line, suggestions] of mergedData.edits) {
+	for (const [, suggestions] of mergedData.edits) {
 		for (let i = 0; i < suggestions.length; i++)
 		{
 			const suggestion = suggestions[i];
@@ -280,11 +279,13 @@ export function renderSuggestions(editor: vscode.TextEditor): {
 				// First difference after cursor
 			if (mergedData.checkCompleteLine <= line && prevType !== '') {
 				// If there are lines after the output.
+				/*
 				const existNext = mergedData.originalDiffOperations.find(
 									d => d.type !== 'delete' &&
 									d.originalIndex !== undefined &&
 									line < d.originalIndex);
 				//if (existNext)
+				*/
 				{
 					isCompletedFirstLine = true;
 				}

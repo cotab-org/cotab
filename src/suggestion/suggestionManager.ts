@@ -32,7 +32,7 @@ export class SuggestionManager implements vscode.Disposable {
     public readonly onDidChangeInlineCompletionsEmitter = new vscode.EventEmitter<void>();
 
     // Previous AbortController
-    private prevAbortController: AbortController | null = null;
+    private prevAbortController: { abort: () => void } | null = null;
 
     // Request frequency control
     private requestTimestamps: number[] = [];
@@ -67,7 +67,7 @@ export class SuggestionManager implements vscode.Disposable {
         return {
             onDidChangeInlineCompletionItems: this.onDidChangeInlineCompletionsEmitter.event,
             provideInlineCompletionItems: this.provideInlineCompletionItems.bind(this),
-        } as any;
+        } as any; // eslint-disable-line @typescript-eslint/no-explicit-any
     }
 
     dispose(): void {
@@ -147,7 +147,7 @@ export class SuggestionManager implements vscode.Disposable {
                 aborted = true;
                 cancellationTokenSource.cancel();
             }
-        } as any;
+        };
 
         // Check if there were 3 or more requests in the last 1 second
         const currentTime = Date.now();
@@ -248,12 +248,14 @@ export class SuggestionManager implements vscode.Disposable {
         // Use CodeBlockBuilder to build code blocks
         // Analysis takes a long time.
         const cancellationAnalysisTokenSource = new vscode.CancellationTokenSource();
+        /*
         const cancelAnalysis = () => {
             cancellationAnalysisTokenSource.cancel();
             clearSuggestions(document.uri);
             clearAllDecorations(vscode.window.activeTextEditor!);
             hideProgress();
         }
+        */
         const codeBlocks = await codeBlockBuilder.buildCodeBlocks(
                             client,
                             editorContext,
@@ -347,12 +349,7 @@ ${assistantPrompt}
             }
 //return true; // no stream debug
 //process.stdout.write(partial);
-            const {
-                edits,
-                isCompletedFirstLine: firstLineComplete,
-                isStopped,
-                isCompletedCursorLine
-            } = applySuggestions(partial, true);
+            const { isCompletedCursorLine } = applySuggestions(partial, true);
             
             // Detect if suggestions for the cursor line are ready
             if (isCompletedCursorLine) {
@@ -384,8 +381,8 @@ ${assistantPrompt}
             const maxTokens = yamlConfigMode.maxTokens ?? config.maxTokens;
             const model = yamlConfigMode.model ?? config.model;
             const temperature = yamlConfigMode.temperature ?? config.temperature;
-            const top_p = yamlConfigMode.topP ?? config.top_p;
-            const top_k = yamlConfigMode.topK ?? config.top_k;
+            const top_p = yamlConfigMode.topP ?? config.top_p; // eslint-disable-line @typescript-eslint/naming-convention
+            const top_k = yamlConfigMode.topK ?? config.top_k; // eslint-disable-line @typescript-eslint/naming-convention
             
             // Start LLM call in background
             logInfo(`Completion generation started - Output up to ${maxOutputLines} lines (${streamCount}th time)`);
@@ -401,20 +398,15 @@ ${assistantPrompt}
                 maxTokens,
                 model,
                 temperature,
-                top_p,
-                top_k,
+                top_p, // eslint-disable-line @typescript-eslint/naming-convention
+                top_k, // eslint-disable-line @typescript-eslint/naming-convention
                 stops: ['```', '... existing code ...'],	// this.stopEditingHereSymbol
                 onUpdate: receiveStreamingResponse,
                 onComplete: (reason: CompletionEndReason, finalResult?: string) => {
                     logInfo(`Completion generation ended - Reason: ${reason}, ${streamCount}th time, Final result:\n${finalResult ? finalResult : 'None'}`);
                     
                     if (reason === 'streamEnd' || reason === 'maxLines') {
-                        const {
-                            edits,
-                            isCompletedFirstLine: firstLineComplete,
-                            isStopped,
-                            isCompletedCursorLine
-                        } = applySuggestions(finalResult ?? '', false);
+                        applySuggestions(finalResult ?? '', false);
                         if (! finalResult) {
                             clearSuggestions(document.uri);
                             clearAllDecorations(vscode.window.activeTextEditor!);

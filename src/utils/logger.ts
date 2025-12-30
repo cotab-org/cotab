@@ -5,13 +5,13 @@ const channel = vscode.window.createOutputChannel('Cotab');
 
 // Log levels
 export enum LogLevel {
-	ERROR = 0,
-	WARNING = 1,
-	INFO = 2,
-	DEBUG = 3,
+	error = 0,
+	warning = 1,
+	info = 2,
+	debug = 3,
 	
-	SERVER = INFO,
-	TERMINAL = INFO,
+	server = info,
+	terminal = info,
 }
 
 // Get current log level
@@ -20,12 +20,12 @@ function getCurrentLogLevel(): LogLevel {
 	const levelStr = config.logLevel;
 	
 	switch (levelStr.toUpperCase()) {
-		case 'ERROR': return LogLevel.ERROR;
-		case 'WARNING': return LogLevel.WARNING;
-		case 'INFO': return LogLevel.INFO;
-		case 'DEBUG': return LogLevel.DEBUG;
-		case 'SERVER': return LogLevel.SERVER;
-		default: return LogLevel.INFO;
+		case 'ERROR': return LogLevel.error;
+		case 'WARNING': return LogLevel.warning;
+		case 'INFO': return LogLevel.info;
+		case 'DEBUG': return LogLevel.debug;
+		case 'SERVER': return LogLevel.server;
+		default: return LogLevel.info;
 	}
 }
 
@@ -37,27 +37,27 @@ function log(level: LogLevel, prefix: string, message: string, isForce: boolean 
 }
 
 export function logError(message: string) {
-	log(LogLevel.ERROR, '[ERROR]', message);
+	log(LogLevel.error, '[ERROR]', message);
 }
 
 export function logWarning(message: string) {
-	log(LogLevel.WARNING, '[WARNING]', message);
+	log(LogLevel.warning, '[WARNING]', message);
 }
 
 export function logInfo(message: string) {
-	log(LogLevel.INFO, '[INFO]', message);
+	log(LogLevel.info, '[INFO]', message);
 }
 
 export function logDebug(message: string) {
-	log(LogLevel.DEBUG, '[DEBUG]', message);
+	log(LogLevel.debug, '[DEBUG]', message);
 }
 
 export function logServer(message: string) {
-	log(LogLevel.SERVER, '[SERVER]', message);
+	log(LogLevel.server, '[SERVER]', message);
 }
 
 export function logTerminal(message: string) {
-	log(LogLevel.TERMINAL, '[TERMINAL]', message, true);
+	log(LogLevel.terminal, '[TERMINAL]', message, true);
 }
 
 export function showLogWindow(preserveFocus: boolean = false) {

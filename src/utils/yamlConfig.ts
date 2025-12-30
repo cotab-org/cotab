@@ -13,7 +13,7 @@ import { getYamlDefaultBusinessChatPrompt } from '../llm/default/defaultBusiness
 
 export function registerYamlConfig(disposables: vscode.Disposable[]) {
     // Update edit history
-    disposables.push(vscode.workspace.onDidChangeTextDocument((evt: vscode.TextDocumentChangeEvent) => {
+    disposables.push(vscode.workspace.onDidChangeTextDocument((_evt: vscode.TextDocumentChangeEvent) => {
         if (yamlConfigCache ) {
             yamlConfigCache.lastAccessed = 0;
         }

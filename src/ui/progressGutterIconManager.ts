@@ -205,7 +205,7 @@ class ProgressGutterIconManager implements vscode.Disposable {
         const stackItem = vscode.debug.activeStackItem;
         if (!stackItem) return false;
 
-        const stackFrame = stackItem as any;
+        const stackFrame = stackItem as any; // eslint-disable-line @typescript-eslint/no-explicit-any
         const sourcePath = stackFrame?.source?.path as string | undefined;
         if (!sourcePath) return false;
 
@@ -220,7 +220,7 @@ class ProgressGutterIconManager implements vscode.Disposable {
         return frameLine === targetLine;
     }
 
-    private getStackFrameLine(stackFrame: any): number | undefined {
+    private getStackFrameLine(stackFrame: any): number | undefined { // eslint-disable-line @typescript-eslint/no-explicit-any
         const rangeLine = stackFrame?.range?.start?.line;
         if (typeof rangeLine === 'number') {
             return rangeLine;

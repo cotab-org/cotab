@@ -41,7 +41,7 @@ export type ExtendedDocumentSymbol = vscode.DocumentSymbol & {
 	signatureInfo?: SymbolSignatureInfo;
 };
 
-function sortSymbolsRecursively(symbols: any[]): any[] {
+function sortSymbolsRecursively(symbols: vscode.DocumentSymbol[]): vscode.DocumentSymbol[] {
     const sorted = symbols.sort((a, b) => a.range.start.line - b.range.start.line);
     for (const symbol of sorted) {
         if (Array.isArray(symbol.children) && symbol.children.length > 0) {

@@ -1,9 +1,8 @@
 import * as vscode from 'vscode';
 import { BundledTheme } from "shiki";
-import { extensions } from 'vscode';
 import { execSync } from 'child_process';
 import { isDarkTheme } from './cotabUtil';
-import { logDebug } from './logger';
+import { logDebug, LogLevel } from './logger';
 import type { LocalServerPreset } from './localServerPresets';
 import { DEFAULT_LOCAL_SERVER_CUSTOM_ARGS, DEFAULT_LOCAL_SERVER_PRESET } from './localServerPresets';
 
@@ -51,8 +50,8 @@ export interface CotabConfig {
     localServerCacheRam: number; 
     model: string;
     temperature: number;
-    top_p: number;
-    top_k: number;
+    top_p: number; // eslint-disable-line @typescript-eslint/naming-convention
+    top_k: number; // eslint-disable-line @typescript-eslint/naming-convention
     maxTokens: number;
     maxOutputLines: number;
     timeoutMs: number;
@@ -87,7 +86,7 @@ export interface CotabConfig {
     showProgressSpinner: boolean;
 
     // detail
-    logLevel: string;
+    logLevel: LogLevel;
 
     isCurrentEnabled(): boolean;
     isExtensionEnabled(extensionId: string): boolean;
@@ -179,8 +178,8 @@ function getConfigRaw(): CotabConfig {
         localServerCacheRam: cfg.get<number>('cotab.llm.localServerCacheRam', 4096),
         model: cfg.get<string>('cotab.llm.model', 'qwen3-4b-2507'),
         temperature: cfg.get<number>('cotab.llm.temperature', 0.1),
-        top_p: cfg.get<number>('cotab.llm.top_p', -1),
-        top_k: cfg.get<number>('cotab.llm.top_k', -1),
+        top_p: cfg.get<number>('cotab.llm.top_p', -1), // eslint-disable-line @typescript-eslint/naming-convention
+        top_k: cfg.get<number>('cotab.llm.top_k', -1), // eslint-disable-line @typescript-eslint/naming-convention
         maxTokens: cfg.get<number>('cotab.llm.maxTokens', 256),
         maxOutputLines: cfg.get<number>('cotab.llm.maxOutputLines', 15),
         timeoutMs: cfg.get<number>('cotab.llm.timeoutMs', 30000),
@@ -213,7 +212,7 @@ function getConfigRaw(): CotabConfig {
         showProgressSpinner: cfg.get<boolean>('cotab.ui.showProgressSpinner', true),
 
         // detail
-        logLevel: cfg.get<string>('cotab.detail.logLevel', 'INFO'),
+        logLevel: cfg.get<LogLevel>('cotab.detail.logLevel', LogLevel.info),
         
         isCurrentEnabled(): boolean {
             const languageId: string = vscode.window.activeTextEditor?.document.languageId || '';
@@ -367,7 +366,7 @@ function getOsLocale(): string {
 function getDisplayLanguageName(locale: string): string {
 	try {
 		// Get autonym if Intl.DisplayNames is available
-		const dn = new (Intl as any).DisplayNames([locale], { type: 'language' });
+		const dn = new (Intl as any).DisplayNames([locale], { type: 'language' }); // eslint-disable-line @typescript-eslint/no-explicit-any
 		const name = dn?.of(locale);
 		if (typeof name === 'string' && 0 < name.length) return name;
 	} catch (displayNameError) {
@@ -378,15 +377,15 @@ function getDisplayLanguageName(locale: string): string {
 	const autonyms: Record<string, string> = {
 		'en': 'English',
 		'ja': '日本語',
-		'zh-cn': '简体中文',
-		'zh-tw': '繁體中文',
+		'zh-cn': '简体中文', // eslint-disable-line @typescript-eslint/naming-convention
+		'zh-tw': '繁體中文', // eslint-disable-line @typescript-eslint/naming-convention
 		'zh': '中文',
 		'ko': '한국어',
 		'fr': 'Français',
 		'de': 'Deutsch',
 		'es': 'Español',
 		'it': 'Italiano',
-		'pt-br': 'Português (Brasil)',
+		'pt-br': 'Português (Brasil)', // eslint-disable-line @typescript-eslint/naming-convention
 		'pt': 'Português',
 		'ru': 'Русский',
 		'nl': 'Nederlands',
@@ -420,7 +419,7 @@ function getEditorBackgroundColor(): string {
 		// Get editor background color (considering workbench.colorCustomizations)
 		const editorBackground = vscode.window.activeTextEditor?.document.uri 
 			? vscode.workspace.getConfiguration('workbench', vscode.window.activeTextEditor.document.uri)
-				.get('colorCustomizations') as any
+				.get('colorCustomizations') as any // eslint-disable-line @typescript-eslint/no-explicit-any
 			: null;
 		
 		// Get default background color
@@ -438,7 +437,7 @@ function getEditorBackgroundColor(): string {
 		// so use default background color
 		
 		return defaultBackground;
-	} catch (error) {
+	} catch (_error) {
 		//logDebug(`Error getting editor background color: ${error}`);
 		// Return default background color as fallback
 		return vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Light 

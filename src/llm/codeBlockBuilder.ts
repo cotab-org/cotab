@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { buildAnalyzePrompts } from './analyzePrompts';
 import { editHistoryManager } from '../managers/editHistoryManager';
-import { logInfo, logError, logWarning } from '../utils/logger';
+import { logInfo, logError } from '../utils/logger';
 import { AiClient } from './llmProvider';
 import { getSymbolYaml, symbolManager } from '../managers/symbolManager';
 import { EditorContext } from '../utils/editorContext';
@@ -97,11 +97,11 @@ export function makeYamlFromErrors(editorContext: EditorContext, diagnosticsCont
 		return yaml;
 	}
 
-	for (const [_, documentUri, diag] of diagnosticsContext.cursorError) {
+	for (const [, documentUri, diag] of diagnosticsContext.cursorError) {
 		cursorErrorYaml += makeContent(documentUri, diag);
 	}
 
-	for (const [_, documentUri, diag] of diagnosticsContext.otherErrors) {
+	for (const [, documentUri, diag] of diagnosticsContext.otherErrors) {
 		otherErrorYaml += makeContent(documentUri, diag);
 	}
 
@@ -268,8 +268,7 @@ ${block.replace(/```/g, '\\`\\`\\`')}
 		return totalCodeBlock || '# There are no symbols.';
 	}
 
-	private buildEditHistoryActions(editorContext: EditorContext, currentCursorLine: number): EditHistoryAction[] {
-		const histories: string[] = [];
+	private buildEditHistoryActions(editorContext: EditorContext, _currentCursorLine: number): EditHistoryAction[] {
 		const editHistory = editHistoryManager.getEdits();
 		logInfo(`Edit history: ${editHistory.length} items`);
 
@@ -299,8 +298,6 @@ ${block.replace(/```/g, '\\`\\`\\`')}
 			// lines
 			const lineArr = Array.from({length: edit.range.end.line - edit.range.start.line + 1});
 			const lines = lineArr.map((_, i) => 1 + i + edit.range.start.line);
-			const linesContent = '[' + lines.join(',') + ']';
-			const linesOption = isCurrent ? `\n  lines: ${linesContent}` : ``;
 
 			if (edit.type === 'copy') {
 				editHistoryActions.push({

@@ -1,7 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 import * as vscode from 'vscode';
 import { getConfig } from '../utils/config';
-import { logInfo, logDebug, logWarning, logError } from '../utils/logger';
+import { logDebug, logError } from '../utils/logger';
 import { convertURLToIP } from './llmUtils';
 import { serverManager } from '../managers/serverManager';
 
@@ -20,8 +20,8 @@ export interface CompletionParams {
 
 	model?: string;
 	temperature?: number;
-	top_p?: number;
-	top_k?: number;
+	top_p?: number; // eslint-disable-line @typescript-eslint/naming-convention
+	top_k?: number; // eslint-disable-line @typescript-eslint/naming-convention
 }
 
 export interface AiClient {
@@ -45,7 +45,7 @@ function toAbortSignal(token?: vscode.CancellationToken): { signal?: AbortSignal
 
 // Function to process streaming response and stop at specified line count
 async function processStreamingResponse(
-	response: any, 
+	response: any, // eslint-disable-line @typescript-eslint/no-explicit-any
 	signal: AbortSignal | undefined, 
 	params: CompletionParams
 ): Promise<string> {
@@ -68,14 +68,14 @@ async function processStreamingResponse(
 		};
 
 		const processLines = (lines: string[]) => {
-			const processError = (parsed: any): boolean => {
+			const processError = (parsed: any): boolean => {// eslint-disable-line @typescript-eslint/no-explicit-any
 				// exceed context size (Llama.cpp specialization)
 				if (parsed.error) {
 					const code = parsed.error.code ?? 0;
 					const type = (parsed.error?.type?? '');
 					if (code === 400 && type === 'exceed_context_size_error') {
-						const n_ctx = parsed.error?.n_ctx;
-						const n_prompt_tokens = parsed.error?.n_prompt_tokens;
+						const n_ctx = parsed.error?.n_ctx; // eslint-disable-line @typescript-eslint/naming-convention
+						const n_prompt_tokens = parsed.error?.n_prompt_tokens; // eslint-disable-line @typescript-eslint/naming-convention
 						if (0 < n_ctx && 0 < n_prompt_tokens) {
 							result = JSON.stringify({
 								contextSize: n_ctx,
@@ -112,11 +112,11 @@ async function processStreamingResponse(
 						const content = parsed.choices?.[0]?.delta?.content || parsed.choices?.[0]?.text || '';
 						if (content) {
 							result += content;
-							let is_abort = false;
+							let isAbort = false;
 							if (params.onUpdate) {
 								if (!params.onUpdate(result))
 								{
-									is_abort = true;
+									isAbort = true;
 								}
 							}
 							
@@ -125,7 +125,7 @@ async function processStreamingResponse(
 							lineCount += newLines;
 							
 							// Exit when specified line count is reached
-							if (is_abort || (params.maxLines && params.maxLines <= lineCount)) {
+							if (isAbort || (params.maxLines && params.maxLines <= lineCount)) {
 								callOnComplete('maxLines');
 								resolve(result);
 								stream.destroy();
@@ -136,7 +136,7 @@ async function processStreamingResponse(
 						else if (processError(parsed)) {
 							continue;
 						}
-					} catch (e) {
+					} catch (_e) {
 						// Ignore JSON parse errors
 					}
 				}
@@ -177,7 +177,7 @@ async function processStreamingResponse(
 			resolve(result);
 		});
 
-		stream.on('error', (error: any) => {
+		stream.on('error', (error: unknown) => {
 			callOnComplete('error');
 			reject(error);
 		});
@@ -276,8 +276,8 @@ abstract class BaseAiClient implements AiClient {
 	protected readonly model: string;
 	protected readonly maxTokens: number;
 	protected readonly temperature: number;
-	protected readonly top_p: number;
-	protected readonly top_k: number;
+	protected readonly top_p: number; // eslint-disable-line @typescript-eslint/naming-convention
+	protected readonly top_k: number; // eslint-disable-line @typescript-eslint/naming-convention
 	protected readonly timeoutMs: number;
 	protected readonly originalBaseURL: string;
 	protected resolvedBaseURL: string | null = null;
@@ -286,8 +286,8 @@ abstract class BaseAiClient implements AiClient {
 
 	constructor(baseURL: string, model: string, maxTokens: number,
 		temperature: number,
-		top_p: number,
-		top_k: number,
+		top_p: number, // eslint-disable-line @typescript-eslint/naming-convention
+		top_k: number, // eslint-disable-line @typescript-eslint/naming-convention
 		timeoutMs: number,
 		apiKey?: string) {
 		this.model = model;
@@ -330,7 +330,7 @@ abstract class BaseAiClient implements AiClient {
 		const http = axios.create({
 			baseURL: apiBaseURL,
 			timeout,
-			headers: this.apiKey ? { Authorization: `Bearer ${this.apiKey}` } : undefined,
+			headers: this.apiKey ? { authorization: `Bearer ${this.apiKey}` } : undefined,
 		});
 
 		return http;
@@ -357,17 +357,17 @@ abstract class BaseAiClient implements AiClient {
 				...(params.assistantPrompt ? [{ role: 'assistant', content: params.assistantPrompt }] : []),
 			];
 			logDebug(`Chat request sending started ${params.streamCount}th time`);
-			const arg: any = {
+			const arg: any = {// eslint-disable-line @typescript-eslint/no-explicit-any
 				model: params.model ?? this.model,
 				messages,
-				max_tokens: params.maxTokens ?? this.maxTokens,
+				max_tokens: params.maxTokens ?? this.maxTokens, // eslint-disable-line @typescript-eslint/naming-convention
 				stream: true,
 				stop: params.stops,
 			};
 			// if 0 <= x, make parameter
 			const temperature: number = params.temperature ?? this.temperature;
-			const top_p: number = params.top_p ?? this.top_p;
-			const top_k: number = params.top_k ?? this.top_k;
+			const top_p: number = params.top_p ?? this.top_p; // eslint-disable-line @typescript-eslint/naming-convention
+			const top_k: number = params.top_k ?? this.top_k; // eslint-disable-line @typescript-eslint/naming-convention
 			if (0 <= temperature) arg.temperature = temperature;
 			if (0 <= top_p) arg.top_p = top_p;
 			if (0 <= top_k) arg.top_k = top_k;
@@ -419,8 +419,8 @@ abstract class BaseAiClient implements AiClient {
 		}
 		
 		// Extract model names from the response
-		const models = response.data?.data?.map((model: any) => model.id) ||
-			response.data?.models?.map((model: any) => model.name) ||
+		const models = response.data?.data?.map((model: any) => model.id) || // eslint-disable-line @typescript-eslint/no-explicit-any
+			response.data?.models?.map((model: any) => model.name) || // eslint-disable-line @typescript-eslint/no-explicit-any
 			[];
 
 		return models;
@@ -436,24 +436,6 @@ abstract class BaseAiClient implements AiClient {
 class OpenAICompatibleClient extends BaseAiClient {
 	protected getApiBaseURL(resolvedURL: string): string {
 		return resolvedURL;
-	}
-
-	protected getCompletionsEndpoint(): string {
-		return '/completions';
-	}
-
-	protected getChatEndpoint(): string {
-		return '/chat/completions';
-	}
-
-	protected getModelsEndpoint(): string {
-		return '/models';
-	}
-}
-
-class OllamaClient extends BaseAiClient {
-	protected getApiBaseURL(resolvedURL: string): string {
-		return `${resolvedURL}/v1`;
 	}
 
 	protected getCompletionsEndpoint(): string {

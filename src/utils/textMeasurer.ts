@@ -4,7 +4,7 @@ import { logDebug } from './logger';
 
 type PendingEntry = {
 	resolve: (widths: number[]) => void;
-	reject: (error: any) => void;
+	reject: (error: unknown) => void;
 };
 
 let panelInstance: vscode.WebviewPanel | undefined;

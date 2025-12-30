@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
-import { LineDiff } from '../diff/lineDiffUtils';
-import { LineEdit, setSuggestions, clearSuggestions, SuggestionData } from './suggestionStore';
+import { setSuggestions, clearSuggestions, SuggestionData } from './suggestionStore';
 import { renderSuggestions, clearAllDecorations } from './suggestionRenderer';
 
 /**

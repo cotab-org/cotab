@@ -1,6 +1,5 @@
 import { getConfig } from '../utils/config';
 import { withoutLineNumber } from '../llm/llmUtils'
-import { EditorContext } from '../utils/editorContext';
 import { YamlConfigMode } from '../utils/yamlConfig';
 
 export interface LineDiff {
@@ -208,14 +207,7 @@ export function diffOperationsToLineEdits(operations: LineDiff[], baseLine: numb
         switch (op.type) {
             case 'add': {
                 const targetLine = baseLine + (op.originalIndex ?? 0);
-                const existing = edits.find(e => e.line === targetLine);
-                //if (existing) {
-                //    existing.newText += '\n' + (op.newText ?? '');
-                //}
-                //else
-                {
-                    edits.push({ line: targetLine, newText: op.newText ?? '', type: 'add' });
-                }
+                edits.push({ line: targetLine, newText: op.newText ?? '', type: 'add' });
                 break;
             }
             case 'delete': {
@@ -274,7 +266,7 @@ export function preprocessLLMOutput(yamlConfigMode: YamlConfigMode, text: string
     let cleaned = text;
 
     // unwrap line number
-    const { CodeBlock: without, hasLastLineNumbers} = withoutLineNumber(cleaned);
+    const { codeBlock: without, hasLastLineNumbers} = withoutLineNumber(cleaned);
     cleaned = without;
 
     // Normalize line endings

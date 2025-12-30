@@ -4,7 +4,7 @@ import * as path from 'path';
 import * as os from 'os';
 import { getConfig } from '../utils/config';
 import { isCotabLocalhost } from '../llm/llmUtils';
-import { logInfo, logDebug, logWarning, logError } from '../utils/logger';
+import { logInfo, logDebug } from '../utils/logger';
 import { terminalCommand } from '../utils/terminalCommand';
 import { YamlConfigMode, getYamlConfigMode } from '../utils/yamlConfig';
 
