@@ -227,6 +227,6 @@ npx vsce package
 一瞬のウィンドウのちらつきは、Cotabが初期化中にフォントサイズを計算するために発生します。VS Codeは文字サイズを取得する直接的なAPIを提供していないため、CotabはWebviewを使用してフォントサイズを計算します。これにより、Cotabの使用を開始する際に一瞬のちらつきが発生します。
 
 ## ライセンス
-Copyright (c) 2025 cotab
+Copyright (c) 2025-2026 cotab
 Apache License 2.0
 

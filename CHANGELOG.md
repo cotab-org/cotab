@@ -1,3 +1,8 @@
+
+## 0.2.1 - 2025/12/31
+- Support 日本語, 忠文
+- Fix: Server no stopping isue when multi VSCode insntace
+- Fix: Erase last line issue again.
 ## 0.2.0 - 2025/12/29
 - Support: Qwen3-30B-A3B-Instruct and preset settings.
 - Support: OpenAI Compatible API Key setting.

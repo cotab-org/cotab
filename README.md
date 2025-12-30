@@ -227,5 +227,5 @@ npx vsce package
 The brief window flicker occurs because Cotab calculates font size during initialization. VS Code doesn't provide a direct API to get character size, so Cotab uses a Webview to calculate the font size. This causes the brief flicker when starting to use Cotab.
 
 ## License
-Copyright (c) 2025 cotab
+Copyright (c) 2025-2026 cotab
 Apache License 2.0

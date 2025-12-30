@@ -227,5 +227,5 @@ npx vsce package
 短暂的窗口闪烁是因为Cotab在初始化期间计算字体大小。VS Code不提供直接API来获取字符大小，因此Cotab使用Webview来计算字体大小。这导致开始使用Cotab时出现短暂闪烁。
 
 ## 许可证
-Copyright (c) 2025 cotab
+Copyright (c) 2025-2026 cotab
 Apache License 2.0
