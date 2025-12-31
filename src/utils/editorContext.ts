@@ -48,7 +48,7 @@ export function getEditorContext(
 	position: vscode.Position
 ): EditorContext | null {
 	const toLine = (offset: number) => {
-		return Math.max(0, Math.min(document.lineCount - 1, position.line + offset));
+		return Math.max(0, Math.min(document.lineCount, position.line + offset));
 	};
 	
 	try {

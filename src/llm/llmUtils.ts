@@ -119,7 +119,7 @@ export {
 	logCacheStatus
 };
 
-export function withLineNumberCodeBlock(codeBlock: string,
+export function withLineNumberCodeBlock(codeBlock: string | string[],
 	startLineNumber: number = 0, ignores: {key: string; isAddSpace?: boolean}[] = []): {
 		codeBlock: string;
 		lastLineNumber: number;
@@ -127,7 +127,7 @@ export function withLineNumberCodeBlock(codeBlock: string,
 	startLineNumber = Math.max(startLineNumber, 0);
 	let lastLineNumber = startLineNumber;
 	if (getConfig().withLineNumber) {
-		const lines = codeBlock.split('\n');
+		const lines = Array.isArray(codeBlock) ? codeBlock : codeBlock.split('\n');
 		let counter = 1;
 		const withLine = lines.map((line, _idx) => {
 			const trimmed = line.trim();
@@ -141,7 +141,8 @@ export function withLineNumberCodeBlock(codeBlock: string,
 		return { codeBlock: withLine.join('\n').replace(/```/g, '\\`\\`\\`'), lastLineNumber };
 	}
 	else {
-		return {codeBlock: codeBlock.replace(/```/g, '\\`\\`\\`'), lastLineNumber};
+		const str = Array.isArray(codeBlock) ? codeBlock.join('\n') : codeBlock;
+		return {codeBlock: str.replace(/```/g, '\\`\\`\\`'), lastLineNumber};
 	}
 }
 export function withoutLineNumber(codeBlock: string, removeNotHaveLineNumber: boolean = false): { codeBlock: string; hasLastLineNumbers: boolean } {

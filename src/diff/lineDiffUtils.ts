@@ -230,7 +230,7 @@ export function diffOperationsToLineEdits(operations: LineDiff[], baseLine: numb
  */
 export function processMaxLinesDiffOperations(diffOperations: LineDiff[], origLines: string[]): LineDiff[] {
     const lastOrigIndex = origLines.length - 1;
-    const filtered = diffOperations.filter(op => op.originalIndex === undefined || op.originalIndex < lastOrigIndex);
+    const filtered = diffOperations.filter(op => op.originalIndex === undefined || op.originalIndex <= lastOrigIndex);
 
     // Convert consecutive deletes from the end to keeps
     for (let k = filtered.length - 1; k >= 0; k--) {

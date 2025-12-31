@@ -176,7 +176,7 @@ function getCachedSourceCode(documentUri: string | undefined,
 		const beforeOutside = trancatedSourceCode.slice(0, editorContext.aroundCacheFromLine - sourceCodeStartLine).join('\n');
 		const aroundSnippet = trancatedSourceCode.slice(editorContext.aroundCacheFromLine - sourceCodeStartLine, editorContext.aroundCacheToLine - sourceCodeStartLine).join('\n');
 		const afterOutside = trancatedSourceCode.slice(editorContext.aroundCacheToLine - sourceCodeStartLine).join('\n');
-		const startSymbol = (startEditingHere)?('\n' + startEditingHere) : ''
+		const startSymbol = (startEditingHere)?( beforeOutside?'\n':'' + startEditingHere) : ''
 		const stopSymbol = (stopEditingHere)?('\n' + stopEditingHere) : '';
 		const inputCode =
 `${beforeOutside}${startSymbol}
@@ -267,13 +267,14 @@ ${cachedSourceCodeWithLine}
 //===============================================
 	
 	// Extract last 5 lines of beforeOutside
-	const latestBeforeOutsideLast = latestBeforeOutsideLines.slice(-editorContext.aroundLatestAddBeforeLines).join('\n');
-	const latestAfterOutsideFirst = latestAfterOutsideLines.slice(0, editorContext.aroundLatestAddAfterLines).join('\n');
 	const {
 		codeBlock: latestBeforeOutsideLastWithLine,
 		lastLineNumber: latestBeforeOutsideLastWithLineNumber
-	} = withLineNumberCodeBlock(latestBeforeOutsideLast, editorContext.aroundFromLine-editorContext.aroundLatestAddBeforeLines);
-	const latestAfterOutsideFirstWithLine = withLineNumberCodeBlock(latestAfterOutsideFirst, editorContext.aroundToLine).codeBlock;
+	} = withLineNumberCodeBlock(latestBeforeOutsideLines.slice(-editorContext.aroundLatestAddBeforeLines),
+								editorContext.aroundFromLine-editorContext.aroundLatestAddBeforeLines);
+	const latestAfterOutsideFirstWithLine =
+	withLineNumberCodeBlock(latestAfterOutsideLines.slice(0, editorContext.aroundLatestAddAfterLines),
+								editorContext.aroundToLine).codeBlock;
 	
 	// Insert placeholder at cursor position
 	
