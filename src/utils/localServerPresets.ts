@@ -1,30 +1,38 @@
-export type LocalServerPreset =
-    | "VRAM 6GB Balanced-Fast (Qwen3-4B-Instruct-2507:Q4)"
-    | "VRAM 8GB HighQuality-VerySlow (Qwen3-Coder-30B:Q2)"
-    | "VRAM 12GB HighQuality-Slow (Qwen3-Coder-30B:Q2)"
-    | "VRAM 16GB HighQuality-Medium (Qwen3-Coder-30B:Q2)"
-    | "VRAM 24GB VeryHighQuality-Medium (Qwen3-Coder-30B:Q4)"
-    | 'Custom';
+interface LocalServerPresetConfig {
+    readonly key: string;
+    readonly visible: boolean;
+    readonly args: string;
+}
 
-export const LOCAL_SERVER_PRESETS: LocalServerPreset[] = [
-    'VRAM 6GB Balanced-Fast (Qwen3-4B-Instruct-2507:Q4)',
-    'VRAM 8GB HighQuality-VerySlow (Qwen3-Coder-30B:Q2)',
-    'VRAM 12GB HighQuality-Slow (Qwen3-Coder-30B:Q2)',
-    'VRAM 16GB HighQuality-Medium (Qwen3-Coder-30B:Q2)',
-    'VRAM 24GB VeryHighQuality-Medium (Qwen3-Coder-30B:Q4)',
-    'Custom'
-];
+const LOCAL_SERVER_PRESET_CONFIGS: readonly LocalServerPresetConfig[] = [
+    { key: 'Custom',                                                visible: true,  args: '' },
+    { key: '----------------- Low VRAM Model -----------------',    visible: false, args: '' },
+    { key: '[granite-4.0-micro:Q3] [VRAM 4GB] NotRecommended',      visible: false, args: '-hf unsloth/granite-4.0-micro-GGUF:granite-4.0-micro-UD-Q3_K_XL --temp 0.0 --top-p 1.0 --top-k 0 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu -ctk q8_0 -ctv q8_0' },
+    { key: '------------------- Fast Model -------------------',    visible: true,  args: '' },
+    { key: '[Qwen3-4B-2507:Q3] [VRAM 5GB] LowQuality',              visible: false, args: '-hf unsloth/Qwen3-4B-Instruct-2507-GGUF:Qwen3-4B-Instruct-2507-UD-IQ3_XXS --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu -ctk q8_0 -ctv q8_0' },
+    { key: '[Qwen3-4B-2507:Q4] [VRAM 6GB] Balanced',                visible: true,  args: '-hf unsloth/Qwen3-4B-Instruct-2507-GGUF:Qwen3-4B-Instruct-2507-UD-Q4_K_XL --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu -ctk q8_0 -ctv q8_0' },
+    { key: '---------------- High Quality Model --------------',    visible: true,  args: '' },
+    { key: '[Qwen3-Coder-30B:Q1] [VRAM 11GB] LowQuality-Fast',      visible: false, args: '-hf unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Qwen3-Coder-30B-A3B-Instruct-UD-IQ1_S --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu -ctk q8_0 -ctv q8_0' },
+    { key: '[Qwen3-Coder-30B:Q2] [VRAM 4GB] Quality-VerySlow',      visible: false, args: '-hf unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Qwen3-Coder-30B-A3B-Instruct-UD-IQ2_M --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu --n-cpu-moe 48 -ctk q8_0 -ctv q8_0' },
+    { key: '[Qwen3-Coder-30B:Q2] [VRAM 8GB] HighQuality-Slow',      visible: false, args: '-hf unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Qwen3-Coder-30B-A3B-Instruct-UD-IQ2_M --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu --n-cpu-moe 35' },
+    { key: '[Qwen3-Coder-30B:Q2] [VRAM 12GB] HighQuality-Medium',   visible: true,  args: '-hf unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Qwen3-Coder-30B-A3B-Instruct-UD-IQ2_M --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu --n-cpu-moe 13' },
+    { key: '[Qwen3-Coder-30B:Q2] [VRAM 16GB] HighQuality-Fast',     visible: true,  args: '-hf unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Qwen3-Coder-30B-A3B-Instruct-UD-IQ2_M --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu' },
+    { key: '[Qwen3-Coder-30B:Q4] [VRAM 24GB] VeryHighQuality-Fast', visible: true,  args: '-hf unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Qwen3-Coder-30B-A3B-Instruct-UD-Q4_K_XL --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu' },
+] as const;
 
-export const DEFAULT_LOCAL_SERVER_PRESET: LocalServerPreset = 'VRAM 6GB Balanced-Fast (Qwen3-4B-Instruct-2507:Q4)';
+export type LocalServerPreset = typeof LOCAL_SERVER_PRESET_CONFIGS[number]['key'];
 
-export const localServerPresetArgs: Record<LocalServerPreset, string> = {
-    'VRAM 6GB Balanced-Fast (Qwen3-4B-Instruct-2507:Q4)'   : '-hf unsloth/Qwen3-4B-Instruct-2507-GGUF --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu -ctk q8_0 -ctv q8_0',   // eslint-disable-line @typescript-eslint/naming-convention
-    'VRAM 8GB HighQuality-VerySlow (Qwen3-Coder-30B:Q2)'   : '-hf unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Qwen3-Coder-30B-A3B-Instruct-UD-IQ2_M --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu --n-cpu-moe 35',   // eslint-disable-line @typescript-eslint/naming-convention
-    'VRAM 12GB HighQuality-Slow (Qwen3-Coder-30B:Q2)'      : '-hf unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Qwen3-Coder-30B-A3B-Instruct-UD-IQ2_M --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu --n-cpu-moe 11',   // eslint-disable-line @typescript-eslint/naming-convention
-    'VRAM 16GB HighQuality-Medium (Qwen3-Coder-30B:Q2)'    : '-hf unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Qwen3-Coder-30B-A3B-Instruct-UD-IQ2_M --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu',   // eslint-disable-line @typescript-eslint/naming-convention
-    'VRAM 24GB VeryHighQuality-Medium (Qwen3-Coder-30B:Q4)': '-hf unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Qwen3-Coder-30B-A3B-Instruct-UD-Q4_K_XL --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu',   // eslint-disable-line @typescript-eslint/naming-convention
-    'Custom': '' // eslint-disable-line @typescript-eslint/naming-convention
-};
+export const LOCAL_SERVER_PRESETS: LocalServerPreset[] = LOCAL_SERVER_PRESET_CONFIGS.map(config => config.key);
+
+export const DEFAULT_LOCAL_SERVER_PRESET: LocalServerPreset = '[Qwen3-4B-2507:Q4][VRAM 6GB] Balanced-Fast';
+
+export const localServerPresetArgs: Record<LocalServerPreset, string> = Object.fromEntries(
+    LOCAL_SERVER_PRESET_CONFIGS.map(config => [config.key, config.args])
+) as Record<LocalServerPreset, string>;
+
+export const localServerPresetVisibility: Record<LocalServerPreset, boolean> = Object.fromEntries(
+    LOCAL_SERVER_PRESET_CONFIGS.map(config => [config.key, config.visible])
+) as Record<LocalServerPreset, boolean>;
 
 export const DEFAULT_LOCAL_SERVER_CUSTOM_ARGS = localServerPresetArgs[DEFAULT_LOCAL_SERVER_PRESET];
 

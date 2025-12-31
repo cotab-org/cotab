@@ -1,12 +1,12 @@
 import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
 import * as path from 'path';
-import { getConfig, setConfigHideOnStartup, setConfigShowProgressSpinner, setConfigApiBaseURL, setConfigApiKey, setConfigCommentLanguage, setConfigLocalServerContextSize, setConfigModel, setConfigLocalServerPreset, setConfigLocalServerCustom } from '../utils/config';
+import { getConfig, setConfigHideOnStartup, setConfigShowProgressSpinner, setConfigApiBaseURL, setConfigApiKey, setConfigCommentLanguage, setConfigLocalServerContextSize, setConfigModel, setConfigLocalServerPreset, setConfigLocalServerCustom, setConfigShowAllPresets } from '../utils/config';
 import { terminalCommand } from '../utils/terminalCommand';
 import { getAiClient } from '../llm/llmProvider';
 import { getOsInfo } from '../utils/cotabUtil';
 import { buildNetworkServerLabelSvgDataUri } from './menuUtil';
-import { localServerPresetArgs, LOCAL_SERVER_PRESETS, isLocalServerPreset, LocalServerPreset } from '../utils/localServerPresets';
+import { localServerPresetArgs, LOCAL_SERVER_PRESETS, isLocalServerPreset, LocalServerPreset, localServerPresetVisibility } from '../utils/localServerPresets';
 
 // Configure nls and load message bundle
 // NOTE:
@@ -245,7 +245,8 @@ async function showGettingStartedView(context: vscode.ExtensionContext): Promise
         defaultCommentLanguage: config.defaultCommentLanguage,
         localServerContextSize: config.localServerContextSize,
         localServerPreset: config.localServerPreset,
-        localServerCustom: config.localServerCustom
+        localServerCustom: config.localServerCustom,
+        showAllPresets: config.showAllPresets
     });
 
     // Handle webview command
@@ -312,6 +313,11 @@ async function handleWebviewMessage(panel: vscode.WebviewPanel, msg: any): Promi
             await setConfigLocalServerCustom(value);
             panel.webview.postMessage({ type: 'saved', key: 'localServerCustom', value });
         }
+        else if (msg?.type === 'setShowAllPresets') {
+            const value = Boolean(msg.value);
+            await setConfigShowAllPresets(value);
+            panel.webview.postMessage({ type: 'saved', key: 'showAllPresets', value });
+        }
         else if (msg?.type === 'executeCommand') {
             const command = String(msg.command || '');
             const args = Array.isArray(msg.args)
@@ -362,6 +368,7 @@ function getHtml(params: {
     localServerContextSize: number;
     localServerPreset: LocalServerPreset;
     localServerCustom: string;
+    showAllPresets: boolean;
 }): string {
     const nonce = String(Date.now());
     const apiBaseURL = escapeHtml(params.apiBaseURL || '');
@@ -369,6 +376,7 @@ function getHtml(params: {
     const model = escapeHtml(params.model || '');
     const hideOnStartup = params.hideOnStartup ? 'checked' : '';
     const showProgressSpinner = params.showProgressSpinner ? 'checked' : '';
+    const showAllPresets = params.showAllPresets ? 'checked' : '';
     const commentLanguage = escapeHtml(params.settingCommentLanguage || '');
     const defaultCommentLanguage = escapeHtml(params.defaultCommentLanguage || '');
     const localServerContextSize = Number.isFinite(params.localServerContextSize) ? params.localServerContextSize : 32768;
@@ -378,11 +386,13 @@ function getHtml(params: {
         return acc;
     }, {} as Record<LocalServerPreset, string>);
     const presetTooltipMapJson = JSON.stringify(presetTooltipMap);
+    const presetVisibilityMapJson = JSON.stringify(localServerPresetVisibility);
     const localServerPresetOptions = LOCAL_SERVER_PRESETS.map((preset) => {
         const label = escapeHtml(preset);
         const selected = preset === localServerPresetValue ? 'selected' : '';
         const tooltip = escapeHtml(presetTooltipMap[preset] || '');
-        return `<option value="${label}" ${selected} title="${tooltip}" data-tooltip="${tooltip}">${label}</option>`;
+        const visible = localServerPresetVisibility[preset] ?? true;
+        return `<option value="${label}" ${selected} title="${tooltip}" data-tooltip="${tooltip}" data-visible="${visible}" data-preset-key="${escapeHtml(preset)}">${label}</option>`;
     }).join('');
     const localServerCustom = escapeHtml(params.localServerCustom || '');
     const showLocalServerCustom = localServerPresetValue === 'Custom';
@@ -774,6 +784,12 @@ function getHtml(params: {
                         ${localServerPresetOptions}
                     </select>
                 </div>
+                <div class="row" style="justify-content: center;">
+                    <label class="checkbox">
+                        <input id="showAllPresets" type="checkbox" ${showAllPresets} />
+                        <span>${localize('gettingStarted.showAllPresets', 'Show All')}</span>
+                    </label>
+                </div>
                 <div class="row" id="localServerCustomGroup" style="${showLocalServerCustom ? '' : 'display:none;'}">
                     <input id="localServerCustomInput" type="text" class="grow" value="${localServerCustom}" placeholder="${escapeHtml(localize('gettingStarted.customArgsPlaceholder', 'Enter custom llama-server arguments'))}" />
                 </div>
@@ -918,6 +934,7 @@ function getHtml(params: {
             const showProgressSpinnerCheckbox = document.getElementById('showProgressSpinner');
             const openSettingsBtn = document.getElementById('openSettingsBtn');
             const presetTooltipMap = ${presetTooltipMapJson};
+            const presetVisibilityMap = ${presetVisibilityMapJson};
             const assets = ${assetsJson};
             console.log('[cotab] quickSetup assets loaded', assets);
 
@@ -1153,6 +1170,45 @@ function getHtml(params: {
                     }
                     currentLocalServerContextSize = normalized;
                     syncLocalServerContextSize(normalized, { updateInput: false });
+                });
+            }
+
+            function filterPresetOptions(showAll) {
+                if (!(localServerPresetSelect instanceof HTMLSelectElement)) {
+                    return;
+                }
+                const currentValue = localServerPresetSelect.value;
+                const options = Array.from(localServerPresetSelect.options);
+                options.forEach((option) => {
+                    const presetKey = option.getAttribute('data-preset-key') || option.value;
+                    const isVisible = presetVisibilityMap && typeof presetVisibilityMap === 'object' 
+                        ? (presetVisibilityMap[presetKey] ?? true)
+                        : true;
+                    if (showAll || isVisible) {
+                        option.style.display = '';
+                    } else {
+                        option.style.display = 'none';
+                    }
+                });
+                // If the currently selected option becomes hidden, select the first visible option
+                const selectedOption = localServerPresetSelect.options[localServerPresetSelect.selectedIndex];
+                if (selectedOption && selectedOption.style.display === 'none') {
+                    const firstVisibleOption = options.find(opt => opt.style.display !== 'none');
+                    if (firstVisibleOption) {
+                        localServerPresetSelect.value = firstVisibleOption.value;
+                        toggleLocalServerCustomInput(firstVisibleOption.value);
+                        vscode.postMessage({ type: 'saveLocalServerPreset', value: firstVisibleOption.value });
+                    }
+                }
+            }
+
+            const showAllPresetsCheckbox = document.getElementById('showAllPresets');
+            if (showAllPresetsCheckbox instanceof HTMLInputElement) {
+                filterPresetOptions(showAllPresetsCheckbox.checked);
+                showAllPresetsCheckbox.addEventListener('change', () => {
+                    const value = showAllPresetsCheckbox.checked;
+                    filterPresetOptions(value);
+                    vscode.postMessage({ type: 'setShowAllPresets', value });
                 });
             }
 

@@ -182,28 +182,27 @@
         "cotab.llm.localServerPreset": {
           "type": "string",
           "enum": [
-            "VRAM 6GB Balanced-Fast (Qwen3-4B-Instruct-2507:Q4)",
-            "VRAM 8GB HighQuality-VerySlow (Qwen3-Coder-30B:Q2)",
-            "VRAM 12GB HighQuality-Slow (Qwen3-Coder-30B:Q2)",
-            "VRAM 16GB HighQuality-Medium (Qwen3-Coder-30B:Q2)",
-            "VRAM 24GB VeryHighQuality-Medium (Qwen3-Coder-30B:Q4)",
-            "Custom"
+            "Custom",
+            "----------------- Low VRAM Model -----------------",
+            "[granite-4.0-micro:Q3] [VRAM 4GB] NotRecommended",
+            "------------------- Fast Model -------------------",
+            "[Qwen3-4B-2507:Q3] [VRAM 5GB] LowQuality",
+            "[Qwen3-4B-2507:Q4] [VRAM 6GB] Balanced",
+            "---------------- High Quality Model --------------",
+            "[Qwen3-Coder-30B:Q1] [VRAM 11GB] LowQuality-Fast",
+            "[Qwen3-Coder-30B:Q2] [VRAM 4GB] Quality-VerySlow",
+            "[Qwen3-Coder-30B:Q2] [VRAM 8GB] HighQuality-Slow",
+            "[Qwen3-Coder-30B:Q2] [VRAM 12GB] HighQuality-Medium",
+            "[Qwen3-Coder-30B:Q2] [VRAM 16GB] HighQuality-Fast",
+            "[Qwen3-Coder-30B:Q4] [VRAM 24GB] VeryHighQuality-Fast"
           ],
-          "enumDescriptions": [
-            "%config.llm.localServerPreset.enum.0%",
-            "%config.llm.localServerPreset.enum.1%",
-            "%config.llm.localServerPreset.enum.2%",
-            "%config.llm.localServerPreset.enum.3%",
-            "%config.llm.localServerPreset.enum.4%",
-            "%config.llm.localServerPreset.enum.5%"
-          ],
-          "default": "VRAM 6GB Balanced-Fast (Qwen3-4B-Instruct-2507:Q4)",
+          "default": "[Qwen3-4B-2507:Q4] [VRAM 6GB] Balanced",
           "description": "%config.llm.localServerPreset%",
           "order": 206
         },
         "cotab.llm.localServerCustom": {
           "type": "string",
-          "default": "-hf unsloth/Qwen3-4B-Instruct-2507-GGUF --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu -ctk q8_0 -ctv q8_0",
+          "default": "-hf unsloth/Qwen3-4B-Instruct-2507-GGUF:Qwen3-4B-Instruct-2507-UD-Q4_K_XL --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu -ctk q8_0 -ctv q8_0",
           "description": "%config.llm.localServerCustom%",
           "order": 207
         },
@@ -386,6 +385,12 @@
           "default": false,
           "description": "%config.gettingStarted.hideOnStartup%",
           "order": 901
+        },
+        "cotab.gettingStarted.showAllPresets": {
+          "type": "boolean",
+          "default": false,
+          "description": "%config.gettingStarted.showAllPresets%",
+          "order": 902
         }
       }
     },

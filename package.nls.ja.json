@@ -23,12 +23,6 @@
   "config.llm.apiBaseURL": "OpenAI互換のベースURL（例: `http://localhost:8080/v1`）推奨: llama-server（ローカルサーバーの自動起動を使用する場合は空白のままにしてください。）",
   "config.llm.apiKey": "OpenAI互換サーバー用のBearerトークンとして使用されるAPIキー（オプション。空白のままにできます。）",
   "config.llm.localServerPreset": "ローカルサーバー（llama.cpp）のプリセット引数。VRAM使用量の見積もりはコンテキストサイズ32kの場合です。",
-  "config.llm.localServerPreset.enum.0": "モデル:Qwen3-4B-Instruct-2507\n\n-hf unsloth/Qwen3-4B-Instruct-2507-GGUF --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu -ctk q8_0 -ctv q8_0",
-  "config.llm.localServerPreset.enum.1": "モデル:Qwen3-Coder-30B-A3B-Instruct-UD-IQ2_M\n\n-hf unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Qwen3-Coder-30B-A3B-Instruct-UD-IQ2_M --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu --n-cpu-moe 35",
-  "config.llm.localServerPreset.enum.2": "モデル:Qwen3-Coder-30B-A3B-Instruct-UD-IQ2_M\n\n-hf unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Qwen3-Coder-30B-A3B-Instruct-UD-IQ2_M --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu --n-cpu-moe 11",
-  "config.llm.localServerPreset.enum.3": "モデル:Qwen3-Coder-30B-A3B-Instruct-UD-IQ2_M\n\n-hf unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Qwen3-Coder-30B-A3B-Instruct-UD-IQ2_M --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu",
-  "config.llm.localServerPreset.enum.4": "モデル:Qwen3-Coder-30B-A3B-Instruct-UD-Q4_K_XL\n\n-hf unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Qwen3-Coder-30B-A3B-Instruct-UD-Q4_K_XL --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu",
-  "config.llm.localServerPreset.enum.5": "カスタム設定にはcotab.llm.localServerCustomを使用",
   "config.llm.localServerCustom": "ローカルサーバー（llama.cpp）を起動するための引数",
   "config.llm.localServerPort": "ローカルサーバー（llama.cpp）のポート",
   "config.llm.localServerContextSize": "ローカルサーバー（llama.cpp）のコンテキストサイズ",
@@ -58,6 +52,7 @@
   "config.promptDetail.enableCodeSummary": "ソースコード要約機能を有効にする。\n有効にすると、ソースコードが要約され、プロンプトに含まれます。",
   "config.detail.logLevel": "ログ出力レベル（ERROR: エラーのみ、WARNING: 警告以上、INFO: 情報以上、DEBUG: すべて）",
   "config.ui.showProgressSpinner": "コード補完中にスピナーアイコンを表示",
-  "config.gettingStarted.hideOnStartup": "次回起動時にGetting Startedビューを表示しない"
+  "config.gettingStarted.hideOnStartup": "次回起動時にGetting Startedビューを表示しない",
+  "config.gettingStarted.showAllPresets": "クイックスタートビューですべてのプリセットを表示（非表示のプリセットを含む）"
 }
 

@@ -3,6 +3,7 @@
   "gettingStarted.gettingStarted": "Getting Started",
   "gettingStarted.setupServer": "Setup Server",
   "gettingStarted.preset": "Preset",
+  "gettingStarted.showAllPresets": "Show All",
   "gettingStarted.customArgsPlaceholder": "Enter custom llama-server arguments",
   "gettingStarted.contextSize": "Context Size",
   "gettingStarted.contextSizeTooltip": "Required:\n - set 16k (16384) or more.\n\nRecommended:\n - set 32k (32768) or more.\n\nReason:\n - The system prompt uses about 5k, and 1,000 lines of code use about 12k more.\n - so please set the context window to 20k (20480) or more.\n\nThe default model (Qwen3-4B-Instruct-2507) VRAM usage:\n - 16k: about 4 GB\n - 32k: about 5.5 GB",

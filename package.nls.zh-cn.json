@@ -23,12 +23,6 @@
   "config.llm.apiBaseURL": "OpenAI兼容的基础URL（例如 `http://localhost:8080/v1`）推荐llama-server（如果使用自动启动本地服务器，请留空。）",
   "config.llm.apiKey": "用作OpenAI兼容服务器的Bearer令牌的API密钥（可选。您可以留空。）",
   "config.llm.localServerPreset": "本地服务器（llama.cpp）的预设参数。VRAM使用量估计是针对上下文大小32k的。",
-  "config.llm.localServerPreset.enum.0": "模型:Qwen3-4B-Instruct-2507\n\n-hf unsloth/Qwen3-4B-Instruct-2507-GGUF --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu -ctk q8_0 -ctv q8_0",
-  "config.llm.localServerPreset.enum.1": "模型:Qwen3-Coder-30B-A3B-Instruct-UD-IQ2_M\n\n-hf unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Qwen3-Coder-30B-A3B-Instruct-UD-IQ2_M --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu --n-cpu-moe 35",
-  "config.llm.localServerPreset.enum.2": "模型:Qwen3-Coder-30B-A3B-Instruct-UD-IQ2_M\n\n-hf unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Qwen3-Coder-30B-A3B-Instruct-UD-IQ2_M --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu --n-cpu-moe 11",
-  "config.llm.localServerPreset.enum.3": "模型:Qwen3-Coder-30B-A3B-Instruct-UD-IQ2_M\n\n-hf unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Qwen3-Coder-30B-A3B-Instruct-UD-IQ2_M --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu",
-  "config.llm.localServerPreset.enum.4": "模型:Qwen3-Coder-30B-A3B-Instruct-UD-Q4_K_XL\n\n-hf unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Qwen3-Coder-30B-A3B-Instruct-UD-Q4_K_XL --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu",
-  "config.llm.localServerPreset.enum.5": "使用cotab.llm.localServerCustom进行自定义设置",
   "config.llm.localServerCustom": "启动本地服务器（llama.cpp）的参数",
   "config.llm.localServerPort": "本地服务器（llama.cpp）的端口",
   "config.llm.localServerContextSize": "本地服务器（llama.cpp）的上下文大小",
@@ -58,6 +52,7 @@
   "config.promptDetail.enableCodeSummary": "启用源代码摘要功能。\n如果启用，源代码将被摘要并包含在提示中。",
   "config.detail.logLevel": "日志输出级别（ERROR: 仅错误，WARNING: 警告及以上，INFO: 信息及以上，DEBUG: 全部）",
   "config.ui.showProgressSpinner": "完成代码补全时显示旋转图标",
-  "config.gettingStarted.hideOnStartup": "下次启动时不显示入门视图"
+  "config.gettingStarted.hideOnStartup": "下次启动时不显示入门视图",
+  "config.gettingStarted.showAllPresets": "在快速启动视图中显示所有预设（包括隐藏的预设）"
 }
 

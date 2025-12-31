@@ -23,12 +23,6 @@
   "config.llm.apiBaseURL": "OpenAI compatible Base URL (e.g. `http://localhost:8080/v1`) recommended llama-server (If you use auto-start the Local Server, leave it blank.)",
   "config.llm.apiKey": "API key used as Bearer token for OpenAI compatible servers (Optional. You can leave this blank.)",
   "config.llm.localServerPreset": "Preset arguments for local server (llama.cpp). VRAM usage estimate is for context size 32k.",
-  "config.llm.localServerPreset.enum.0": "Model:Qwen3-4B-Instruct-2507\n\n-hf unsloth/Qwen3-4B-Instruct-2507-GGUF --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu -ctk q8_0 -ctv q8_0",
-  "config.llm.localServerPreset.enum.1": "Model:Qwen3-Coder-30B-A3B-Instruct-UD-IQ2_M\n\n-hf unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Qwen3-Coder-30B-A3B-Instruct-UD-IQ2_M --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu --n-cpu-moe 35",
-  "config.llm.localServerPreset.enum.2": "Model:Qwen3-Coder-30B-A3B-Instruct-UD-IQ2_M\n\n-hf unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Qwen3-Coder-30B-A3B-Instruct-UD-IQ2_M --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu --n-cpu-moe 11",
-  "config.llm.localServerPreset.enum.3": "Model:Qwen3-Coder-30B-A3B-Instruct-UD-IQ2_M\n\n-hf unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Qwen3-Coder-30B-A3B-Instruct-UD-IQ2_M --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu",
-  "config.llm.localServerPreset.enum.4": "Model:Qwen3-Coder-30B-A3B-Instruct-UD-Q4_K_XL\n\n-hf unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Qwen3-Coder-30B-A3B-Instruct-UD-Q4_K_XL --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu",
-  "config.llm.localServerPreset.enum.5": "Use cotab.llm.localServerCustom for custom settings",
   "config.llm.localServerCustom": "Arguments for launching the local server (llama.cpp)",
   "config.llm.localServerPort": "Port for the local server (llama.cpp)",
   "config.llm.localServerContextSize": "Context size for the local server (llama.cpp)",
@@ -58,6 +52,7 @@
   "config.promptDetail.enableCodeSummary": "Enable source code summary feature.\nIf enabled, the source code will be summarized and included in the prompt.",
   "config.detail.logLevel": "Log output level (ERROR: errors only, WARNING: warnings and above, INFO: info and above, DEBUG: everything)",
   "config.ui.showProgressSpinner": "Show spinner icon while completing code completion",
-  "config.gettingStarted.hideOnStartup": "Do not show Getting Started view on next startup"
+  "config.gettingStarted.hideOnStartup": "Do not show Getting Started view on next startup",
+  "config.gettingStarted.showAllPresets": "Show all presets in the Getting Started view (including hidden presets)"
 }
 

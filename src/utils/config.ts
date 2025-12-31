@@ -34,6 +34,7 @@ export interface CotabConfig {
     defaultCommentLanguage: string; // system language (fallback)
     selectedPromptMode: string;
     hideOnStartup: boolean;
+    showAllPresets: boolean;
 
     // llm
     llamaCppVersion: LlamaCppVersion;
@@ -170,6 +171,7 @@ function getConfigRaw(): CotabConfig {
         serverAutoStopOnIdleTime: cfg.get<number>('cotab.basic.autoStopOnIdleTime', 300),
         selectedPromptMode: cfg.get<string>('cotab.basic.selectedPromptMode', 'auto'),
         hideOnStartup: cfg.get<boolean>('cotab.gettingStarted.hideOnStartup', false),
+        showAllPresets: cfg.get<boolean>('cotab.gettingStarted.showAllPresets', false),
 
         // llm
         llamaCppVersion: cfg.get<LlamaCppVersion>('cotab.llm.llamaCppVersion', 'Stable'),
@@ -289,6 +291,11 @@ export async function setConfigHideOnStartup(hide: boolean): Promise<void> {
 export async function setConfigShowProgressSpinner(enabled: boolean): Promise<void> {
     await vscode.workspace.getConfiguration()
         .update('cotab.ui.showProgressSpinner', enabled, vscode.ConfigurationTarget.Global);
+}
+
+export async function setConfigShowAllPresets(showAll: boolean): Promise<void> {
+    await vscode.workspace.getConfiguration()
+        .update('cotab.gettingStarted.showAllPresets', showAll, vscode.ConfigurationTarget.Global);
 }
 
 export async function setConfigCommentLanguage(language: string): Promise<void> {
