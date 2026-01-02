@@ -4,23 +4,24 @@
 
 This VS Code extension is an AI-powered multi-line autocomplete plugin designed with maximum privacy and security in mind by running entirely on a local LLM.
 
-It generates multiple lines of code using AI based not only on the entire file’s context but also on external symbols, errors, and prior edits, and presents them as autocomplete suggestions.
-Especially Qwen3-Coder-30B-A3B provides high-quality completion comparable to cloud services, and is optimized to be set up with a single click in an environment with VRAM 8GB.
+In addition to the entire file's context, it also considers external symbols, errors, and prior edits, and uses AI to generate multiple lines of code that are presented as autocomplete suggestions. In particular, when using Qwen3-Coder-30B-A3B, you can get high-quality completion comparable to cloud services.
+**Setup can be completed with a single click and is ready to use immediately.** Also, you can switch the model to use with a single click, and Qwen3-Coder-30B-A3B can run on VRAM 4GB or 8GB environments.
 
 It also offers a dedicated translation-only mode.
 
 ## Autocomplete
 ![Autocomplete Demo](doc/asset/cotab-tutorial-autocomplete1.gif)
-The programming languages supported depend on the AI model. Despite its compact size, the default model Qwen3-4B-Instruct-2507 supports many languages. 
+The programming languages supported depend on the AI model. Despite its compact size, the default model Qwen3-4B-Instruct-2507 supports many languages.
+Qwen3-Coder-30B-A3B supports even more languages and, like magic, suggests exactly the code you're about to type. 
 
 ## Auto Comment Mode
 ![Comment Demo](doc/github-asset/cotab-demo-comment.gif)
-A dedicated mode that adds code comments. The AI understands the code at the cursor position and automatically adds detailed comments.
+A dedicated mode that adds code comments. It analyzes code more deeply than the normal mode, understands the intent of the algorithm, and automatically adds detailed comments.
 Qwen3-4B-Instruct-2507 already delivers good comments, but this use case can tolerate a slowdown, so we recommend Qwen3-Coder-30B-A3B for the best results.
 
 ## Auto Translate Mode
 ![Translate Demo](doc/github-asset/cotab-demo-translate.gif)
-A translation-only mode. It automatically translates comments in unfamiliar languages, making code easier to understand.
+A translation-only mode. It can translate not only code comments but also regular text files.
 Qwen3-4B-Instruct-2507 also delivers high-quality translations, but in this use case, it is recommended to use Qwen3-Coder-30B-A3B for the best results, as performance degradation is tolerable.
 
 ## Feature
@@ -40,6 +41,7 @@ Qwen3-4B-Instruct-2507 also delivers high-quality translations, but in this use 
    ![Getting started - setup](doc/github-asset/cotab-demo-setup.gif)
    Note:
    - It may take a while the first time because it downloads a 2.5GB model.
+   - The server starts automatically after installation.
    - Installation Supported Platforms Windows/MacOS/Ubuntu
   
 3. Start typing!
@@ -83,9 +85,9 @@ Qwen3-4B-Instruct-2507 also delivers high-quality translations, but in this use 
 ## Performance
 - **Recommend:** GeForce RTX 3000 series or later GPU (or equivalent) for optimal performance.
 
-- Cotab is optimized for llama-server and Qwen3-4B-Instruct-2507 and is designed for high-speed operation. From the second request onward, even for source files over 1,000 lines, it understands the entire context and shows completions in about 0.5 seconds on an GeForce RTX 4070, even when the prompt exceeds 15,000 tokens and includes hundreds of reference symbols. After that, it continues to send completion requests on every keystroke and maintains.
+- Cotab is optimized for llama-server and Qwen3-4B-Instruct-2507 and is designed for high-speed operation. In practical environments with source code over 1,000 lines containing hundreds of external reference symbols, the prompt exceeds 15,000 tokens. Even in such situations, it understands the entire context and shows completions from the second request onward in about 0.5 seconds on a GeForce RTX 4070.
 
-- AI workloads see significant performance improvements with the GeForce RTX 3000 series and later. A GeForce RTX 3000 series and later GPU or equivalent is recommended for comfortable response.
+- AI processing shows significant performance improvements with the GeForce RTX 3000 series and later. For comfortable response, we recommend a GeForce RTX 3000 series or later GPU or equivalent.
 
 ## Details
 - llama-server
@@ -132,6 +134,25 @@ Qwen3-4B-Instruct-2507 also delivers high-quality translations, but in this use 
   |![spinner red](doc/github-asset/readme-spinner-red-0.png)|Completing current line|
   |![spinner normal](doc/github-asset/readme-spinner-0.png)|Completing after current line|
   
+## About Available Models
+- All text generation models are available, but powerful instruction-following performance is required for local code generation. (Instruction-following performance refers to the ability to strictly follow prompt rules and avoid rule violations.)
+
+- Qwen3-Coder-30B-A3B
+
+80% of the model is allocated to code learning, providing high-quality completion comparable to cloud services. Furthermore, since the actual computation is equivalent to 3B, it operates at high speed like small models. This model can adjust VRAM usage without significantly degrading performance, so Cotab provides presets that work in 4GB or 8GB environments.
+
+- Qwen3-4B-Instruct-2507
+
+Despite its very small size of 4B, it has outstanding instruction-following performance and high performance in fields such as mathematics, providing fast and high-quality completion in Cotab.
+
+- granite-4.0-micro
+
+It has high instruction-following performance and operates with less VRAM than Qwen3-4B-Instruct-2507, but it is not recommended because it often generates poor quality completions in Cotab.
+
+- LFM2-2.6B
+
+It is designed to operate at more than twice the speed of Qwen3-4B-Instruct-2507 with only VRAM 3GB usage. Despite this, it has high instruction-following performance, but it is not recommended because cases where code breaks have been observed in Cotab's code completion. It can be used when VRAM requirements are very strict or for translation purposes.
+
 ## Privacy and Telemetry
 - Cotab only communicates with the default endpoint `"http://localhost:8080/v1"` or the LLM API specified by the user. No other external services or servers are contacted. This ensures maximum privacy and security.
   - Communication is only made with the configured API

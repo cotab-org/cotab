@@ -395,7 +395,8 @@ function getHtml(params: {
         return `<option value="${label}" ${selected} title="${tooltip}" data-tooltip="${tooltip}" data-visible="${visible}" data-preset-key="${escapeHtml(preset)}">${label}</option>`;
     }).join('');
     const localServerCustom = escapeHtml(params.localServerCustom || '');
-    const showLocalServerCustom = localServerPresetValue === 'Custom';
+    const isCustomPreset = localServerPresetValue === 'Custom';
+    const presetArgsValue = isCustomPreset ? localServerCustom : (presetTooltipMap[localServerPresetValue] || '');
     const initialState = JSON.stringify(params.initial);
     // Prepare shared SVG URIs for consistent UI
     const assetsJson = JSON.stringify({
@@ -784,14 +785,14 @@ function getHtml(params: {
                         ${localServerPresetOptions}
                     </select>
                 </div>
-                <div class="row" style="justify-content: center;">
+                <div class="row" id="localServerCustomGroup">
+                    <input id="localServerCustomInput" type="text" class="grow" value="${presetArgsValue}" placeholder="${escapeHtml(localize('gettingStarted.customArgsPlaceholder', 'Enter custom llama-server arguments'))}" ${isCustomPreset ? '' : 'disabled'} />
+                </div>
+                <div class="row" style="justify-content: center; margin-top: 8px;">
                     <label class="checkbox">
                         <input id="showAllPresets" type="checkbox" ${showAllPresets} />
                         <span>${localize('gettingStarted.showAllPresets', 'Show All')}</span>
                     </label>
-                </div>
-                <div class="row" id="localServerCustomGroup" style="${showLocalServerCustom ? '' : 'display:none;'}">
-                    <input id="localServerCustomInput" type="text" class="grow" value="${localServerCustom}" placeholder="${escapeHtml(localize('gettingStarted.customArgsPlaceholder', 'Enter custom llama-server arguments'))}" />
                 </div>
             </div>
             <div id="context-size-container" class="setting-group" title="${escapeHtml(localize('gettingStarted.contextSizeTooltip', 'Required:\n - set 16k (16384) or more.\n\nRecommended:\n - set 32k (32768) or more.\n\nReason:\n - The system prompt uses about 5k, and 1,000 lines of code use about 12k more.\n - so please set the context window to 20k (20480) or more.\n\nThe default model (Qwen3-4B-Instruct-2507) VRAM usage:\n - 16k: about 4 GB\n - 32k: about 5.5 GB').replace(/\n/g, '&#10;'))}">
@@ -937,6 +938,13 @@ function getHtml(params: {
             const presetVisibilityMap = ${presetVisibilityMapJson};
             const assets = ${assetsJson};
             console.log('[cotab] quickSetup assets loaded', assets);
+            
+            // Keep the custom value entered by the user
+            let savedCustomValue = ${JSON.stringify(localServerCustom)};
+            // Initialize savedCustomValue from the input if it's Custom preset
+            if (localServerCustomInput instanceof HTMLInputElement && ${JSON.stringify(isCustomPreset)}) {
+                savedCustomValue = String(localServerCustomInput.value || '').trim();
+            }
 
             function renderSvgImage(container, uri, alt) {
                 container.innerHTML = '';
@@ -989,12 +997,24 @@ function getHtml(params: {
             }
 
             function toggleLocalServerCustomInput(presetValue) {
-                const showCustom = presetValue === 'Custom';
+                const isCustom = presetValue === 'Custom';
                 if (localServerCustomGroup instanceof HTMLElement) {
-                    localServerCustomGroup.style.display = showCustom ? '' : 'none';
+                    localServerCustomGroup.style.display = '';
                 }
                 if (localServerCustomInput instanceof HTMLInputElement) {
-                    localServerCustomInput.disabled = !showCustom;
+                    if (isCustom) {
+                        // Restore saved custom value when switching back to Custom
+                        localServerCustomInput.disabled = false;
+                        localServerCustomInput.value = savedCustomValue;
+                    } else {
+                        // Show preset args but keep custom value saved
+                        localServerCustomInput.disabled = true;
+                        const presetKey = presetValue || 'Custom';
+                        const presetArgs = (presetTooltipMap && typeof presetTooltipMap === 'object')
+                            ? (presetTooltipMap[presetKey] || '')
+                            : '';
+                        localServerCustomInput.value = presetArgs;
+                    }
                 }
                 updateLocalServerPresetTooltip(presetValue);
             }
@@ -1236,13 +1256,15 @@ function getHtml(params: {
                     if (!(localServerPresetSelect instanceof HTMLSelectElement) || localServerPresetSelect.value !== 'Custom') {
                         return;
                     }
+                    // Save the custom value to the variable
+                    savedCustomValue = String(localServerCustomInput.value || '').trim();
                     if (localServerCustomSaveTimer) {
                         clearTimeout(localServerCustomSaveTimer);
                     }
                     localServerCustomSaveTimer = setTimeout(() => {
                         vscode.postMessage({
                             type: 'saveLocalServerCustom',
-                            value: String(localServerCustomInput.value || '').trim()
+                            value: savedCustomValue
                         });
                     }, 400);
                 };

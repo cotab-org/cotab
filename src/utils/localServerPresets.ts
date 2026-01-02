@@ -6,12 +6,13 @@ interface LocalServerPresetConfig {
 
 const LOCAL_SERVER_PRESET_CONFIGS: readonly LocalServerPresetConfig[] = [
     { key: 'Custom',                                                visible: true,  args: '' },
-    { key: '----------------- Low VRAM Model -----------------',    visible: false, args: '' },
+    { key: '----------------- Low VRAM Models -----------------',   visible: false, args: '' },
+    { key: '[LFM2-2.6B:Q4] [VRAM 3GB] HardlyUsable',                visible: false, args: '-hf LiquidAI/LFM2-2.6B-GGUF:LFM2-2.6B-Q4_K_M --temp 0.3 --top-p 0.9 --top-k 40 --min-p 0.15 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu -ctk q8_0 -ctv q8_0' },
     { key: '[granite-4.0-micro:Q3] [VRAM 4GB] NotRecommended',      visible: false, args: '-hf unsloth/granite-4.0-micro-GGUF:granite-4.0-micro-UD-Q3_K_XL --temp 0.0 --top-p 1.0 --top-k 0 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu -ctk q8_0 -ctv q8_0' },
-    { key: '------------------- Fast Model -------------------',    visible: true,  args: '' },
+    { key: '------------------- Fast Models -------------------',   visible: true,  args: '' },
     { key: '[Qwen3-4B-2507:Q3] [VRAM 5GB] LowQuality',              visible: false, args: '-hf unsloth/Qwen3-4B-Instruct-2507-GGUF:Qwen3-4B-Instruct-2507-UD-IQ3_XXS --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu -ctk q8_0 -ctv q8_0' },
     { key: '[Qwen3-4B-2507:Q4] [VRAM 6GB] Balanced',                visible: true,  args: '-hf unsloth/Qwen3-4B-Instruct-2507-GGUF:Qwen3-4B-Instruct-2507-UD-Q4_K_XL --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu -ctk q8_0 -ctv q8_0' },
-    { key: '---------------- High Quality Model --------------',    visible: true,  args: '' },
+    { key: '---------------- High Quality Models --------------',   visible: true,  args: '' },
     { key: '[Qwen3-Coder-30B:Q1] [VRAM 11GB] LowQuality-Fast',      visible: false, args: '-hf unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Qwen3-Coder-30B-A3B-Instruct-UD-IQ1_S --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu -ctk q8_0 -ctv q8_0' },
     { key: '[Qwen3-Coder-30B:Q2] [VRAM 4GB] Quality-VerySlow',      visible: false, args: '-hf unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Qwen3-Coder-30B-A3B-Instruct-UD-IQ2_M --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu --n-cpu-moe 48 -ctk q8_0 -ctv q8_0' },
     { key: '[Qwen3-Coder-30B:Q2] [VRAM 8GB] HighQuality-Slow',      visible: false, args: '-hf unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Qwen3-Coder-30B-A3B-Instruct-UD-IQ2_M --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0.01 --repeat-penalty 1.05 --jinja -fa on -ngl 999 -kvu --n-cpu-moe 35' },
