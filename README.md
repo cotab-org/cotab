@@ -135,23 +135,23 @@ Qwen3-4B-Instruct-2507 also delivers high-quality translations, but in this use 
   |![spinner normal](doc/github-asset/readme-spinner-0.png)|Completing after current line|
   
 ## About Available Models
-- All text generation models are available, but powerful instruction-following performance is required for local code generation. (Instruction-following performance refers to the ability to strictly follow prompt rules and avoid rule violations.)
+All text generation models are available, but powerful instruction-following performance is required for local code generation. (Instruction-following performance refers to the ability to strictly follow prompt rules and avoid rule violations.)
 
 - Qwen3-Coder-30B-A3B
 
-80% of the model is allocated to code learning, providing high-quality completion comparable to cloud services. Furthermore, since the actual computation is equivalent to 3B, it operates at high speed like small models. This model can adjust VRAM usage without significantly degrading performance, so Cotab provides presets that work in 4GB or 8GB environments.
+  80% of the model is allocated to code learning, providing high-quality completion comparable to cloud services. Furthermore, since the actual computation is equivalent to 3B, it operates at high speed like small models. This model can adjust VRAM usage without significantly degrading performance, so Cotab provides presets that work in 4GB or 8GB environments.
 
 - Qwen3-4B-Instruct-2507
 
-Despite its very small size of 4B, it has outstanding instruction-following performance and high performance in fields such as mathematics, providing fast and high-quality completion in Cotab.
+  Despite its very small size of 4B, it has outstanding instruction-following performance and high performance in fields such as mathematics, providing fast and high-quality completion in Cotab.
 
 - granite-4.0-micro
 
-It has high instruction-following performance and operates with less VRAM than Qwen3-4B-Instruct-2507, but it is not recommended because it often generates poor quality completions in Cotab.
+  It has high instruction-following performance and operates with less VRAM than Qwen3-4B-Instruct-2507, but it is not recommended because it often generates poor quality completions in Cotab.
 
 - LFM2-2.6B
 
-It is designed to operate at more than twice the speed of Qwen3-4B-Instruct-2507 with only VRAM 3GB usage. Despite this, it has high instruction-following performance, but it is not recommended because cases where code breaks have been observed in Cotab's code completion. It can be used when VRAM requirements are very strict or for translation purposes.
+  It is designed to operate at more than twice the speed of Qwen3-4B-Instruct-2507 with only VRAM 3GB usage. Despite this, it has high instruction-following performance, but it is not recommended because cases where code breaks have been observed in Cotab's code completion. It can be used when VRAM requirements are very strict or for translation purposes.
 
 ## Privacy and Telemetry
 - Cotab only communicates with the default endpoint `"http://localhost:8080/v1"` or the LLM API specified by the user. No other external services or servers are contacted. This ensures maximum privacy and security.

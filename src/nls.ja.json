@@ -4,6 +4,7 @@
   "gettingStarted.setupServer": "サーバーセットアップ",
   "gettingStarted.preset": "プリセット",
   "gettingStarted.showAllPresets": "全プリセット表示",
+  "gettingStarted.aboutAvailableModels": "利用モデルについて",
   "gettingStarted.customArgsPlaceholder": "llama-server引数を入力",
   "gettingStarted.contextSize": "コンテキストサイズ",
   "gettingStarted.contextSizeTooltip": "必須:\n - 16k (16384) 以上を設定してください。\n\n推奨:\n - 32k (32768) 以上を設定してください。\n\n理由:\n - システムプロンプトは約5kを使用し、1,000行のコードはさらに約12kを使用します。\n - そのため、コンテキストウィンドウを20k (20480) 以上に設定してください。\n\nデフォルトモデル (Qwen3-4B-Instruct-2507) のVRAM使用量:\n - 16k: 約4 GB\n - 32k: 約5.5 GB",

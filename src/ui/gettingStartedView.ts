@@ -333,6 +333,12 @@ async function handleWebviewMessage(panel: vscode.WebviewPanel, msg: any): Promi
                 }, 1000);
             }
         }
+        else if (msg?.type === 'openExternal') {
+            const url = String(msg.url || '');
+            if (url) {
+                await vscode.env.openExternal(vscode.Uri.parse(url));
+            }
+        }
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         console.error('[cotab] Failed to save setting:', errorMessage);
@@ -397,6 +403,19 @@ function getHtml(params: {
     const localServerCustom = escapeHtml(params.localServerCustom || '');
     const isCustomPreset = localServerPresetValue === 'Custom';
     const presetArgsValue = isCustomPreset ? localServerCustom : (presetTooltipMap[localServerPresetValue] || '');
+    
+    // Generate README link based on language
+    const language = vscode.env.language || 'en';
+    let readmeFile = 'README.md';
+    let anchor = 'about-available-models';
+    if (language.startsWith('ja')) {
+        readmeFile = 'README.ja.md';
+        anchor = '%E5%88%A9%E7%94%A8%E3%83%A2%E3%83%87%E3%83%AB%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6';
+    } else if (language.startsWith('zh')) {
+        readmeFile = 'README.zh-cn.md';
+        anchor = '%E5%85%B3%E4%BA%8E%E5%8F%AF%E7%94%A8%E6%A8%A1%E5%9E%8B';
+    }
+    const readmeUrl = `https://github.com/cotab-org/cotab/blob/main/${readmeFile}#${anchor}`;
     const initialState = JSON.stringify(params.initial);
     // Prepare shared SVG URIs for consistent UI
     const assetsJson = JSON.stringify({
@@ -406,6 +425,7 @@ function getHtml(params: {
         networkLbl: buildNetworkServerLabelSvgDataUri(localize('gettingStarted.server.network', 'Network Server Running'), 'purple'),
         unsupportedLbl: buildNetworkServerLabelSvgDataUri(localize('gettingStarted.server.unsupported', 'Install Not Supported'), 'gray')
     });
+    const readmeUrlJson = JSON.stringify(readmeUrl);
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -794,6 +814,9 @@ function getHtml(params: {
                         <span>${localize('gettingStarted.showAllPresets', 'Show All')}</span>
                     </label>
                 </div>
+                <div class="row" style="justify-content: center; margin-top: 8px;">
+                    <a id="aboutAvailableModelsLink" href="javascript:void(0)" style="color: var(--vscode-textLink-foreground); text-decoration: none; font-size: 13px;">${localize('gettingStarted.aboutAvailableModels', 'About Available Models')}</a>
+                </div>
             </div>
             <div id="context-size-container" class="setting-group" title="${escapeHtml(localize('gettingStarted.contextSizeTooltip', 'Required:\n - set 16k (16384) or more.\n\nRecommended:\n - set 32k (32768) or more.\n\nReason:\n - The system prompt uses about 5k, and 1,000 lines of code use about 12k more.\n - so please set the context window to 20k (20480) or more.\n\nThe default model (Qwen3-4B-Instruct-2507) VRAM usage:\n - 16k: about 4 GB\n - 32k: about 5.5 GB').replace(/\n/g, '&#10;'))}">
                 <label for="localServerContextSlider">${localize('gettingStarted.contextSize', 'Context Size')}</label>
@@ -937,6 +960,7 @@ function getHtml(params: {
             const presetTooltipMap = ${presetTooltipMapJson};
             const presetVisibilityMap = ${presetVisibilityMapJson};
             const assets = ${assetsJson};
+            const readmeUrl = ${readmeUrlJson};
             console.log('[cotab] quickSetup assets loaded', assets);
             
             // Keep the custom value entered by the user
@@ -1330,6 +1354,14 @@ function getHtml(params: {
                     if (commandId) {
                         vscode.postMessage({ type: 'executeCommand', command: commandId });
                     }
+                });
+            }
+
+            const aboutAvailableModelsLink = document.getElementById('aboutAvailableModelsLink');
+            if (aboutAvailableModelsLink) {
+                aboutAvailableModelsLink.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    vscode.postMessage({ type: 'openExternal', url: readmeUrl });
                 });
             }
         </script>
