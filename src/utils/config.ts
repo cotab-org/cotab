@@ -5,6 +5,7 @@ import { isDarkTheme } from './cotabUtil';
 import { logDebug, LogLevel } from './logger';
 import type { LocalServerPreset } from './localServerPresets';
 import { DEFAULT_LOCAL_SERVER_CUSTOM_ARGS, DEFAULT_LOCAL_SERVER_PRESET } from './localServerPresets';
+import { terminalCommand } from './terminalCommand';
 
 export type { LocalServerPreset } from './localServerPresets';
 
@@ -144,7 +145,8 @@ function getConfigRaw(): CotabConfig {
     const themeName = getActiveThemeName();
     const settingApiBaseURL = cfg.get<string>('cotab.llm.apiBaseURL', '').trim();
     const localServerPort = cfg.get<number>('cotab.llm.localServerPort', 9339);
-    const apiBaseURL = (settingApiBaseURL !== '') ? settingApiBaseURL : `http://127.0.0.1:${localServerPort}/v1`;
+    const isLocalServerRunning = terminalCommand.isRunningLocalLlamaServerWithCacheNoWait();
+    const apiBaseURL = (!isLocalServerRunning && settingApiBaseURL !== '') ? settingApiBaseURL : `http://127.0.0.1:${localServerPort}/v1`;
     const logLevelStr = cfg.get<string>('cotab.detail.logLevel', 'INFO');
     const logLevel = logLevelStr === 'ERROR' ? LogLevel.error :
                     logLevelStr === 'WARNING' ? LogLevel.warning :

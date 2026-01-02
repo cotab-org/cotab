@@ -744,6 +744,9 @@ class TerminalCommand implements vscode.Disposable {
                 });
             }
         } finally {
+            // call check for update cache.
+            this.isRunningLocalLlamaServer();
+            
             // Update menu until changed
             requestUpdateCotabMenuUntilChanged();
         }
@@ -804,6 +807,21 @@ class TerminalCommand implements vscode.Disposable {
         else {
             // If cache is invalid or not present, perform the actual check
             return await this.isRunningLocalLlamaServer();
+        }
+    }
+    
+    public isRunningLocalLlamaServerWithCacheNoWait(): boolean {
+        const { valid, result } = this.isRunningLocalLlamaServerCache();
+
+        if (valid) {
+            return result;
+        }
+        else {
+            // If cache is invalid or not present, perform the actual check
+            this.isRunningLocalLlamaServer();
+
+            // old cache
+            return this.serverRunningCache?.result ?? false;
         }
     }
     
