@@ -117,6 +117,17 @@ class TerminalCommand implements vscode.Disposable {
         }
     }
 
+    private async extractTarGz(tarGzPath: string, extractPath: string): Promise<void> {
+        try {
+            const exec = util.promisify(cp.exec);
+            // Use tar for Unix-like systems (Ubuntu)
+            await exec(`tar -xzf '${tarGzPath}' -C '${extractPath}'`);
+        } catch (error) {
+            logError(`Failed to extract tar.gz file: ${error}`);
+            throw error;
+        }
+    }
+
     private findFileRecursive(rootDir: string, targetFileName: string): string | undefined {
         const entries = fs.readdirSync(rootDir, { withFileTypes: true });
         for (const entry of entries) {
@@ -155,7 +166,7 @@ class TerminalCommand implements vscode.Disposable {
         }
         else if (osInfo.platform === 'ubuntu') {
             if (osInfo.cpu === 'x64') {
-                return `bin-${osInfo.platform}-vulkan-${osInfo.cpu}.zip`;
+                return `bin-${osInfo.platform}-vulkan-${osInfo.cpu}.tar.gz`;
             }
         }
         return '';
@@ -173,12 +184,12 @@ class TerminalCommand implements vscode.Disposable {
         ///// mac
         // like `b7216/llama-b7216-bin-macos-x64.zip`
         ///// ubuntu
-        // like `llama-b7216-bin-ubuntu-vulkan-x64.zip`
+        // like `llama-b7216-bin-ubuntu-vulkan-x64.tar.gz`
         
         const platform = `-${osInfo.platform}`;
         let gpu = (osInfo.gpu === 'none' || osInfo.gpu === 'unknown') ? '' : `-${osInfo.gpu}`;
         const cpu = `-${osInfo.cpu}`;
-        const ext = '.zip'
+        let ext = '.zip'
         let cudartName = '';
         if (osInfo.platform === 'win' && osInfo.gpu === 'cuda') {
             gpu = `-${osInfo.gpu}${cudaVer}`;
@@ -187,7 +198,7 @@ class TerminalCommand implements vscode.Disposable {
             
         }
         else if (osInfo.platform === 'ubuntu') {
-            //ext = '.tar.gz';
+            ext = '.tar.gz';
         }
 
         const mainName = `bin${platform}${gpu}${cpu}${ext}`;
@@ -268,7 +279,7 @@ class TerminalCommand implements vscode.Disposable {
             }
         }
         
-        // Extract version from mainBinary.name (e.g., "llama-b7216-bin-win-vulkan-x64.zip" -> "b7216")
+        // Extract version from mainBinary.name (e.g., "llama-b7216-bin-win-vulkan-x64.zip" or "llama-b7216-bin-ubuntu-vulkan-x64.tar.gz" -> "b7216")
         let version = ''; // fallback to tag_name
         if (mainBinary && mainBinary.name) {
             const versionMatch = mainBinary.name.match(/llama-(b\d+)/);
@@ -309,17 +320,21 @@ class TerminalCommand implements vscode.Disposable {
 
             // Download llama.cpp binary
             logTerminal(`[Install] Downloading ${mainBinary.name}...`);
-            const mainZipPath = path.join(installDir, mainBinary.name);
-            await this.downloadFile(mainBinary.browser_download_url, mainZipPath);
+            const mainArchivePath = path.join(installDir, mainBinary.name);
+            await this.downloadFile(mainBinary.browser_download_url, mainArchivePath);
 
             // Extract llama.cpp binary
             logTerminal('[Install] Extracting llama.cpp archive...');
-            await this.extractZip(mainZipPath, installDir);
+            if (osInfo.platform === 'ubuntu' && mainBinary.name.endsWith('.tar.gz')) {
+                await this.extractTarGz(mainArchivePath, installDir);
+            } else {
+                await this.extractZip(mainArchivePath, installDir);
+            }
             
             try {
-                fs.unlinkSync(mainZipPath);
+                fs.unlinkSync(mainArchivePath);
             } catch (removeError) {
-                logWarning(`[Install] Failed to remove archive ${mainZipPath}: ${removeError}`);
+                logWarning(`[Install] Failed to remove archive ${mainArchivePath}: ${removeError}`);
             }
 
             // Download CUDA runtime
