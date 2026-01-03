@@ -44,7 +44,11 @@ export function logDebug(message: string) {
 }
 
 export function logServer(message: string) {
-	log(LogLevel.server, '[SERVER]', message);
+	// \r\n -> \n
+	const normalizedMessage = message.replace(/\r\n/g, '\n');
+	// remove last \n
+	const txt = normalizedMessage.endsWith('\n') ? normalizedMessage.slice(0, -1) : normalizedMessage;
+	log(LogLevel.server, '[SERVER]', txt);
 }
 
 export function logTerminal(message: string) {
