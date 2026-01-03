@@ -31,7 +31,7 @@ Unless explicitly instructed, output the input document exactly as provided, exc
 - Do not change tabs, indentation, line breaks, heading levels, or bullet markers.
 - Preserve all formatting exactly as-is, except for the minimal corrected characters.
 </EDITING_RULES>
-
+<|CONTEXT_CHECKPOINT|>
 <TEXT_INPUT>
 \`\`\`
 {{aroundSnippetWithPlaceholderWithLine}}

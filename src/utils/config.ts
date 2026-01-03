@@ -44,6 +44,7 @@ export interface CotabConfig {
     settingApiBaseURL: string;
     apiBaseURL: string;
     apiKey: string;
+    isEnableCheckpoint: boolean;
     localServerPreset: LocalServerPreset;
     localServerCustom: string;
     localServerPort: number;
@@ -146,7 +147,11 @@ function getConfigRaw(): CotabConfig {
     const settingApiBaseURL = cfg.get<string>('cotab.llm.apiBaseURL', '').trim();
     const localServerPort = cfg.get<number>('cotab.llm.localServerPort', 9339);
     const isLocalServerRunning = terminalCommand.isRunningLocalLlamaServerWithCacheNoWait();
-    const apiBaseURL = (!isLocalServerRunning && settingApiBaseURL !== '') ? settingApiBaseURL : `http://127.0.0.1:${localServerPort}/v1`;
+    const isRemote = (!isLocalServerRunning && settingApiBaseURL !== '');
+    const model = cfg.get<string>('cotab.llm.model', 'qwen3-4b-2507');
+    const isRemoteModelEnableCheckpoint = model.includes('lfm2');
+    const apiBaseURL = isRemote ? settingApiBaseURL : `http://127.0.0.1:${localServerPort}/v1`;
+    const isEnableCheckpoint = isRemote ? isRemoteModelEnableCheckpoint : terminalCommand.isEnableCheckpoint();
     const logLevelStr = cfg.get<string>('cotab.detail.logLevel', 'INFO');
     const logLevel = logLevelStr === 'ERROR' ? LogLevel.error :
                     logLevelStr === 'WARNING' ? LogLevel.warning :
@@ -182,12 +187,13 @@ function getConfigRaw(): CotabConfig {
         settingApiBaseURL,
         apiBaseURL,
         apiKey: cfg.get<string>('cotab.llm.apiKey', '').trim(),
+        isEnableCheckpoint,
         localServerPreset: cfg.get<LocalServerPreset>('cotab.llm.localServerPreset', DEFAULT_LOCAL_SERVER_PRESET),
         localServerCustom: cfg.get<string>('cotab.llm.localServerCustom', DEFAULT_LOCAL_SERVER_CUSTOM_ARGS),
         localServerPort,
         localServerContextSize: cfg.get<number>('cotab.llm.localServerContextSize', 32768),
         localServerCacheRam: cfg.get<number>('cotab.llm.localServerCacheRam', 4096),
-        model: cfg.get<string>('cotab.llm.model', 'qwen3-4b-2507'),
+        model,
         temperature: cfg.get<number>('cotab.llm.temperature', 0.1),
         top_p: cfg.get<number>('cotab.llm.top_p', -1), // eslint-disable-line @typescript-eslint/naming-convention
         top_k: cfg.get<number>('cotab.llm.top_k', -1), // eslint-disable-line @typescript-eslint/naming-convention

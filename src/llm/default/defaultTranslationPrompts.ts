@@ -63,7 +63,7 @@ The translation must be exact and free of misleading statements.
 - If the input contains shorthand, abbreviations, or non-grammatical notes, normalize them only as needed for clarity while preserving meaning.
 - Even if multiple languages are mixed, translate all of them into "{{commentLanguage}}".
 </TRANSLATION_RULES>
-
+<|CONTEXT_CHECKPOINT|>
 <TEXT_INPUT>
 \`\`\`{{languageId}}
 {{aroundSnippetWithPlaceholderWithLine}}

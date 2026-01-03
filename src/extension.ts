@@ -18,6 +18,7 @@ import { registerYamlConfig } from './utils/yamlConfig';
 import { registerGettingStartedView } from './ui/gettingStartedView';
 import { checkAndUpdatePluginVersion } from './utils/systemConfig';
 import { registerViewChangelog } from './ui/viewChangelog';
+import { registerLlmProvider } from './llm/llmProvider';
 
 const cotabDisposables: vscode.Disposable[] = [];
 let cotabPrevEnabled: boolean = false;
@@ -106,6 +107,9 @@ function cotabActive() {
 
 	// spinner icon. line left decoration
 	registerProgressGutterIcon(cotabDisposables);
+
+	// Clear context checkpoints when text document changes
+	registerLlmProvider(cotabDisposables);
 }
 
 function cotabDeactive() {

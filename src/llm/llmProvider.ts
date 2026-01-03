@@ -33,6 +33,20 @@ export interface AiClient {
 // Type definition for completion reason
 export type CompletionEndReason = 'maxLines' | 'streamEnd' | 'aborted' | 'exceedContextSize' | 'error';
 
+export function registerLlmProvider(disposables: vscode.Disposable[]) {
+    // Clear context checkpoints when text document changes
+    disposables.push(vscode.workspace.onDidChangeTextDocument((_evt: vscode.TextDocumentChangeEvent) => {
+        clearContextCheckpoints();
+    }));
+}
+
+/**
+ * Clear context checkpoints
+ */
+export function clearContextCheckpoints(): void {
+	contextCheckpoints.messages = [];
+}
+
 function toAbortSignal(token?: vscode.CancellationToken): { signal?: AbortSignal; dispose: () => void } {
 	if (!token) return { signal: undefined, dispose: () => {} };
 	const controller = new AbortController();
@@ -201,75 +215,107 @@ async function processStreamingResponse(
 	});
 }
 
-/*
+// llama.cppの現在の実装で、LFM2などのサイクル型コンテキストキャッシュを使うモデルは、
+// コンテキストキャッシュがリクエスト単位で作られるため、
+// 一度区切りでChatCompletionを呼び出して、llama.cpp内部のコンテキストキャッシュのチェックポイントを作成させる必要がある。
 class ContextCheckpoints {
 	public messages: any[] = [];
 
 	async createCheckpoints(
 		http: AxiosInstance,
 		endpoint: string,
-		arg: any,
-		params: CompletionParams,
+		orgArgs: any,
+		orgParams: CompletionParams,
 		signal: AbortSignal | undefined) {
 			
-		// Clone params
-		const checkpointParams = { ...params };
-		checkpointParams.onUpdate = (partial) => {
-			logDebug(`Context checkpoint update received: ${partial}`);
-			return true;
-		};
-		checkpointParams.onComplete = (reason, finalResult) => {
-			logDebug(`Completion reason: ${reason}, result: ${finalResult}`);
-		};
-
-		// Clone args
-		const checkpointArgs = { ...arg };
-		checkpointArgs.max_tokens = 1;
-		
-		const orgMessages = arg.messages;
-		checkpointArgs.messages = [];
-		for (const orgMessage of orgMessages) {
-			const checkpointMessage = { ...orgMessage };
-			checkpointMessage.content = "";
-			checkpointArgs.messages.push(checkpointMessage);
-
-			const orgContentParts = orgMessage.content.split('<|CONTEXT_CHECKPOINT|>');
-			for (const part of orgContentParts) {
-				checkpointMessage.content += part;
-				
-				let isCached = true;
-				const len = Math.min(this.messages.length, checkpointArgs.messages.length);
-				if (this.messages.length < checkpointArgs.messages.length) {
-					isCached = false;
+		try {
+			// Clone params
+			const newParams = { ...orgParams };
+			newParams.onUpdate = (partial) => {
+				logDebug(`Context checkpoint update received: ${partial}`);
+				return true;
+			};
+			newParams.onComplete = (reason, finalResult) => {
+				logDebug(`Completion reason: ${reason}, result: ${finalResult}`);
+			};
+			
+			// Loop from the end of orgArgs.messages, discard all entries that do not contain '<|CONTEXT_CHECKPOINT|>'.
+			// Once an entry containing '<|CONTEXT_CHECKPOINT|>' is found, keep all entries before it.
+			let lastNum = orgArgs.messages.length - 1;
+			for (const orgMessage of [...orgArgs.messages].reverse()) {
+				if (orgMessage.content.includes('<|CONTEXT_CHECKPOINT|>')) {
+					break;
 				}
-				else {
-					for (let i = 0; i < len; i++) {
-						if (this.messages[i].content !== checkpointArgs.messages[i].content) {
-							isCached = false;
-							break;
+				lastNum--;
+			}
+			let checkMessages = [];
+			for (let i = 0; i <= lastNum; i++) {
+				checkMessages.push({ ...orgArgs.messages[i] });
+			}
+
+			// Clone args
+			const newArgs = { ...orgArgs };
+			newArgs.max_tokens = 1;
+			newArgs.messages = [];
+
+			let orgMessageIdx = -1;
+			for (const orgMessage of checkMessages) {
+				orgMessageIdx++;
+				const newMessage = { ...orgMessage };
+				newMessage.content = "";
+				newArgs.messages.push(newMessage);
+
+				let orgContentpartIdx = -1;
+				const orgContentParts = orgMessage.content.split('<|CONTEXT_CHECKPOINT|>');
+				for (const orgContentpart of orgContentParts) {
+					orgContentpartIdx++;
+					// Do not cache the last context
+					if (orgMessageIdx == checkMessages.length - 1 &&
+						orgContentpartIdx == orgContentParts.length - 1) {
+						return;
+					}
+					
+					newMessage.content += orgContentpart;
+					
+					// Check cachecheckpoint
+					let isCached = true;
+					const len = Math.min(this.messages.length, newArgs.messages.length);
+					if (this.messages.length < newArgs.messages.length) {
+						isCached = false;
+					}
+					else {
+						for (let i = 0; i < len; i++) {
+							if (this.messages[i].content !== newArgs.messages[i].content) {
+								isCached = false;
+								break;
+							}
 						}
 					}
-				}
-				
-				if (! isCached)
-				{
-					this.messages = checkpointArgs.messages;
-					const res = await http.post(endpoint, checkpointArgs, { 
-						// If cancel signal is sent too early and communication ends, llama-server may miss task cancellation,
-						// so don't pass signal directly
-			//				signal,
-						responseType: 'stream'
-					});
-					logDebug(`Chat response reception started ${params.streamCount}th time`);
-					await processStreamingResponse(res, signal, checkpointParams);
+					
+					if (! isCached)
+					{
+						const res = await http.post(endpoint, newArgs, { 
+							// If cancel signal is sent too early and communication ends, llama-server may miss task cancellation,
+							// so don't pass signal directly
+							signal, // fix b7037
+							responseType: 'stream',
+							validateStatus: () => true,	// no exception for status code 400
+						});
+						logDebug(`Chat response reception started ${orgParams.streamCount}th time`);
+						await processStreamingResponse(res, signal, newParams);
+
+						// Update cache
+						this.messages = newArgs.messages;
+					}
 				}
 			}
+		} catch (error) {
+			logError(`Error in createCheckpoints: ${error}`);
 		}
 	}
 }
 
 const contextCheckpoints: ContextCheckpoints = new ContextCheckpoints();
-*/
 
 // Base class - provides common functionality
 abstract class BaseAiClient implements AiClient {
@@ -357,7 +403,7 @@ abstract class BaseAiClient implements AiClient {
 				...(params.assistantPrompt ? [{ role: 'assistant', content: params.assistantPrompt }] : []),
 			];
 			logDebug(`Chat request sending started ${params.streamCount}th time`);
-			const arg: any = {// eslint-disable-line @typescript-eslint/no-explicit-any
+			const args: any = {// eslint-disable-line @typescript-eslint/no-explicit-any
 				model: params.model ?? this.model,
 				messages,
 				max_tokens: params.maxTokens ?? this.maxTokens, // eslint-disable-line @typescript-eslint/naming-convention
@@ -368,26 +414,26 @@ abstract class BaseAiClient implements AiClient {
 			const temperature: number = params.temperature ?? this.temperature;
 			const top_p: number = params.top_p ?? this.top_p; // eslint-disable-line @typescript-eslint/naming-convention
 			const top_k: number = params.top_k ?? this.top_k; // eslint-disable-line @typescript-eslint/naming-convention
-			if (0 <= temperature) arg.temperature = temperature;
-			if (0 <= top_p) arg.top_p = top_p;
-			if (0 <= top_k) arg.top_k = top_k;
+			if (0 <= temperature) args.temperature = temperature;
+			if (0 <= top_p) args.top_p = top_p;
+			if (0 <= top_k) args.top_k = top_k;
 			
-			/*
+			const config = getConfig();
+			// if (config.isEnableCheckpoint) // 常に実行してもそこまで害はない。
 			{
 				await contextCheckpoints.createCheckpoints(
 					http,
 					this.getChatEndpoint(),
-					arg,
+					args,
 					params,
 					signal);
 			}
 			// Remove checkpoint from messages
-			for (let message of arg.messages) {
+			for (let message of args.messages) {
 				message.content = message.content.split('<|CONTEXT_CHECKPOINT|>').join('');
 			}
-			*/
 
-			const res = await http.post(this.getChatEndpoint(), arg, { 
+			const res = await http.post(this.getChatEndpoint(), args, { 
 				// If cancel signal is sent too early and communication ends, llama-server may miss task cancellation,
 				// so don't pass signal directly
 				signal, // fix b7037

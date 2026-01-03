@@ -109,7 +109,7 @@ You must ensure that all inserted comments are properly line-broken, meaning the
 You will write program comments in "{{commentLanguage}}".
 
 The provided source code may also be outdated, so You must retrieve the latest version. You am required to always refer to this latest source code.
-The retrieved latest source code is as follows:
+The retrieved latest source code is as follows:<|CONTEXT_CHECKPOINT|>
 <LATEST_CODE_INPUT>
 # VERSION: 2
 {{latestSourceCodeBlockWithCache}}

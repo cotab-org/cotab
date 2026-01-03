@@ -30,7 +30,7 @@ Unless explicitly instructed, output the input message exactly as provided, exce
 - Do not change tone beyond making it neutral, polite, and business-appropriate.
 - Preserve all formatting, line breaks, indentation, lists, and spacing exactly as-is.
 </EDITING_RULES>
-
+<|CONTEXT_CHECKPOINT|>
 <TEXT_INPUT>
 \`\`\`
 {{aroundSnippetWithPlaceholderWithLine}}

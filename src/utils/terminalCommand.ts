@@ -14,6 +14,7 @@ import { logInfo, logWarning, logError, logServer, logTerminal, showLogWindow } 
 import { requestUpdateCotabMenuUntilChanged } from '../ui/menuIndicator';
 import { updateLlamaCppVersion } from './systemConfig';
 import { YamlConfigMode } from '../utils/yamlConfig';
+import { clearContextCheckpoints } from '../llm/llmProvider';
 
 // Configure nls and load message bundle
 const localize = nls.config({ bundleFormat: nls.BundleFormat.standalone })(path.join(__dirname, 'utils/terminalCommand'));
@@ -36,6 +37,7 @@ class TerminalCommand implements vscode.Disposable {
     private installTerminal: vscode.Terminal | undefined;
     private serverProcess!: cp.ChildProcessWithoutNullStreams;
     private serverRunningCache: { result: boolean; timestamp: number } | null = null;
+    private isServerEnableCheckpoint: boolean = false;
 
     private getInstallBaseDir(): string {
         if (process.platform === 'win32') {
@@ -636,6 +638,7 @@ class TerminalCommand implements vscode.Disposable {
     }
 
     public runLocalLlamaServer(args: string[]): void {
+        this.isServerEnableCheckpoint = false;
         this.runLocalLlamaServerInternal(args);
     }
 
@@ -729,6 +732,11 @@ class TerminalCommand implements vscode.Disposable {
                     } else {
                         logServer(`${text}`);
                     }
+                    
+                    // if existing this comment to enabled checkpoint.
+                    if (text.includes('llama_memory_recurrent')) {
+                        this.isServerEnableCheckpoint = true;
+                    }
                 });
             }
             if (this.serverProcess.stderr) {
@@ -740,6 +748,11 @@ class TerminalCommand implements vscode.Disposable {
                         logs.push(text);
                     } else {
                         logServer(`${text}`);
+                    }
+                    
+                    // if existing this comment to enabled checkpoint.
+                    if (text.includes('llama_memory_recurrent')) {
+                        this.isServerEnableCheckpoint = true;
                     }
                 });
             }
@@ -759,6 +772,8 @@ class TerminalCommand implements vscode.Disposable {
                 });
             }
         } finally {
+            clearContextCheckpoints();
+
             // call check for update cache.
             this.isRunningLocalLlamaServer();
             
@@ -957,5 +972,13 @@ class TerminalCommand implements vscode.Disposable {
             // Update menu until changed
             requestUpdateCotabMenuUntilChanged();
         }
+    }
+
+    /**
+     * Check if checkpoint is enabled by checking if logs contain 'llama_memory_recurrent'
+     * @returns true if 'llama_memory_recurrent' is found in server logs, false otherwise
+     */
+    public isEnableCheckpoint(): boolean {
+        return this.isServerEnableCheckpoint;
     }
 }
