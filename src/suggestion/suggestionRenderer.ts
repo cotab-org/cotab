@@ -292,7 +292,7 @@ export function renderSuggestions(editor: vscode.TextEditor): {
 			}
 		}
 		if (!isOverlay && suggestion.line === suggestion.editedLine &&
-			suggestion.line !== activeLine &&
+			//suggestion.line !== activeLine &&
 			suggestion.type === 'add') {
 			isOverlay = true;
 		}
