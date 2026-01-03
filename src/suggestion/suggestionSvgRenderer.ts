@@ -107,14 +107,12 @@ async function renderSvgOverlaysInternal(
 		//const defaultColor = tryGetDefaultForeground(highlighter) || (isUnfinished ? overlayColors.unfinishedFontColor : overlayColors.fontColor);
 
 		const decos: vscode.DecorationOptions[] = [];
-		const svgUri = await buildSvgDataUriWithShiki(
+		const svgData = await buildSvgDataUriWithShiki(
 				sliced,
 				isUnfinished,
 				languageId,
 				options.isNoHighligh
 			);
-		const svgData = svgUri;
-		const iconUri = svgData.uri;
 		const startline = sliced[0].line;
 		const marginLeftCh = sliced[0].marginLeftCh;
 		const endLine = sliced[sliced.length - 1].line;
@@ -127,7 +125,7 @@ async function renderSvgOverlaysInternal(
 			range: new vscode.Range(startline, 0, endLine, 0),
 			renderOptions: {
 				before: {
-					contentIconPath: iconUri,
+					contentIconPath: svgData.uri,
 					width: `${Math.ceil(svgData.width)}px`,
 					height: `${Math.ceil(svgData.height)}px`,
 					textDecoration: `;
@@ -486,7 +484,7 @@ function escapeForSVG(text: string): string {
     .replace(/\r/g, "\\r"); // carriage returns
 }
 
-async function getTextWidth(text: string, editor?: vscode.TextEditor): Promise<number> {
+export async function getTextWidth(text: string, editor?: vscode.TextEditor): Promise<number> {
 	const config = getConfig();
 	try {
 		const ed = editor || vscode.window.activeTextEditor;

@@ -130,14 +130,14 @@ export async function acceptFirstLineSuggestionCmd() {
     await acceptSuggestionCmdInternal(false);
 }
 
-// async function jumpToSuggestion(editor: vscode.TextEditor, line: number) {
-// 	const position = new vscode.Position(line, 0);
-// 	editor.selection = new vscode.Selection(position, position);
-// 	await vscode.commands.executeCommand('editor.action.inlineSuggest.trigger');
-// 	editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.Default);
+async function jumpToSuggestion(editor: vscode.TextEditor, line: number) {
+	const position = new vscode.Position(line, 0);
+	editor.selection = new vscode.Selection(position, position);
+	await vscode.commands.executeCommand('editor.action.inlineSuggest.trigger');
+	editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.Default);
 
-// 	renderSuggestions(editor);
-// }
+	//await renderSuggestions(editor);
+}
 
 async function acceptSuggestionInternal(isFullAccept: boolean) {
 	const editor = vscode.window.activeTextEditor;
@@ -145,7 +145,11 @@ async function acceptSuggestionInternal(isFullAccept: boolean) {
 
 	const docUri = editor.document.uri;
 	const mergedData = getMergedSuggestions(docUri, isFullAccept);
-	if (mergedData.edits.size == 0) {
+    if (0 <= mergedData.nextEditLine) {
+        await jumpToSuggestion(editor, mergedData.nextEditLine);
+        return true;
+    }
+	else if (mergedData.edits.size == 0) {
         return false;
     }
 	logDebug(`Accepting ${mergedData.edits.size} suggestions`);

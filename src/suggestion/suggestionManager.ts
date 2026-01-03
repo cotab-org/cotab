@@ -302,10 +302,16 @@ ${assistantPrompt}
             isCompletedFirstLine: boolean,
             isStopped: boolean,
             isCompletedCursorLine: boolean,
-            isAbort: boolean
+            isAbort: boolean,
+            nextEditLine: number
         } => {
             // Detect differences and create edit data
-            const { originalDiffOperations, edits, trimed, finalLineNumber, isAbort } = processDiffAndApplyEdits(
+            const { originalDiffOperations,
+                edits,
+                trimed,
+                finalLineNumber,
+                isAbort,
+                nextEditLine } = processDiffAndApplyEdits(
                 llmOutputText,
                 beforePlaceholderWithLF,
                 editorContext,
@@ -325,6 +331,7 @@ ${assistantPrompt}
                 isNoHighligh: yamlConfigMode.isNoHighligh ?? false,
                 isForceOverlay: yamlConfigMode.isForceOverlay ?? false,
                 isNoItalic: yamlConfigMode.isNoItalic ?? false,
+                nextEditLine,
 			};
             
 			const {isCompletedFirstLine, inlineCompletionItems} = updateSuggestionsAndDecorations(
@@ -339,7 +346,8 @@ ${assistantPrompt}
                 isCompletedFirstLine,
                 isStopped: !trimed,
                 isCompletedCursorLine: currentCursorLine <= finalLineNumber,
-                isAbort
+                isAbort,
+                nextEditLine
              };
         }
 
@@ -352,7 +360,7 @@ ${assistantPrompt}
             }
 //return true; // no stream debug
 //process.stdout.write(partial);
-            const { isCompletedCursorLine, isAbort } = applySuggestions(partial, true);
+            const { isCompletedCursorLine } = applySuggestions(partial, true);
             
             // Detect if suggestions for the cursor line are ready
             if (isCompletedCursorLine) {
@@ -363,8 +371,8 @@ ${assistantPrompt}
                 }
             }
 
-            // Don't stop because marker position might shift in output
-            return !isAbort; //true;//!isStopped;
+            // Continue reasoning without aborting to determine the next edit line
+            return true;//!isAbort;
         };
         
         // Early exit if already canceled

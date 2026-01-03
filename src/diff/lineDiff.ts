@@ -12,6 +12,7 @@ export interface DiffProcessResult {
     trimed: boolean;
     finalLineNumber: number;
     isAbort: boolean;
+    nextEditLine: number;
 }
 /*
 function test() {
@@ -58,7 +59,16 @@ export function processDiffAndApplyEdits(
     //test();
     const withPrefix = beforePlaceholderWithLF + llmOutputText;
     const { cleaned, isStopedSymbol, stoppedLineNo, isStopedExistingComment } = preprocessLLMOutput(yamlConfigMode, withPrefix);
-    if (!cleaned.trim()) return { originalDiffOperations: [], edits: [], trimed: false, finalLineNumber: 0, isAbort: false };
+    if (!cleaned.trim()) {
+        return {
+            originalDiffOperations: [],
+            edits: [],
+            trimed: false,
+            finalLineNumber: 0,
+            isAbort: false,
+            nextEditLine: -1
+        };
+    }
 
     let baseLine = editorContext.aroundFromLine;
     const lastLineLine = editorContext.aroundToLine;
@@ -170,7 +180,6 @@ export function processDiffAndApplyEdits(
     if (diffOps.length >= lastLineLine - baseLine &&
         diffOps.slice(0, lastLineLine - baseLine).every(op => op.type === 'keep')) {
         isAbort = true;
-        diffOps.length = 0;
     }
     
     // If the pattern is only consecutive keeps followed by consecutive deletes, it means no changes were made and the output was simply insufficient
@@ -263,6 +272,15 @@ export function processDiffAndApplyEdits(
         isAbort = true;
     }
     */
+
+    let nextEditLine = -1;
+    // If the first edit line is out of range, do nothing.
+    if (isAbort) {
+        if (0 < preEdits.length && preEdits[0].newText !== '') {
+            nextEditLine = preEdits[0].line;
+        }
+        preEdits.length = 0;
+    }
     
     // ignore if out of range that first edit line
     const isValidFirstLines = lastLineLine + editorContext.aroundLatestAddAfterLines;
@@ -314,5 +332,12 @@ export function processDiffAndApplyEdits(
     // Calculate final line number (baseLine + processed lines)
     const finalLineNumber = baseLine + newLinesNonLast.length - 1;
     
-    return { originalDiffOperations: originalIndexedOps, edits, trimed: !isStopedSymbol, finalLineNumber, isAbort };
+    return {
+        originalDiffOperations: originalIndexedOps,
+        edits,
+        trimed: !isStopedSymbol,
+        finalLineNumber,
+        isAbort,
+        nextEditLine
+    };
 }

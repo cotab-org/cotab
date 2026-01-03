@@ -4,6 +4,7 @@ import { computeCharDiff } from '../diff/charDiff';
 import { getVisualWidth } from './suggestionUtils';
 import { isDarkTheme } from '../utils/cotabUtil';
 import { renderSvgOverlays, clearSvgOverlays, setupSvgRenderer, disposeSvgRenderer, OverlaySegment } from './suggestionSvgRenderer';
+import { renderNextEditHere, clearNextEditHere, setupNextEditHereRenderer, disposeNextEditHereRenderer } from './suggestionNextEditHereRenderer';
 
 let renderTimer: NodeJS.Timeout | null = null;
 
@@ -29,6 +30,7 @@ export function setupRenderer() {
 	});
 
 	setupSvgRenderer();
+	setupNextEditHereRenderer();
 }
 
 export function disposeRenderer() {
@@ -36,6 +38,7 @@ export function disposeRenderer() {
 	inlineDecorationTypeLight.dispose();
 	deleteDecorationType.dispose();
 	disposeSvgRenderer();
+	disposeNextEditHereRenderer();
 	if (renderTimer) {
 		clearTimeout(renderTimer);
 		renderTimer = null;
@@ -186,6 +189,9 @@ interface RenderData {
 	// option
 	isNoHighligh: boolean;
 	isNoItalic: boolean;
+
+	// TAB to jump here
+	nextEditLine: number;
 }
 
 let prevRenderData: RenderData;
@@ -207,6 +213,7 @@ export function renderSuggestions(editor: vscode.TextEditor): {
 		noFinished: false,
 		isNoHighligh: mergedData.isNoHighligh,
 		isNoItalic: mergedData.isNoItalic,
+		nextEditLine: mergedData.nextEditLine ?? -1,
 	};
 
 	// test
@@ -456,13 +463,15 @@ function renderSuggestionsInternal(editor: vscode.TextEditor,
 			unfinished = false;
 		}
 		renderSvgOverlays(editor, renderData.overlaySegments, { unfinished, dispIdx, isNoHighligh: renderData.isNoHighligh });
+		renderNextEditHere(editor, renderData.nextEditLine);
 		editor.setDecorations(deleteDecorationType, renderData.deleteOptions);
 		
 		//logDebug('cotab.dispSuggestions true');
 		const hasSuggestions =
 			(renderData.inlineOptions.length + renderData.deleteOptions.length + renderData.invisibleOptions.length) > 0
 			|| renderData.overlaySegments.length > 0
-			|| renderData.inlineCompletionItems.length > 0;
+			|| renderData.inlineCompletionItems.length > 0
+			|| renderData.nextEditLine >= 0;
 		vscode.commands.executeCommand('setContext', 'cotab.dispSuggestions', hasSuggestions);
 	}, 0);
 }
@@ -480,6 +489,7 @@ export function clearAllDecorations(editor: vscode.TextEditor) {
 		renderTimer = null;
 	}
 	clearSvgOverlays(editor);
+	clearNextEditHere(editor);
 	
 	// Also disable context
 	//logDebug('cotab.dispSuggestions false');

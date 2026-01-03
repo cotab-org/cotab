@@ -19,6 +19,7 @@ export interface SuggestionData {
 	isNoHighligh: boolean;
 	isForceOverlay: boolean;
 	isNoItalic: boolean;
+	nextEditLine: number;
 }
 
 export interface MergedSuggestionData {
@@ -30,6 +31,7 @@ export interface MergedSuggestionData {
 	isNoHighligh: boolean;
 	isForceOverlay: boolean;
 	isNoItalic: boolean;
+	nextEditLine: number;
 }
 
 const store = new Map<string, SuggestionData>();
@@ -43,6 +45,7 @@ const defaultSuggestionData: SuggestionData = {
 	isNoHighligh: false,
 	isForceOverlay: false,
 	isNoItalic: false,
+	nextEditLine: -1,
 };
 
 function toKey(uri: vscode.Uri | string): string {
@@ -83,6 +86,7 @@ export function getMergedSuggestions(uri: vscode.Uri | string, isFullAccept: boo
 		isNoHighligh: data.isNoHighligh,
 		isForceOverlay: data.isForceOverlay,
 		isNoItalic: data.isNoItalic,
+		nextEditLine: data.nextEditLine,
 	};
 }
 
