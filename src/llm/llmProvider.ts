@@ -4,6 +4,7 @@ import { getConfig } from '../utils/config';
 import { logDebug, logError } from '../utils/logger';
 import { convertURLToIP } from './llmUtils';
 import { serverManager } from '../managers/serverManager';
+import { ESCAPED_CHECKPOINT_TAG } from '../utils/cotabUtil';
 
 export interface CompletionParams {
 	systemPrompt?: string;
@@ -215,9 +216,9 @@ async function processStreamingResponse(
 	});
 }
 
-// llama.cppの現在の実装で、LFM2などのサイクル型コンテキストキャッシュを使うモデルは、
-// コンテキストキャッシュがリクエスト単位で作られるため、
-// 一度区切りでChatCompletionを呼び出して、llama.cpp内部のコンテキストキャッシュのチェックポイントを作成させる必要がある。
+// In the current implementation of llama.cpp, models that use cycle-type context caches such as LFM2,
+// create context caches on a per-request basis,
+// so it is necessary to call ChatCompletion once and create a checkpoint in the context cache inside llama.cpp.
 class ContextCheckpoints {
 	public messages: any[] = [];
 
@@ -243,7 +244,7 @@ class ContextCheckpoints {
 			// Once an entry containing '<|CONTEXT_CHECKPOINT|>' is found, keep all entries before it.
 			let lastNum = orgArgs.messages.length - 1;
 			for (const orgMessage of [...orgArgs.messages].reverse()) {
-				if (orgMessage.content.includes('<|CONTEXT_CHECKPOINT|>')) {
+				if (orgMessage.content.includes(ESCAPED_CHECKPOINT_TAG)) {
 					break;
 				}
 				lastNum--;
@@ -266,7 +267,7 @@ class ContextCheckpoints {
 				newArgs.messages.push(newMessage);
 
 				let orgContentpartIdx = -1;
-				const orgContentParts = orgMessage.content.split('<|CONTEXT_CHECKPOINT|>');
+				const orgContentParts = orgMessage.content.split(ESCAPED_CHECKPOINT_TAG);
 				for (const orgContentpart of orgContentParts) {
 					orgContentpartIdx++;
 					// Do not cache the last context
@@ -419,7 +420,7 @@ abstract class BaseAiClient implements AiClient {
 			if (0 <= top_k) args.top_k = top_k;
 			
 			const config = getConfig();
-			// if (config.isEnableCheckpoint) // 常に実行してもそこまで害はない。
+			// if (config.isEnableCheckpoint) // Even if always executed, there is no significant harm.
 			{
 				await contextCheckpoints.createCheckpoints(
 					http,
@@ -430,7 +431,7 @@ abstract class BaseAiClient implements AiClient {
 			}
 			// Remove checkpoint from messages
 			for (let message of args.messages) {
-				message.content = message.content.split('<|CONTEXT_CHECKPOINT|>').join('');
+				message.content = message.content.split(ESCAPED_CHECKPOINT_TAG).join('');
 			}
 
 			const res = await http.post(this.getChatEndpoint(), args, { 

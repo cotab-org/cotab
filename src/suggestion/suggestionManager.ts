@@ -301,10 +301,11 @@ ${assistantPrompt}
             edits: LineEdit[],
             isCompletedFirstLine: boolean,
             isStopped: boolean,
-            isCompletedCursorLine: boolean
+            isCompletedCursorLine: boolean,
+            isAbort: boolean
         } => {
             // Detect differences and create edit data
-            const { originalDiffOperations, edits, trimed, finalLineNumber } = processDiffAndApplyEdits(
+            const { originalDiffOperations, edits, trimed, finalLineNumber, isAbort } = processDiffAndApplyEdits(
                 llmOutputText,
                 beforePlaceholderWithLF,
                 editorContext,
@@ -337,7 +338,9 @@ ${assistantPrompt}
                 edits,
                 isCompletedFirstLine,
                 isStopped: !trimed,
-                isCompletedCursorLine: currentCursorLine <= finalLineNumber };
+                isCompletedCursorLine: currentCursorLine <= finalLineNumber,
+                isAbort
+             };
         }
 
         const completionStartTime = Date.now();
@@ -349,7 +352,7 @@ ${assistantPrompt}
             }
 //return true; // no stream debug
 //process.stdout.write(partial);
-            const { isCompletedCursorLine } = applySuggestions(partial, true);
+            const { isCompletedCursorLine, isAbort } = applySuggestions(partial, true);
             
             // Detect if suggestions for the cursor line are ready
             if (isCompletedCursorLine) {
@@ -361,7 +364,7 @@ ${assistantPrompt}
             }
 
             // Don't stop because marker position might shift in output
-            return true;//!isStopped;
+            return !isAbort; //true;//!isStopped;
         };
         
         // Early exit if already canceled

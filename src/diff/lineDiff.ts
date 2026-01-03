@@ -11,6 +11,7 @@ export interface DiffProcessResult {
     edits: LineEdit[];
     trimed: boolean;
     finalLineNumber: number;
+    isAbort: boolean;
 }
 /*
 function test() {
@@ -57,7 +58,7 @@ export function processDiffAndApplyEdits(
     //test();
     const withPrefix = beforePlaceholderWithLF + llmOutputText;
     const { cleaned, isStopedSymbol, stoppedLineNo, isStopedExistingComment } = preprocessLLMOutput(yamlConfigMode, withPrefix);
-    if (!cleaned.trim()) return { originalDiffOperations: [], edits: [], trimed: false, finalLineNumber: 0 };
+    if (!cleaned.trim()) return { originalDiffOperations: [], edits: [], trimed: false, finalLineNumber: 0, isAbort: false };
 
     let baseLine = editorContext.aroundFromLine;
     const lastLineLine = editorContext.aroundToLine;
@@ -163,7 +164,15 @@ export function processDiffAndApplyEdits(
 
     // Execute diff
     const diffOps = computeLineDiff(origLines, newLinesNonLast);
-
+    
+    // Early exit if all operations up to lastLineLine were keeps.
+    let isAbort = false;
+    if (diffOps.length >= lastLineLine - baseLine &&
+        diffOps.slice(0, lastLineLine - baseLine).every(op => op.type === 'keep')) {
+        isAbort = true;
+        diffOps.length = 0;
+    }
+    
     // If the pattern is only consecutive keeps followed by consecutive deletes, it means no changes were made and the output was simply insufficient
     let diffOpsNoChecked = diffOps;
     {
@@ -239,12 +248,21 @@ export function processDiffAndApplyEdits(
         preEdits.length = 0;
     }
 
+    /*
     // When the stop symbol is encountered and the edit line number is within the range, it is considered valids
     if (0 < preEdits.length && isStopedSymbol && stoppedLineNo !== undefined) {
         if (baseLine + stoppedLineNo <= preEdits[0].line) {
             preEdits.length = 0;
         }
     }
+    */
+   /*
+   let isAbort = false;
+    if (0 < preEdits.length && editorContext.aroundToLine < preEdits[0].line) {
+        preEdits.length = 0;
+        isAbort = true;
+    }
+    */
     
     // ignore if out of range that first edit line
     const isValidFirstLines = lastLineLine + editorContext.aroundLatestAddAfterLines;
@@ -296,5 +314,5 @@ export function processDiffAndApplyEdits(
     // Calculate final line number (baseLine + processed lines)
     const finalLineNumber = baseLine + newLinesNonLast.length - 1;
     
-    return { originalDiffOperations: originalIndexedOps, edits, trimed: !isStopedSymbol, finalLineNumber };
+    return { originalDiffOperations: originalIndexedOps, edits, trimed: !isStopedSymbol, finalLineNumber, isAbort };
 }

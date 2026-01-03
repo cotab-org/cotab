@@ -72,6 +72,11 @@ function statusBarPhaseToGutterIconPhase(phase: StatusBarPhase): GutterIconPhase
 
 //#####################################################################################
 
+// When editing prompts, etc., if "" is included,
+// it becomes impossible to distinguish between prompt tags and code provision tags, so escaping is required.
+export const CHECKPOINT_TAG = '<|CONTEXT_CHECKPOINT|>';
+export const ESCAPED_CHECKPOINT_TAG = CHECKPOINT_TAG.replace('CONTEXT', 'COTAB_CONTEXT');
+
 /**
  * Parse Handlebars template and generate string
  * @param template Handlebars template string
@@ -79,15 +84,18 @@ function statusBarPhaseToGutterIconPhase(phase: StatusBarPhase): GutterIconPhase
  * @returns Parsed string
  */
 export function parseHandlebarsTemplate(template: string, context: any): string { // eslint-disable-line @typescript-eslint/no-explicit-any
+  // Specified tag escape
+  const escapedTemplate = template.replace(`/${CHECKPOINT_TAG}/g`, ESCAPED_CHECKPOINT_TAG);
+
 	try {
-		const compiledTemplate = Handlebars.compile(template, {
+		const compiledTemplate = Handlebars.compile(escapedTemplate, {
 			noEscape: true
 		});
 		const result = compiledTemplate(context);
 		return result;
 	} catch (error) {
 		logError(`Handlebars template parsing failed: ${error}`);
-		return template;
+		return escapedTemplate;
 	}
 }
 
