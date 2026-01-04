@@ -7,7 +7,7 @@ This VS Code extension is an AI-powered multi-line autocomplete plugin designed 
 In addition to the entire file's context, it also considers external symbols, errors, and prior edits, and uses AI to generate multiple lines of code that are presented as autocomplete suggestions. In particular, when using Qwen3-Coder-30B-A3B, you can get high-quality completion comparable to cloud services.
 **Setup can be completed with a single click and is ready to use immediately.** Also, you can switch the model to use with a single click, and Qwen3-Coder-30B-A3B can run on VRAM 4GB or 8GB environments.
 
-It also offers a dedicated translation-only mode.
+[Gettings started](README.md#getting-started) | [Questions / ideas / feedback](https://github.com/cotab-org/cotab/discussions) (English / 日本語OK)
 
 ## Autocomplete
 ![Autocomplete Demo](doc/asset/cotab-tutorial-autocomplete1.gif)
@@ -34,7 +34,7 @@ Qwen3-4B-Instruct-2507 also delivers high-quality translations, but in this use 
 - Open source ensuring transparency
 
 ## Getting started
-1. Install Cotab via the VS Code marketplace
+1. Install Cotab via [the VS Code marketplace](https://marketplace.visualstudio.com/items?itemName=cotab.cotab)
    ![Getting started - install](doc/github-asset/cotab-demo-install.gif)
   
 2. Click "Install Local Server" button or configure your api.

@@ -7,6 +7,8 @@
 除了整个文件的上下文外，还会考虑外部符号、错误和先前的编辑，AI生成多行代码并将其作为自动补全建议呈现。特别是使用Qwen3-Coder-30B-A3B时，可以获得与云服务相当的高质量补全。
 **设置只需一键即可完成，可立即开始使用。**另外，可一键切换使用的模型，Qwen3-Coder-30B-A3B可在VRAM 4GB或8GB环境下运行。
 
+[开始使用](README.zh-cn.md#%E5%BC%80%E5%A7%8B%E4%BD%BF%E7%94%A8) | [问题 / 想法 / 反馈](https://github.com/cotab-org/cotab/discussions) (English / 日本語OK)
+
 它还提供专用的仅翻译模式。
 
 ## 自动补全
@@ -34,7 +36,7 @@ Qwen3-4B-Instruct-2507也能提供高质量的翻译，但在此用例中，建�
 - 开源确保透明度
 
 ## 开始使用
-1. 通过VS Code市场安装Cotab
+1. 通过[VS Code市场](https://marketplace.visualstudio.com/items?itemName=cotab.cotab)安装Cotab
    ![Getting started - install](doc/github-asset/cotab-demo-install.gif)
   
 2. 点击"Install Local Server"按钮或配置您的API。

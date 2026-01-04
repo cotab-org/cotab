@@ -7,6 +7,8 @@
 ファイル全体のコンテキストに加えて、外部シンボル、エラー、以前の編集履歴を考慮し、AIが複数行のコードを生成して自動補完の提案として表示します。特にQwen3-Coder-30B-A3Bを使用すると、クラウドサービスに匹敵する高品質な補完が得られます。
 **セットアップはワンクリックで完了し、すぐに利用を開始できます。**また、ワンクリックで使用モデルをを切り替え可能で、Qwen3-Coder-30B-A3BはVRAM 4GBや8GB環境でも動作します。
 
+[クイックスタート](README.ja.md#%E3%82%AF%E3%82%A4%E3%83%83%E3%82%AF%E3%82%B9%E3%82%BF%E3%83%BC%E3%83%88) | [質問 / アイデア / フィードバック](https://github.com/cotab-org/cotab/discussions) (English / 日本語OK)
+
 ## 自動補完
 ![Autocomplete Demo](doc/asset/cotab-tutorial-autocomplete1.gif)
 サポートされるプログラミング言語は、AIモデルによって異なります。デフォルトモデルのQwen3-4B-Instruct-2507は、コンパクトなサイズにもかかわらず多くの言語をサポートしています。
@@ -32,7 +34,7 @@ Qwen3-4B-Instruct-2507も高品質な翻訳を提供しますが、この用途�
 - 透明性を確保するオープンソース
 
 ## クイックスタート
-1. VS CodeマーケットプレイスからCotabをインストール
+1. [VS Codeマーケットプレイス](https://marketplace.visualstudio.com/items?itemName=cotab.cotab)からCotabをインストール
    ![Getting started - install](doc/github-asset/cotab-demo-install.gif)
   
 2. "Install Local Server"ボタンをクリックするか、APIを設定します。
