@@ -145,13 +145,19 @@ All text generation models are available, but powerful instruction-following per
 
   Despite its very small size of 4B, it has outstanding instruction-following performance and high performance in fields such as mathematics, providing fast and high-quality completion in Cotab.
 
+- Ministral-3-3B-Instruct-2512
+
+  Despite its very small size of 3B, it has high performance and operates at high speed with VRAM 5GB usage. In Cotab, it provides fast and good quality completion.
+
 - granite-4.0-micro
 
-  It has high instruction-following performance and operates with less VRAM than Qwen3-4B-Instruct-2507, but it is not recommended because it often generates poor quality completions in Cotab.
+  It is not recommended because it often generates broken completions in Cotab.
 
 - LFM2-2.6B
 
-  It is designed to operate at more than twice the speed of Qwen3-4B-Instruct-2507 with only VRAM 3GB usage. Despite this, it has high instruction-following performance, but it is not recommended because cases where code breaks have been observed in Cotab's code completion. It can be used when VRAM requirements are very strict or for translation purposes.
+  It is designed to operate at more than twice the speed of Qwen3-4B-Instruct-2507 with only VRAM 3GB usage.
+  It is not recommended because cases where code breaks have been observed in Cotab's code completion.
+  However, it can be used when VRAM requirements are very strict or for translation purposes.
 
 ## Privacy and Telemetry
 - Cotab only communicates with the default endpoint `"http://localhost:8080/v1"` or the LLM API specified by the user. No other external services or servers are contacted. This ensures maximum privacy and security.
