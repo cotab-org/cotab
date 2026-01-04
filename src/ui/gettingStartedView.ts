@@ -635,6 +635,10 @@ function getHtml(params: {
             align-self: center;
             margin: 0 auto;
         }
+        .setting-group .helper-text {
+            align-self: center;
+            margin: 0 auto;
+        }
         .setup-checkbox input[type="checkbox"] {
             transform: scale(1.1);
         }
@@ -960,9 +964,9 @@ function getHtml(params: {
             <div class="setting-group">
                 <label class="setup-checkbox">
                     <input id="showOnSuggestConflict" type="checkbox" ${isConfigShowOnSuggestConflict}/>
-                    <span class="setup-checkbox__label">${localize('gettingStarted.showOnSuggestConflict', 'Use VSCode Ghost Display')}</span>
+                    <span class="setup-checkbox__label">${localize('gettingStarted.showOnSuggestConflict', 'Use VS Code inline suggestion display')}</span>
                 </label>
-                <div class="helper-text">${localize('gettingStarted.showOnSuggestConflictHelperText', 'When enabled, showOnSuggestConflict will be set to always')}</div>
+                <div class="helper-text">${localize('gettingStarted.showOnSuggestConflictHelperText', "When enabled,<br>'showOnSuggestConflict' is set to 'always'.")}</div>
             </div>
             <div class="spacer"></div>
         </section>

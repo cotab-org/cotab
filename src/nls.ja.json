@@ -33,7 +33,7 @@
   "gettingStarted.detailSettings": "詳細設定",
   "gettingStarted.commentLanguage": "コメント言語",
   "gettingStarted.commentLanguageExample": "(例: 'English', '日本語', '简体中文', 'Français')",
-  "gettingStarted.showOnSuggestConflict": "VS Codeのインラインサジェストを使用",
+  "gettingStarted.showOnSuggestConflict": "VS Codeのインラインサジェスト表示を使用",
   "gettingStarted.showOnSuggestConflictHelperText": "有効にすると、<br>'showOnSuggestConflict'が'always'に設定されます。",
   "gettingStarted.openSettings": "設定を開く",
   "gettingStarted.openSettingsTooltip": "Cotab設定を開く",
