@@ -4,7 +4,7 @@ import { buildCompletionPrompts } from '../llm/completionPrompts';
 import { codeBlockBuilder } from '../llm/codeBlockBuilder';
 import { getEditorContext } from '../utils/editorContext';
 // diff util no longer directly used here
-import { clearSuggestions, LineEdit, SuggestionData } from './suggestionStore';
+import { clearSuggestions, LineEdit, SuggestionData, NextEditLineData } from './suggestionStore';
 import { clearAllDecorations, setupRenderer, disposeRenderer } from './suggestionRenderer';
 import { largeFileManager } from '../managers/largeFileManager';
 import { processDiffAndApplyEdits } from '../diff/lineDiff';
@@ -318,14 +318,17 @@ ${assistantPrompt}
         }
         // Callback to process partial responses received via streaming
         let firstUpdate = true;
+        
+        const maxOutputLines = yamlConfigMode.maxOutputLines ?? config.maxOutputLines;
 
-        const applySuggestions = (llmOutputText: string, checkCompleteLine: boolean): {
+        const applySuggestions = (llmOutputText: string,
+            checkCompleteLine: boolean): {
             edits: LineEdit[],
             isCompletedFirstLine: boolean,
             isStopped: boolean,
             isCompletedCursorLine: boolean,
             isAbort: boolean,
-            nextEditLine: number
+            nextEditLine: NextEditLineData | undefined,
         } => {
             // Detect differences and create edit data
             const { originalDiffOperations,
@@ -340,6 +343,7 @@ ${assistantPrompt}
                 yamlConfigMode,
                 document.uri,
                 checkCompleteLine,
+                maxOutputLines
             );
 
             const isStopped = yamlConfigMode.isNoCheckStopSymbol ?? !trimed;
@@ -355,7 +359,7 @@ ${assistantPrompt}
                 isNoHighligh: yamlConfigMode.isNoHighligh ?? false,
                 isForceOverlay: yamlConfigMode.isForceOverlay ?? false,
                 isNoItalic: yamlConfigMode.isNoItalic ?? false,
-                nextEditLine: (enableNextEditJump ? nextEditLine : -1),
+                nextEditLine: (enableNextEditJump ? nextEditLine : undefined),
 			};
             
 			const {isCompletedFirstLine, inlineCompletionItems} = updateSuggestionsAndDecorations(
@@ -412,7 +416,6 @@ ${assistantPrompt}
 		logDebug(`Time to pre process reception: ${streamCount}th time ${Date.now() - startTime}ms`);
         try {
             this.streamCount++;
-            const maxOutputLines = yamlConfigMode.maxOutputLines ?? config.maxOutputLines;
             const maxTokens = yamlConfigMode.maxTokens ?? config.maxTokens;
             const model = yamlConfigMode.model ?? config.model;
             const temperature = yamlConfigMode.temperature ?? config.temperature;

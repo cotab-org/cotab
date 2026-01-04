@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { getMergedSuggestions, LineEdit } from './suggestionStore';
+import { getMergedSuggestions, LineEdit, NextEditLineData } from './suggestionStore';
 import { computeCharDiff } from '../diff/charDiff';
 import { getVisualWidth } from './suggestionUtils';
 import { isDarkTheme } from '../utils/cotabUtil';
@@ -191,7 +191,7 @@ interface RenderData {
 	isNoItalic: boolean;
 
 	// TAB to jump here
-	nextEditLine: number;
+	nextEditLine: NextEditLineData | undefined;
 }
 
 let prevRenderData: RenderData;
@@ -213,7 +213,7 @@ export function renderSuggestions(editor: vscode.TextEditor): {
 		noFinished: false,
 		isNoHighligh: mergedData.isNoHighligh,
 		isNoItalic: mergedData.isNoItalic,
-		nextEditLine: mergedData.nextEditLine ?? -1,
+		nextEditLine: mergedData.nextEditLine,
 	};
 
 	// test
@@ -471,7 +471,7 @@ function renderSuggestionsInternal(editor: vscode.TextEditor,
 			(renderData.inlineOptions.length + renderData.deleteOptions.length + renderData.invisibleOptions.length) > 0
 			|| renderData.overlaySegments.length > 0
 			|| renderData.inlineCompletionItems.length > 0
-			|| renderData.nextEditLine >= 0;
+			|| renderData.nextEditLine;
 		vscode.commands.executeCommand('setContext', 'cotab.dispSuggestions', hasSuggestions);
 	}, 0);
 }

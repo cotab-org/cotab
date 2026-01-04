@@ -4,7 +4,7 @@ import { YamlConfigMode } from '../utils/yamlConfig';
 import { computeCharDiff } from './charDiff';
 import { LineDiff, computeLineDiff, diffOperationsToLineEdits, processMaxLinesDiffOperations } from './lineDiffUtils';
 import { preprocessLLMOutput } from './lineDiffUtils';
-import { LineEdit } from '../suggestion/suggestionStore';
+import { LineEdit, NextEditLineData } from '../suggestion/suggestionStore';
 
 export interface DiffProcessResult {
     originalDiffOperations: LineDiff[];
@@ -12,7 +12,7 @@ export interface DiffProcessResult {
     trimed: boolean;
     finalLineNumber: number;
     isAbort: boolean;
-    nextEditLine: number;
+    nextEditLine: NextEditLineData | undefined;
 }
 /*
 function test() {
@@ -55,6 +55,7 @@ export function processDiffAndApplyEdits(
     yamlConfigMode: YamlConfigMode,
     documentUri: vscode.Uri,
     checkCompleteLine: boolean,
+    maxOutputLines: number,
 ): DiffProcessResult {
     //test();
     const withPrefix = beforePlaceholderWithLF + llmOutputText;
@@ -66,7 +67,7 @@ export function processDiffAndApplyEdits(
             trimed: false,
             finalLineNumber: 0,
             isAbort: false,
-            nextEditLine: -1
+            nextEditLine: undefined
         };
     }
 
@@ -273,12 +274,32 @@ export function processDiffAndApplyEdits(
     }
     */
 
-    let nextEditLine = -1;
+    let nextEditLine: NextEditLineData | undefined = undefined;
     // If the first edit line is out of range, do nothing.
     if (isAbort) {
-        if (0 < preEdits.length && preEdits[0].newText !== '') {
-            nextEditLine = preEdits[0].line;
+        if (0 < preEdits.length &&
+            preEdits[0].newText !== '' &&
+            preEdits[0].line < baseLine + maxOutputLines) {
+            let character = 0;
+            if (preEdits[0].type === 'change') {
+                const orgText = documentTexts[preEdits[0].line];
+                const newText = preEdits[0].newText;
+                const segs = computeCharDiff(orgText, newText);
+
+                for (const seg of segs)
+                {
+                    if (seg.type === 'keep') continue;
+                    character = seg.orgIdx;
+                    break;
+                }
+            }
+
+            nextEditLine = {
+                line: preEdits[0].line,
+                character
+            };
         }
+        // clear diff
         preEdits.length = 0;
     }
     

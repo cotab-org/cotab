@@ -4,6 +4,7 @@ import { isDarkTheme } from '../utils/cotabUtil';
 import { measureTextsWidthPx } from '../utils/textMeasurer';
 import { logDebug } from '../utils/logger';
 import { getTextWidth } from './suggestionSvgRenderer';
+import { NextEditLineData } from './suggestionStore';
 
 const LABEL_TEXT = 'TAB to jump here';
 const PADDING_X_L = 2;
@@ -60,7 +61,7 @@ export function clearNextEditHere(editor: vscode.TextEditor): void {
 	editor.setDecorations(decorationType, []);
 }
 
-export function renderNextEditHere(editor: vscode.TextEditor, line?: number): void {
+export function renderNextEditHere(editor: vscode.TextEditor, nextEditLineData: NextEditLineData | undefined): void {
 	if (!decorationType) {
 		setupNextEditHereRenderer();
 	}
@@ -74,13 +75,15 @@ export function renderNextEditHere(editor: vscode.TextEditor, line?: number): vo
 
 	renderTimer = setTimeout(async () => {
 		renderTimer = null;
-		if (line === undefined || line === null || line < 0 || line >= editor.document.lineCount) {
+		if (nextEditLineData === undefined ||
+			nextEditLineData.line < 0 || nextEditLineData.line >= editor.document.lineCount) {
 			clearNextEditHere(editor);
 			return;
 		}
 
 		try {
 			const svgData = await buildNextEditHereSvg(editor);
+			const line = nextEditLineData.line;
 			const lineEnd = editor.document.lineAt(line).range.end;
 
 			const marginWidth = await getTextWidth(' ', editor) ?? 0;

@@ -10,6 +10,11 @@ export interface LineEdit {
 	editedLine?: number;
 }
 
+export interface NextEditLineData {
+	line: number;
+	character: number;
+}
+
 export interface SuggestionData {
 	originalDiffOperations: LineDiff[];
 	edits: LineEdit[];
@@ -19,7 +24,7 @@ export interface SuggestionData {
 	isNoHighligh: boolean;
 	isForceOverlay: boolean;
 	isNoItalic: boolean;
-	nextEditLine: number;
+	nextEditLine: NextEditLineData | undefined;
 }
 
 export interface MergedSuggestionData {
@@ -31,7 +36,7 @@ export interface MergedSuggestionData {
 	isNoHighligh: boolean;
 	isForceOverlay: boolean;
 	isNoItalic: boolean;
-	nextEditLine: number;
+	nextEditLine: NextEditLineData | undefined;
 }
 
 const store = new Map<string, SuggestionData>();
@@ -45,7 +50,7 @@ const defaultSuggestionData: SuggestionData = {
 	isNoHighligh: false,
 	isForceOverlay: false,
 	isNoItalic: false,
-	nextEditLine: -1,
+	nextEditLine: undefined,
 };
 
 function toKey(uri: vscode.Uri | string): string {

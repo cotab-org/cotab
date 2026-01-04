@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { getMergedSuggestions, clearSuggestions, getSuggestions } from './suggestionStore';
+import { getMergedSuggestions, clearSuggestions, getSuggestions, NextEditLineData } from './suggestionStore';
 import { clearAllDecorations, renderSuggestions, reRenderSuggestions } from './suggestionRenderer';
 import { logInfo, logDebug, logError } from '../utils/logger';
 import { suggestionManager } from './suggestionManager';
@@ -130,8 +130,8 @@ export async function acceptFirstLineSuggestionCmd() {
     await acceptSuggestionCmdInternal(false);
 }
 
-async function jumpToSuggestion(editor: vscode.TextEditor, line: number) {
-	const position = new vscode.Position(line, 0);
+async function jumpToSuggestion(editor: vscode.TextEditor, nextEditLineData: NextEditLineData) {
+	const position = new vscode.Position(nextEditLineData.line, nextEditLineData.character);
 	editor.selection = new vscode.Selection(position, position);
 	await vscode.commands.executeCommand('editor.action.inlineSuggest.trigger');
 	editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.Default);
@@ -145,7 +145,7 @@ async function acceptSuggestionInternal(isFullAccept: boolean) {
 
 	const docUri = editor.document.uri;
 	const mergedData = getMergedSuggestions(docUri, isFullAccept);
-    if (0 <= mergedData.nextEditLine) {
+    if (mergedData.nextEditLine !== undefined) {
         await jumpToSuggestion(editor, mergedData.nextEditLine);
         return true;
     }
