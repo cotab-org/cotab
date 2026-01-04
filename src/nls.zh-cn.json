@@ -5,6 +5,7 @@
   "gettingStarted.preset": "预设",
   "gettingStarted.showAllPresets": "显示全部预设",
   "gettingStarted.aboutAvailableModels": "关于可用模型",
+  "gettingStarted.aboutRemoteServers": "关于远程服务器",
   "gettingStarted.customArgsPlaceholder": "llama-server参数输入",
   "gettingStarted.contextSize": "上下文大小",
   "gettingStarted.contextSizeTooltip": "必需:\n - 设置16k (16384) 或更多。\n\n推荐:\n - 设置32k (32768) 或更多。\n\n原因:\n - 系统提示使用约5k，1,000行代码使用约12k更多。\n - 因此请将上下文窗口设置为20k (20480) 或更多。\n\n默认模型 (Qwen3-4B-Instruct-2507) VRAM使用量:\n - 16k: 约4 GB\n - 32k: 约5.5 GB",

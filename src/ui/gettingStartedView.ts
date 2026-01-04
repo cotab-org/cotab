@@ -416,6 +416,18 @@ function getHtml(params: {
         anchor = '%E5%85%B3%E4%BA%8E%E5%8F%AF%E7%94%A8%E6%A8%A1%E5%9E%8B';
     }
     const readmeUrl = `https://github.com/cotab-org/cotab/blob/main/${readmeFile}#${anchor}`;
+    
+    // Generate README link for Remote Servers section
+    let readmeRemoteServersFile = 'README.md';
+    let remoteServersAnchor = 'using-remote-servers';
+    if (language.startsWith('ja')) {
+        readmeRemoteServersFile = 'README.ja.md';
+        remoteServersAnchor = '%E3%83%AA%E3%83%A2%E3%83%BC%E3%83%88%E3%82%B5%E3%83%BC%E3%83%90%E3%83%BC%E3%81%AE%E5%88%A9%E7%94%A8';
+    } else if (language.startsWith('zh')) {
+        readmeRemoteServersFile = 'README.zh-cn.md';
+        remoteServersAnchor = '%E4%BD%BF%E7%94%A8%E8%BF%9C%E7%A8%8B%E6%9C%8D%E5%8A%A1%E5%99%A8';
+    }
+    const readmeRemoteServersUrl = `https://github.com/cotab-org/cotab/blob/main/${readmeRemoteServersFile}#${remoteServersAnchor}`;
     const initialState = JSON.stringify(params.initial);
     // Prepare shared SVG URIs for consistent UI
     const assetsJson = JSON.stringify({
@@ -426,6 +438,7 @@ function getHtml(params: {
         unsupportedLbl: buildNetworkServerLabelSvgDataUri(localize('gettingStarted.server.unsupported', 'Install Not Supported'), 'gray')
     });
     const readmeUrlJson = JSON.stringify(readmeUrl);
+    const readmeRemoteServersUrlJson = JSON.stringify(readmeRemoteServersUrl);
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -836,17 +849,20 @@ function getHtml(params: {
                 <div class="row">
                     <input id="apiBaseURL" type="text" class="grow" value="${apiBaseURL}" placeholder="http://localhost:8080/v1" />
                 </div>
-            </div>
-            <div class="setting-group">
-                <label for="apiKey">${localize('gettingStarted.apiKey', 'API Key')}</label>
-                <div class="row">
-                    <input id="apiKey" type="password" class="grow" value="${apiKey}" placeholder="sk-... (Optional)" autocomplete="off" spellcheck="false" />
+                <div class="row" style="justify-content: center; margin-top: 8px;">
+                    <a id="aboutRemoteServersLink" href="javascript:void(0)" style="color: var(--vscode-textLink-foreground); text-decoration: none; font-size: 13px;">${localize('gettingStarted.aboutRemoteServers', 'About Remote Servers')}</a>
                 </div>
             </div>
             <div class="setting-group">
                 <label for="model">${localize('gettingStarted.model', 'Model')}</label>
                 <div class="row">
                     <input id="model" type="text" class="grow" value="${model}" placeholder="qwen3-4b-2507" />
+                </div>
+            </div>
+            <div class="setting-group">
+                <label for="apiKey">${localize('gettingStarted.apiKey', 'API Key')}</label>
+                <div class="row">
+                    <input id="apiKey" type="password" class="grow" value="${apiKey}" placeholder="sk-... (Optional)" autocomplete="off" spellcheck="false" />
                 </div>
             </div>
             <div class="spacer"></div>
@@ -961,6 +977,7 @@ function getHtml(params: {
             const presetVisibilityMap = ${presetVisibilityMapJson};
             const assets = ${assetsJson};
             const readmeUrl = ${readmeUrlJson};
+            const readmeRemoteServersUrl = ${readmeRemoteServersUrlJson};
             console.log('[cotab] quickSetup assets loaded', assets);
             
             // Keep the custom value entered by the user
@@ -1362,6 +1379,14 @@ function getHtml(params: {
                 aboutAvailableModelsLink.addEventListener('click', (event) => {
                     event.preventDefault();
                     vscode.postMessage({ type: 'openExternal', url: readmeUrl });
+                });
+            }
+
+            const aboutRemoteServersLink = document.getElementById('aboutRemoteServersLink');
+            if (aboutRemoteServersLink) {
+                aboutRemoteServersLink.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    vscode.postMessage({ type: 'openExternal', url: readmeRemoteServersUrl });
                 });
             }
         </script>

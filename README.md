@@ -93,7 +93,7 @@ Qwen3-4B-Instruct-2507 also delivers high-quality translations, but in this use 
 - llama-server
 
   You can also use OpenAI compatible APIs, but we strongly recommend using llama-server. llama-server has low overhead and operates at the fastest speed among servers using llama.cpp as backend.
-  Code completion frequently repeat requests and cancellations, so that overhead directly affects user experience.
+  Code completion frequently repeat requests and cancellations, so that overhead directly affects user experience. When using llama-server, always specify "-np 1".
   
 - Prompt Optimization
 
@@ -158,6 +158,14 @@ All text generation models are available, but powerful instruction-following per
   It is designed to operate at more than twice the speed of Qwen3-4B-Instruct-2507 with only VRAM 3GB usage.
   It is not recommended because cases where code breaks have been observed in Cotab's code completion.
   However, it can be used when VRAM requirements are very strict or for translation purposes.
+
+## Using Remote Servers
+You can use OpenAI compatible API servers, but we strongly recommend using **llama-server** or **llama-swap**.
+In particular, using **llama-server** through **llama-swap** allows automatic model switching when using other chat plugins.
+- **Most Important**
+  **When using llama-server, always specify the "-np 1" option.**
+  In the late 2025 update of llama-server, it was changed to run with 4 parallel processes by default.
+  Since Cotab frequently repeats requests and cancellations at high speed, they are mistaken for completely different requests, causing the prompt cache to not function and resulting in significant performance degradation.
 
 ## Privacy and Telemetry
 - Cotab only communicates with the default endpoint `"http://localhost:8080/v1"` or the LLM API specified by the user. No other external services or servers are contacted. This ensures maximum privacy and security.
