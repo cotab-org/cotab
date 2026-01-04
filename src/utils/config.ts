@@ -182,7 +182,7 @@ function getConfigRaw(): CotabConfig {
 
         // llm
         llamaCppVersion: cfg.get<LlamaCppVersion>('cotab.llm.llamaCppVersion', 'Stable'),
-        customLlamaCppVersion: cfg.get<string>('cotab.llm.customLlamaCppVersion', 'b7314'),
+        customLlamaCppVersion: cfg.get<string>('cotab.llm.customLlamaCppVersion', 'b7601'),
         provider: cfg.get<'OpenAICompatible'>('cotab.llm.provider', 'OpenAICompatible'),
         settingApiBaseURL,
         apiBaseURL,

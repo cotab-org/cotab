@@ -27,7 +27,7 @@ export function registerTerminalCommand(disposables: vscode.Disposable[]): void 
 
 export let terminalCommand: TerminalCommand;
 
-export const stableLlamaCppVersion = 'b7314';
+export const stableLlamaCppVersion = 'b7601';
 
 const llamaServerExe = (process.platform === 'win32') ? 'llama-server.exe' : 'llama-server';
 
