@@ -438,7 +438,11 @@ export function renderSuggestions(editor: vscode.TextEditor): {
 	renderSuggestionsInternal(editor, renderData);
 	prevRenderData = renderData;
 	
-	return {inlineCompletionItems:renderData.inlineCompletionItems, isCompletedFirstLine};
+	if (renderData.inlineCompletionItems.length == 0) {
+		vscode.commands.executeCommand('editor.action.inlineSuggest.hide');
+	}
+	
+	return {inlineCompletionItems: renderData.inlineCompletionItems, isCompletedFirstLine};
 }
 
 export function reRenderSuggestions(editor: vscode.TextEditor,
