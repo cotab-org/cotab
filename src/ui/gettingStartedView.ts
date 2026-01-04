@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
 import * as path from 'path';
-import { getConfig, setConfigHideOnStartup, setConfigShowProgressSpinner, setConfigApiBaseURL, setConfigApiKey, setConfigCommentLanguage, setConfigLocalServerContextSize, setConfigModel, setConfigLocalServerPreset, setConfigLocalServerCustom, setConfigShowAllPresets } from '../utils/config';
+import { getConfig, setConfigHideOnStartup, setConfigShowProgressSpinner, setConfigApiBaseURL, setConfigApiKey, setConfigCommentLanguage, setConfigLocalServerContextSize, setConfigModel, setConfigLocalServerPreset, setConfigLocalServerCustom, setConfigShowAllPresets, setConfigShowOnSuggestConflict, isConfigShowOnSuggestConflict } from '../utils/config';
 import { terminalCommand } from '../utils/terminalCommand';
 import { getAiClient } from '../llm/llmProvider';
 import { getOsInfo } from '../utils/cotabUtil';
@@ -246,7 +246,8 @@ async function showGettingStartedView(context: vscode.ExtensionContext): Promise
         localServerContextSize: config.localServerContextSize,
         localServerPreset: config.localServerPreset,
         localServerCustom: config.localServerCustom,
-        showAllPresets: config.showAllPresets
+        showAllPresets: config.showAllPresets,
+        isConfigShowOnSuggestConflict: isConfigShowOnSuggestConflict()
     });
 
     // Handle webview command
@@ -289,6 +290,11 @@ async function handleWebviewMessage(panel: vscode.WebviewPanel, msg: any): Promi
             const value = Boolean(msg.value);
             await setConfigShowProgressSpinner(value);
             panel.webview.postMessage({ type: 'saved', key: 'showProgressSpinner', value });
+        }
+        else if (msg?.type === 'setShowOnSuggestConflict') {
+            const value = Boolean(msg.value);
+            await setConfigShowOnSuggestConflict(value);
+            panel.webview.postMessage({ type: 'saved', key: 'showOnSuggestConflict', value });
         }
         else if (msg?.type === 'saveCommentLanguage') {
             const value = String(msg.value || '').trim();
@@ -375,6 +381,7 @@ function getHtml(params: {
     localServerPreset: LocalServerPreset;
     localServerCustom: string;
     showAllPresets: boolean;
+    isConfigShowOnSuggestConflict: boolean;
 }): string {
     const nonce = String(Date.now());
     const apiBaseURL = escapeHtml(params.apiBaseURL || '');
@@ -383,6 +390,7 @@ function getHtml(params: {
     const hideOnStartup = params.hideOnStartup ? 'checked' : '';
     const showProgressSpinner = params.showProgressSpinner ? 'checked' : '';
     const showAllPresets = params.showAllPresets ? 'checked' : '';
+    const isConfigShowOnSuggestConflict = params.isConfigShowOnSuggestConflict ? 'checked' : '';
     const commentLanguage = escapeHtml(params.settingCommentLanguage || '');
     const defaultCommentLanguage = escapeHtml(params.defaultCommentLanguage || '');
     const localServerContextSize = Number.isFinite(params.localServerContextSize) ? params.localServerContextSize : 32768;
@@ -622,6 +630,10 @@ function getHtml(params: {
             letter-spacing: 0.8px;
             text-transform: none;
             color: rgba(255, 255, 255, 0.92);
+        }
+        .setting-group .setup-checkbox {
+            align-self: center;
+            margin: 0 auto;
         }
         .setup-checkbox input[type="checkbox"] {
             transform: scale(1.1);
@@ -945,6 +957,13 @@ function getHtml(params: {
                 </div>
                 <div class="helper-text">(e.g. 'English', '日本語', '简体中文', 'Français')</div>
             </div>
+            <div class="setting-group">
+                <label class="setup-checkbox">
+                    <input id="showOnSuggestConflict" type="checkbox" ${isConfigShowOnSuggestConflict}/>
+                    <span class="setup-checkbox__label">${localize('gettingStarted.showOnSuggestConflict', 'Use VSCode Ghost Display')}</span>
+                </label>
+                <div class="helper-text">${localize('gettingStarted.showOnSuggestConflictHelperText', 'When enabled, showOnSuggestConflict will be set to always')}</div>
+            </div>
             <div class="spacer"></div>
         </section>
         <div class="floating-controls">
@@ -972,6 +991,7 @@ function getHtml(params: {
             const hideNext = document.getElementById('hideNext');
             const hideNextInline = document.getElementById('hideNextInline');
             const showProgressSpinnerCheckbox = document.getElementById('showProgressSpinner');
+            const showOnSuggestConflictCheckbox = document.getElementById('showOnSuggestConflict');
             const openSettingsBtn = document.getElementById('openSettingsBtn');
             const presetTooltipMap = ${presetTooltipMapJson};
             const presetVisibilityMap = ${presetVisibilityMapJson};
@@ -1355,6 +1375,12 @@ function getHtml(params: {
             if (showProgressSpinnerCheckbox instanceof HTMLInputElement) {
                 showProgressSpinnerCheckbox.addEventListener('change', () => {
                     vscode.postMessage({ type: 'setShowProgressSpinner', value: showProgressSpinnerCheckbox.checked });
+                });
+            }
+
+            if (showOnSuggestConflictCheckbox instanceof HTMLInputElement) {
+                showOnSuggestConflictCheckbox.addEventListener('change', () => {
+                    vscode.postMessage({ type: 'setShowOnSuggestConflict', value: showOnSuggestConflictCheckbox.checked });
                 });
             }
 

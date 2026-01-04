@@ -5,6 +5,7 @@ import { getVisualWidth } from './suggestionUtils';
 import { isDarkTheme } from '../utils/cotabUtil';
 import { renderSvgOverlays, clearSvgOverlays, setupSvgRenderer, disposeSvgRenderer, OverlaySegment } from './suggestionSvgRenderer';
 import { renderNextEditHere, clearNextEditHere, setupNextEditHereRenderer, disposeNextEditHereRenderer } from './suggestionNextEditHereRenderer';
+import { getConfig } from '../utils/config';
 
 let renderTimer: NodeJS.Timeout | null = null;
 
@@ -335,6 +336,11 @@ export function renderSuggestions(editor: vscode.TextEditor): {
 							break;
 						}
 					}
+					// When the panel of completion proposals is displayed, inline completion (ghost text) does not occur.
+					// To enable this, 'editor.inlineSuggest.experimental.showOnSuggestConflict' needs to be set to 'always'.
+					// Therefore, if it is not 'always', do not use the inline completion display feature.
+					isInlineCompletionItem = (getConfig().isConfigShowOnSuggestConflictAlways) ? isInlineCompletionItem : false;
+
 					if (isInlineCompletionItem) {
 						if (firstAddPos != 0) {
 							// VSCode's default inline completion only works after the cursor position.

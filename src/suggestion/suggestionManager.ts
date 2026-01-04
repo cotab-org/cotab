@@ -30,9 +30,11 @@ interface InlineCompletionResult {
     items: vscode.InlineCompletionItem[];
 }
 
+let prevResult: InlineCompletionResult | undefined = undefined;
+
 // Class that actually sends chat requests to LLM and generates candidates
 export class SuggestionManager implements vscode.Disposable {
-	private disposables: vscode.Disposable[] = [];
+    private disposables: vscode.Disposable[] = [];
 
     // Inline completion change event
     public readonly onDidChangeInlineCompletionsEmitter = new vscode.EventEmitter<void>();
@@ -49,24 +51,21 @@ export class SuggestionManager implements vscode.Disposable {
     // Stream call count
     public streamCount = 0;
 
-    private prevResult: InlineCompletionResult | undefined;
-
     constructor() {
         setupRenderer();
-        
+
         // Support Untitled/new files
         const selector: vscode.DocumentSelector = [
             { scheme: 'file' },
             { scheme: 'untitled' },
         ];
-    
+
         // Register provider
-        const providerDisposable = vscode.languages.registerInlineCompletionItemProvider(
+        const inlineProviderDisposable = vscode.languages.registerInlineCompletionItemProvider(
             selector,
             this.createInlineEditProvider(),
         );
-
-        this.disposables.push(providerDisposable);
+        this.disposables.push(inlineProviderDisposable);
     }
 
     // Generate inline completion provider
@@ -91,21 +90,21 @@ export class SuggestionManager implements vscode.Disposable {
     // 
     private isMultiSelection(): boolean {
         const activeEditor = vscode.window.activeTextEditor;
-        if (! activeEditor) return false;
+        if (!activeEditor) return false;
 
         let isMultiLine = false;
         if (1 < activeEditor.selections.length) {
             isMultiLine = true;
         }
         else if (activeEditor.selections.length === 1 &&
-                activeEditor.selections[0].start.line !== activeEditor.selections[0].end.line) {
+            activeEditor.selections[0].start.line !== activeEditor.selections[0].end.line) {
             isMultiLine = true;
         }
         return isMultiLine;
     }
 
     private async waitExecution() {
-        if (! this.isExecuting) return;
+        if (!this.isExecuting) return;
 
         logDebug(`provideInlineCompletionItemsInternal lock acquisition started`);
         while (this.isExecuting) {
@@ -113,7 +112,7 @@ export class SuggestionManager implements vscode.Disposable {
         }
         logDebug(`provideInlineCompletionItemsInternal lock acquisition completed`);
     }
-   
+
     /**
      * Inline completion entry point called from VS Code.
      * Internally calls provideInlineCompletionItemsInternal.
@@ -127,16 +126,16 @@ export class SuggestionManager implements vscode.Disposable {
         logDebug(`called: provideInlineCompletionItems`);
 
         // Reuse previous result if position is the same
-        if (this.prevResult) {
-            if (this.prevResult.document.uri === document.uri &&
-                this.prevResult.position.line === position.line &&
-                this.prevResult.position.character === position.character) {
+        if (prevResult) {
+            if (prevResult.document.uri === document.uri &&
+                prevResult.position.line === position.line &&
+                prevResult.position.character === position.character) {
                 // Reuse previous result if position is the same
-                return this.prevResult.items;
+                return prevResult.items;
             }
-            this.prevResult = undefined;
+            prevResult = undefined;
         }
-        
+
         const startTime = Date.now();
 
         // Cancel if there's an existing request
@@ -178,7 +177,7 @@ export class SuggestionManager implements vscode.Disposable {
 
         // wait execution for cancel prev execution
         await this.waitExecution();
-        
+
         if (isTooManyRequests) {
             await new Promise(r => setTimeout(r, 500));
         }
@@ -203,7 +202,7 @@ export class SuggestionManager implements vscode.Disposable {
                 checkAborted,
                 startTime,
             );
-            this.prevResult = { document, position, items: result };
+            prevResult = { document, position, items: result };
             return result;
         } finally {
             this.isExecuting = false;
@@ -279,12 +278,12 @@ export class SuggestionManager implements vscode.Disposable {
         }
         */
         const codeBlocks = await codeBlockBuilder.buildCodeBlocks(
-                            client,
-                            editorContext,
-                            currentCursorLine,
-                            cancellationAnalysisTokenSource.token,
-                            () : boolean => { return false; }
-                        );
+            client,
+            editorContext,
+            currentCursorLine,
+            cancellationAnalysisTokenSource.token,
+            (): boolean => { return false; }
+        );
 
         // 
 
@@ -298,7 +297,7 @@ export class SuggestionManager implements vscode.Disposable {
         } = buildCompletionPrompts(editorContext, codeBlocks, document.uri.toString());
 
         serverManager.checkArgAndRestartServer(yamlConfigMode);
-        
+
         const isOutput = true;
         if (isOutput) {
             logDebug(`
@@ -318,18 +317,18 @@ ${assistantPrompt}
         }
         // Callback to process partial responses received via streaming
         let firstUpdate = true;
-        
+
         const maxOutputLines = yamlConfigMode.maxOutputLines ?? config.maxOutputLines;
 
         const applySuggestions = (llmOutputText: string,
             checkCompleteLine: boolean): {
-            edits: LineEdit[],
-            isCompletedFirstLine: boolean,
-            isStopped: boolean,
-            isCompletedCursorLine: boolean,
-            isAbort: boolean,
-            nextEditLine: NextEditLineData | undefined,
-        } => {
+                edits: LineEdit[],
+                isCompletedFirstLine: boolean,
+                isStopped: boolean,
+                isCompletedCursorLine: boolean,
+                isAbort: boolean,
+                nextEditLine: NextEditLineData | undefined,
+            } => {
             // Detect differences and create edit data
             const { originalDiffOperations,
                 edits,
@@ -337,32 +336,32 @@ ${assistantPrompt}
                 finalLineNumber,
                 isAbort,
                 nextEditLine } = processDiffAndApplyEdits(
-                llmOutputText,
-                beforePlaceholderWithLF,
-                editorContext,
-                yamlConfigMode,
-                document.uri,
-                checkCompleteLine,
-                maxOutputLines
-            );
+                    llmOutputText,
+                    beforePlaceholderWithLF,
+                    editorContext,
+                    yamlConfigMode,
+                    document.uri,
+                    checkCompleteLine,
+                    maxOutputLines
+                );
 
             const isStopped = yamlConfigMode.isNoCheckStopSymbol ?? !trimed;
 
             const enableNextEditJump = (config.nextEditJump) && (yamlConfigMode.nextEditJump ?? true);
 
             const suggestionData: SuggestionData = {
-				originalDiffOperations,
-				edits,
-				checkCompleteLine: checkCompleteLine ? currentCursorLine : -1,
-				isStopped,
-				isDispOverwrite: yamlConfigMode.isDispOverwrite ?? false,
+                originalDiffOperations,
+                edits,
+                checkCompleteLine: checkCompleteLine ? currentCursorLine : -1,
+                isStopped,
+                isDispOverwrite: yamlConfigMode.isDispOverwrite ?? false,
                 isNoHighligh: yamlConfigMode.isNoHighligh ?? false,
                 isForceOverlay: yamlConfigMode.isForceOverlay ?? false,
                 isNoItalic: yamlConfigMode.isNoItalic ?? false,
                 nextEditLine: (enableNextEditJump ? nextEditLine : undefined),
-			};
-            
-			const {isCompletedFirstLine, inlineCompletionItems} = updateSuggestionsAndDecorations(
+            };
+
+            const { isCompletedFirstLine, inlineCompletionItems } = updateSuggestionsAndDecorations(
                 document.uri,
                 suggestionData);
 
@@ -376,7 +375,7 @@ ${assistantPrompt}
                 isCompletedCursorLine: currentCursorLine <= finalLineNumber,
                 isAbort,
                 nextEditLine
-             };
+            };
         }
 
         const completionStartTime = Date.now();
@@ -386,10 +385,10 @@ ${assistantPrompt}
                 firstUpdate = false;
                 showProgress('firstGenerating', position);
             }
-//return true; // no stream debug
-//process.stdout.write(partial);
+            //return true; // no stream debug
+            //process.stdout.write(partial);
             const { isCompletedCursorLine } = applySuggestions(partial, true);
-            
+
             // Detect if suggestions for the cursor line are ready
             if (isCompletedCursorLine) {
                 if (!cursorLineReady) {
@@ -402,7 +401,7 @@ ${assistantPrompt}
             // Continue reasoning without aborting to determine the next edit line
             return true;//!isAbort;
         };
-        
+
         // Early exit if already canceled
         if (checkAborted()) {
             logDebug(`provideInlineCompletionItemsInternal early exit due to cancellation (before chatCompletions)`);
@@ -413,7 +412,7 @@ ${assistantPrompt}
         }
 
         const streamCount = this.streamCount + 1;
-		logDebug(`Time to pre process reception: ${streamCount}th time ${Date.now() - startTime}ms`);
+        logDebug(`Time to pre process reception: ${streamCount}th time ${Date.now() - startTime}ms`);
         try {
             this.streamCount++;
             const maxTokens = yamlConfigMode.maxTokens ?? config.maxTokens;
@@ -421,7 +420,7 @@ ${assistantPrompt}
             const temperature = yamlConfigMode.temperature ?? config.temperature;
             const top_p = yamlConfigMode.topP ?? config.top_p; // eslint-disable-line @typescript-eslint/naming-convention
             const top_k = yamlConfigMode.topK ?? config.top_k; // eslint-disable-line @typescript-eslint/naming-convention
-            
+
             // Start LLM call in background
             logInfo(`Completion generation started - Output up to ${maxOutputLines} lines (${streamCount}th time)`);
             // From after analysis until first char arrival
@@ -442,24 +441,24 @@ ${assistantPrompt}
                 onUpdate: receiveStreamingResponse,
                 onComplete: (reason: CompletionEndReason, finalResult?: string) => {
                     logInfo(`Completion generation ended - Reason: ${reason}, ${streamCount}th time, Final result:\n${finalResult ? finalResult : 'None'}`);
-                    
+
                     if (reason === 'streamEnd' || reason === 'maxLines') {
                         applySuggestions(finalResult ?? '', false);
-                        if (! finalResult) {
+                        if (!finalResult) {
                             clearSuggestions(document.uri);
                             clearAllDecorations(vscode.window.activeTextEditor!);
                         }
                     }
                     else if (reason === 'exceedContextSize') {
-						const obj = JSON.parse(finalResult ?? '');
+                        const obj = JSON.parse(finalResult ?? '');
                         if (0 < obj.contextSize && obj.promptSize) {
                             largeFileManager.setExceedContextSize(document.uri.toString(),
-                                                                    editorContext.documentText.trancatedCursor,
-                                                                    codeBlocks,
-                                                                    [systemPrompt, userPrompt, assistantPrompt,],
-                                                                    handlebarsContext,
-                                                                    obj.contextSize,
-                                                                    obj.promptSize);
+                                editorContext.documentText.trancatedCursor,
+                                codeBlocks,
+                                [systemPrompt, userPrompt, assistantPrompt,],
+                                handlebarsContext,
+                                obj.contextSize,
+                                obj.promptSize);
                         }
                         clearSuggestions(document.uri);
                         clearAllDecorations(vscode.window.activeTextEditor!);

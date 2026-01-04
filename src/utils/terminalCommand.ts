@@ -626,9 +626,12 @@ class TerminalCommand implements vscode.Disposable {
         if (!args.includes('-c') && !args.includes('--ctx-size')) {
             args.push(`-c`, `${contextSize}`);
         }
+        // The -kvu flag is no longer needed as it's handled by default in newer versions
+        /*
         if (!args.includes('-kvu') && !args.includes('--kv-unified')) {
             args.push(`-kvu`);
         }
+        */
         if (!args.includes('-cram') && !args.includes('--cache-ram')) {
             args.push(`-cram`, `${cacheRam}`);
         }

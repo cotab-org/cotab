@@ -24,6 +24,7 @@ export interface CotabConfig {
     backgroundColor: string;
     theme: string;
     shikiTheme: string;
+    isConfigShowOnSuggestConflictAlways: boolean;
     
     // basic
     enabled: boolean;
@@ -171,6 +172,7 @@ function getConfigRaw(): CotabConfig {
         backgroundColor: getEditorBackgroundColor(),
         theme: themeName,
         shikiTheme: toShikiThemeName(themeName),
+        isConfigShowOnSuggestConflictAlways: isConfigShowOnSuggestConflict(),
         
         // basic
         enabled: cfg.get<boolean>('cotab.basic.enabled', true),
@@ -329,6 +331,17 @@ export async function setConfigLocalServerCustom(custom: string): Promise<void> 
         .update('cotab.llm.localServerCustom', value, vscode.ConfigurationTarget.Global);
 }
 
+export async function setConfigShowOnSuggestConflict(enable: boolean): Promise<void> {
+    const value = enable ? 'always' : undefined;
+    await vscode.workspace.getConfiguration()
+        .update('editor.inlineSuggest.experimental.showOnSuggestConflict', value, vscode.ConfigurationTarget.Global);
+}
+
+export function isConfigShowOnSuggestConflict(): boolean {
+    const value = vscode.workspace.getConfiguration()
+        .get('editor.inlineSuggest.experimental.showOnSuggestConflict');
+    return value === 'always';
+}
 
 // Get VS Code UI locale
 function getUiLocale(): string {

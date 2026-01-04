@@ -33,6 +33,8 @@
   "gettingStarted.detailSettings": "详细设置",
   "gettingStarted.commentLanguage": "注释语言",
   "gettingStarted.commentLanguageExample": "(例如 'English', '日本語', '简体中文', 'Français')",
+  "gettingStarted.showOnSuggestConflict": "使用VS Code内联提示",
+  "gettingStarted.showOnSuggestConflictHelperText": "启用时，<br>'showOnSuggestConflict'将设置为'always'。",
   "gettingStarted.openSettings": "打开设置",
   "gettingStarted.openSettingsTooltip": "打开Cotab设置",
   "gettingStarted.server.stop": "服务器停止",
