@@ -36,7 +36,7 @@ export type CompletionEndReason = 'maxLines' | 'streamEnd' | 'aborted' | 'exceed
 
 export function registerLlmProvider(disposables: vscode.Disposable[]) {
     // Clear context checkpoints when text document changes
-    disposables.push(vscode.workspace.onDidChangeTextDocument((_evt: vscode.TextDocumentChangeEvent) => {
+    disposables.push(vscode.window.onDidChangeActiveTextEditor(() => {
         clearContextCheckpoints();
     }));
 }
@@ -233,11 +233,11 @@ class ContextCheckpoints {
 			// Clone params
 			const newParams = { ...orgParams };
 			newParams.onUpdate = (partial) => {
-				logDebug(`Context checkpoint update received: ${partial}`);
+				logDebug(`Checkpoint update received: ${partial}`);
 				return true;
 			};
 			newParams.onComplete = (reason, finalResult) => {
-				logDebug(`Completion reason: ${reason}, result: ${finalResult}`);
+				logDebug(`Checkpoint Completion reason: ${reason}, result: ${finalResult}`);
 			};
 			
 			// Loop from the end of orgArgs.messages, discard all entries that do not contain '<|CONTEXT_CHECKPOINT|>'.
@@ -302,7 +302,7 @@ class ContextCheckpoints {
 							responseType: 'stream',
 							validateStatus: () => true,	// no exception for status code 400
 						});
-						logDebug(`Chat response reception started ${orgParams.streamCount}th time`);
+						logDebug(`Checkpoint response reception started ${orgParams.streamCount}th time`);
 						await processStreamingResponse(res, signal, newParams);
 
 						// Update cache

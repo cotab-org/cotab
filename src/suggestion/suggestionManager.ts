@@ -24,6 +24,12 @@ export let suggestionManager: SuggestionManager;
 const maxRequestsPerSecond = 3;
 const requestWindowMs = 1000;
 
+interface InlineCompletionResult {
+    document: vscode.TextDocument;
+    position: vscode.Position;
+    items: vscode.InlineCompletionItem[];
+};
+
 // Class that actually sends chat requests to LLM and generates candidates
 export class SuggestionManager implements vscode.Disposable {
 	private disposables: vscode.Disposable[] = [];
@@ -42,6 +48,8 @@ export class SuggestionManager implements vscode.Disposable {
 
     // Stream call count
     public streamCount = 0;
+
+    private prevResult: InlineCompletionResult | undefined;
 
     constructor() {
         setupRenderer();
@@ -117,6 +125,17 @@ export class SuggestionManager implements vscode.Disposable {
         token: vscode.CancellationToken,
     ): Promise<vscode.InlineCompletionItem[]> {
         logDebug(`called: provideInlineCompletionItems`);
+
+        // Reuse previous result if position is the same
+        if (this.prevResult) {
+            if (this.prevResult.document.uri === document.uri &&
+                this.prevResult.position.line === position.line &&
+                this.prevResult.position.character === position.character) {
+                // Reuse previous result if position is the same
+                return this.prevResult.items;
+            }
+            this.prevResult = undefined;
+        }
         
         const startTime = Date.now();
 
@@ -184,9 +203,12 @@ export class SuggestionManager implements vscode.Disposable {
                 checkAborted,
                 startTime,
             );
+            this.prevResult = { document, position, items: result };
             return result;
         } finally {
             this.isExecuting = false;
+
+            logDebug(`called: provideInlineCompletionItems end`);
         }
     }
 
