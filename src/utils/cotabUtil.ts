@@ -75,7 +75,7 @@ function statusBarPhaseToGutterIconPhase(phase: StatusBarPhase): GutterIconPhase
 // When editing prompts, etc., if "" is included,
 // it becomes impossible to distinguish between prompt tags and code provision tags, so escaping is required.
 export const CHECKPOINT_TAG = '<|CONTEXT_CHECKPOINT|>';
-export const ESCAPED_CHECKPOINT_TAG = CHECKPOINT_TAG.replace('CONTEXT', 'COTAB_CONTEXT');
+export const ESCAPED_CHECKPOINT_TAG = '<|COTAB_' + 'CONTEXT_CHECKPOINT|>';  // To prevent the article itself from being caught, escaping is required.
 
 /**
  * Parse Handlebars template and generate string
@@ -85,7 +85,7 @@ export const ESCAPED_CHECKPOINT_TAG = CHECKPOINT_TAG.replace('CONTEXT', 'COTAB_C
  */
 export function parseHandlebarsTemplate(template: string, context: any): string { // eslint-disable-line @typescript-eslint/no-explicit-any
   // Specified tag escape
-  const escapedTemplate = template.replace(`/${CHECKPOINT_TAG}/g`, ESCAPED_CHECKPOINT_TAG);
+  const escapedTemplate = template.replace(new RegExp(CHECKPOINT_TAG.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), ESCAPED_CHECKPOINT_TAG);
 
 	try {
 		const compiledTemplate = Handlebars.compile(escapedTemplate, {
