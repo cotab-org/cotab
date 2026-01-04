@@ -162,7 +162,9 @@ All text generation models are available, but powerful instruction-following per
 ## Using Remote Servers
 You can use OpenAI compatible API servers, but we strongly recommend using **llama-server** or **llama-swap**.
 In particular, using **llama-server** through **llama-swap** allows automatic model switching when using other chat plugins.
+
 - **Most Important**
+
   **When using llama-server, always specify the "-np 1" option.**
   In the late 2025 update of llama-server, it was changed to run with 4 parallel processes by default.
   Since Cotab frequently repeats requests and cancellations at high speed, they are mistaken for completely different requests, causing the prompt cache to not function and resulting in significant performance degradation.
