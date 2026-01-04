@@ -9,7 +9,6 @@ import { NextEditLineData } from './suggestionStore';
 const LABEL_TEXT = 'TAB to jump here';
 const PADDING_X_L = 2;
 const PADDING_X_R = 10;
-const PADDING_Y = 4;
 const TAB_PADDING = 2;
 const ARROW_WIDTH = 2;
 const ARROW_PADDING = 4;

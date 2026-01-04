@@ -28,7 +28,7 @@ interface InlineCompletionResult {
     document: vscode.TextDocument;
     position: vscode.Position;
     items: vscode.InlineCompletionItem[];
-};
+}
 
 // Class that actually sends chat requests to LLM and generates candidates
 export class SuggestionManager implements vscode.Disposable {

@@ -59,7 +59,7 @@ export function processDiffAndApplyEdits(
 ): DiffProcessResult {
     //test();
     const withPrefix = beforePlaceholderWithLF + llmOutputText;
-    const { cleaned, isStopedSymbol, stoppedLineNo, isStopedExistingComment } = preprocessLLMOutput(yamlConfigMode, withPrefix);
+    const { cleaned, isStopedSymbol, isStopedExistingComment } = preprocessLLMOutput(yamlConfigMode, withPrefix);
     if (!cleaned.trim()) {
         return {
             originalDiffOperations: [],

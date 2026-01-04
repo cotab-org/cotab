@@ -220,12 +220,12 @@ async function processStreamingResponse(
 // create context caches on a per-request basis,
 // so it is necessary to call ChatCompletion once and create a checkpoint in the context cache inside llama.cpp.
 class ContextCheckpoints {
-	public messages: any[] = [];
+	public messages: any[] = [];// eslint-disable-line @typescript-eslint/no-explicit-any
 
 	async createCheckpoints(
 		http: AxiosInstance,
 		endpoint: string,
-		orgArgs: any,
+		orgArgs: any, // eslint-disable-line @typescript-eslint/no-explicit-any
 		orgParams: CompletionParams,
 		signal: AbortSignal | undefined) {
 			
@@ -249,7 +249,7 @@ class ContextCheckpoints {
 				}
 				lastNum--;
 			}
-			let checkMessages = [];
+			const checkMessages = [];
 			for (let i = 0; i <= lastNum; i++) {
 				checkMessages.push({ ...orgArgs.messages[i] });
 			}
@@ -419,7 +419,7 @@ abstract class BaseAiClient implements AiClient {
 			if (0 <= top_p) args.top_p = top_p;
 			if (0 <= top_k) args.top_k = top_k;
 			
-			const config = getConfig();
+			// const config = getConfig();
 			// if (config.isEnableCheckpoint) // Even if always executed, there is no significant harm.
 			{
 				await contextCheckpoints.createCheckpoints(
@@ -430,7 +430,7 @@ abstract class BaseAiClient implements AiClient {
 					signal);
 			}
 			// Remove checkpoint from messages
-			for (let message of args.messages) {
+			for (const message of args.messages) {
 				message.content = message.content.split(ESCAPED_CHECKPOINT_TAG).join('');
 			}
 
