@@ -30,8 +30,8 @@ export function registerViewChangelog(
  */
 export async function onUpdatedPlugin(oldVersion: string | undefined, newVersion: string): Promise<void> {
     let additionalHtml = '';
-    const [oldMajor, oldMinor, oldPatch] = oldVersion?.split('.').map(x => parseInt(x, 10)) ?? [0, 0, 0];
-    const oldVersionNumber = oldMajor * 10000 + oldMinor * 100 + oldPatch;
+//    const [oldMajor, oldMinor, oldPatch] = oldVersion?.split('.').map(x => parseInt(x, 10)) ?? [0, 0, 0];
+//    const oldVersionNumber = oldMajor * 10000 + oldMinor * 100 + oldPatch;
     
 //  const [newMajor, newMinor, newPatch] = newVersion.split('.').map(x => parseInt(x, 10)) ?? [0, 0, 0];
 //  const newVersionNumber = newMajor * 10000 + newMinor * 100 + newPatch;

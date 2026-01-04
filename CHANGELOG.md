@@ -1,3 +1,7 @@
+## 0.2.3 - 2026/01/05
+- Update: Add using VS Code system inline suggestion display mode.
+- Fix: Not hide inline suggestion bug.
+- Fix: Not hide suggest widget bug when escape key is pressed.
 ## 0.2.2 - 2026/01/04
 - Feature: Added Next Edit Jump feature.
 - Update: Added preset models (LFM2-2.6B, Ministral-3-3B-2512, Qwen3-Coder (quantized)).
