@@ -95,10 +95,16 @@ export async function clearAllSuggestionsCmd() {
 
 	// hide inline suggestion
 	try {
-        // 
 		await vscode.commands.executeCommand('editor.action.inlineSuggest.hide');
 	} catch (error) {
 		logDebug(`Failed to hide inline suggestion: ${error}`);
+	}
+
+	// hide suggest widget
+	try {
+        await vscode.commands.executeCommand('hideSuggestWidget');
+	} catch (error) {
+		logDebug(`Failed to hide suggest widget: ${error}`);
 	}
 }
 
