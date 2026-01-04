@@ -27,6 +27,7 @@ export interface CotabConfig {
     
     // basic
     enabled: boolean;
+    nextEditJump: boolean;
     disableForExtensions: string;
     serverAutoStart: boolean;
     serverAutoStopOnIdleTime: number;
@@ -173,6 +174,7 @@ function getConfigRaw(): CotabConfig {
         
         // basic
         enabled: cfg.get<boolean>('cotab.basic.enabled', true),
+        nextEditJump: cfg.get<boolean>('cotab.basic.nextEditJump', true),
         disableForExtensions: cfg.get<string>('cotab.basic.disableForExtensions', ''),
         serverAutoStart: cfg.get<boolean>('cotab.basic.autoStart', true),
         serverAutoStopOnIdleTime: cfg.get<number>('cotab.basic.autoStopOnIdleTime', 300),

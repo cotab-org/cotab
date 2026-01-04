@@ -36,6 +36,8 @@ export interface YamlConfigMode {
     // each mode's extensions list is matched against the current file name to determine the applicable configuration.
     extensions: string[];
 
+    nextEditJump?: boolean;
+
     localServerCustom?: string;
     localServerContextSize?: number;
     localServerCacheRam?: number;
@@ -458,6 +460,9 @@ modes:
         const mode = config.modes[i];
         yamlContent += `#  - mode: "${mode.mode}"\n`;
         yamlContent += `#    extensions: [${mode.extensions.map(ext => `"${ext}"`).join(', ')}]\n`;
+        if (mode.nextEditJump !== undefined) {
+            yamlContent += `#    nextEditJump: ${mode.nextEditJump}\n`;
+        }
         if (mode.localServerCustom !== undefined) {
             yamlContent += `#    localServerCustom: "${mode.localServerCustom}"\n`;
         }

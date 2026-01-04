@@ -12,6 +12,7 @@
   "command.server.stop": "Cotab: [サーバー] 停止 - システム上のllama-serverを停止します",
   "command.menu.clickstatusbar": "Cotab: [メニュー] クリックせずにホバーすると、メニューが表示されます！",
   "config.basic.enabled": "自動補完を有効/無効にする",
+  "config.basic.nextEditJump": "次の編集ジャンプを有効/無効にする",
   "config.basic.disableForExtensions": "拡張子に対して自動補完を無効にする（ファイル拡張子のカンマ区切りリスト。例: 'txt,json'）",
   "config.basic.autoStart": "拡張機能がアクティブ化されたときにサーバーを自動的に起動します。cotab.llm.apiBaseURL設定は空白である必要があります。",
   "config.basic.autoStopOnIdleTime": "サーバーを自動停止するまでのアイドルタイムアウト（秒）",

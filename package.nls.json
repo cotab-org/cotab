@@ -12,6 +12,7 @@
   "command.server.stop": "Cotab: [Server] Stop - Stop the llama-server on the system",
   "command.menu.clickstatusbar": "Cotab: [Menu] If you hover without clicking, the menu will appear!",
   "config.basic.enabled": "Enable/disable autocomplete",
+  "config.basic.nextEditJump": "Enable/disable next edit jump",
   "config.basic.disableForExtensions": "Disable autocomplete for extensions (comma separated list of file extensions. e.g. 'txt,json')",
   "config.basic.autoStart": "Automatically start server when extension activates. The cotab.llm.apiBaseURL setting must be blank.",
   "config.basic.autoStopOnIdleTime": "Idle timeout in seconds before auto-stopping server",

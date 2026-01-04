@@ -12,6 +12,7 @@
   "command.server.stop": "Cotab: [服务器] 停止 - 停止系统上的llama-server",
   "command.menu.clickstatusbar": "Cotab: [菜单] 如果不点击而悬停，菜单将出现！",
   "config.basic.enabled": "启用/禁用自动补全",
+  "config.basic.nextEditJump": "启用/禁用下一个编辑跳转",
   "config.basic.disableForExtensions": "对扩展禁用自动补全（文件扩展名的逗号分隔列表。例如 'txt,json'）",
   "config.basic.autoStart": "扩展激活时自动启动服务器。cotab.llm.apiBaseURL设置必须为空。",
   "config.basic.autoStopOnIdleTime": "自动停止服务器之前的空闲超时（秒）",

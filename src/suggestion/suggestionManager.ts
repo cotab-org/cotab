@@ -322,6 +322,8 @@ ${assistantPrompt}
 
             const isStopped = yamlConfigMode.isNoCheckStopSymbol ?? !trimed;
 
+            const enableNextEditJump = (config.nextEditJump) && (yamlConfigMode.nextEditJump ?? true);
+
             const suggestionData: SuggestionData = {
 				originalDiffOperations,
 				edits,
@@ -331,7 +333,7 @@ ${assistantPrompt}
                 isNoHighligh: yamlConfigMode.isNoHighligh ?? false,
                 isForceOverlay: yamlConfigMode.isForceOverlay ?? false,
                 isNoItalic: yamlConfigMode.isNoItalic ?? false,
-                nextEditLine,
+                nextEditLine: (enableNextEditJump ? nextEditLine : -1),
 			};
             
 			const {isCompletedFirstLine, inlineCompletionItems} = updateSuggestionsAndDecorations(

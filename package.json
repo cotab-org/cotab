@@ -111,35 +111,41 @@
           "description": "%config.basic.enabled%",
           "order": 101
         },
+        "cotab.basic.nextEditJump": {
+          "type": "boolean",
+          "default": false,
+          "description": "%config.basic.nextEditJump%",
+          "order": 102
+        },
         "cotab.basic.disableForExtensions": {
           "type": "string",
           "default": "",
           "description": "%config.basic.disableForExtensions%",
-          "order": 102
+          "order": 103
         },
         "cotab.basic.autoStart": {
           "type": "boolean",
           "default": true,
           "description": "%config.basic.autoStart%",
-          "order": 103
+          "order": 104
         },
         "cotab.basic.autoStopOnIdleTime": {
           "type": "number",
           "default": 300,
           "description": "%config.basic.autoStopOnIdleTime%",
-          "order": 104
+          "order": 105
         },
         "cotab.basic.commentLanguage": {
           "type": "string",
           "default": "",
           "description": "%config.basic.commentLanguage%",
-          "order": 105
+          "order": 106
         },
         "cotab.basic.selectedPromptMode": {
           "type": "string",
           "default": "",
           "description": "%config.basic.selectedPromptMode%",
-          "order": 106
+          "order": 107
         },
         "cotab.llm.llamaCppVersion": {
           "type": "string",
@@ -154,7 +160,7 @@
         },
         "cotab.llm.customLlamaCppVersion": {
           "type": "string",
-          "default": "b7314",
+          "default": "b7601",
           "description": "%config.llm.customLlamaCppVersion%",
           "order": 202
         },
