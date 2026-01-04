@@ -1,8 +1,9 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-//import { setOnUpdatedPlugin } from '../utils/systemConfig';
-import { terminalCommand } from '../utils/terminalCommand';
+import { getConfig } from '../utils/config';
+import { terminalCommand, stableLlamaCppVersion } from '../utils/terminalCommand';
+import { logInfo } from '../utils/logger';
 
 let changelogPanel: vscode.WebviewPanel | undefined = undefined;
 let extensionContext: vscode.ExtensionContext | undefined = undefined;
@@ -16,7 +17,11 @@ export function registerViewChangelog(
     currentVersion: string): void {
     extensionContext = context;
     // Set callback for plugin version update
-    onUpdatedPlugin(prevVersion, currentVersion);
+    if (! prevVersion || prevVersion !== currentVersion) {
+        // Version changed, call callback
+        logInfo(`Cotab: Plugin version changed from ${prevVersion||"0"} to ${currentVersion}`);
+        onUpdatedPlugin(prevVersion, currentVersion);
+    }
 }
 
 /**
@@ -30,33 +35,35 @@ export async function onUpdatedPlugin(oldVersion: string | undefined, newVersion
     
 //  const [newMajor, newMinor, newPatch] = newVersion.split('.').map(x => parseInt(x, 10)) ?? [0, 0, 0];
 //  const newVersionNumber = newMajor * 10000 + newMinor * 100 + newPatch;
-    /*
+    //*
     if (getConfig().llamaCppVersion === 'Stable') {
         // Check if llama.cpp is installed
         const installedVersion = await terminalCommand.getInstalledLocalLlamaCppVersion();
-        if (installedVersion !== '' && `b${installedVersion}` !== StablellamaCppVersion) {
+        if (installedVersion !== '' && `b${installedVersion}` !== stableLlamaCppVersion) {
             additionalHtml = `
-                <div class="reinstall-warning">
-                    <h2 class="warning-title">⚠️ Please Reinstall the Server !</h2>
+                <div class="update-warning">
+                    <h2 class="warning-title">⚠️ Please update the Server !</h2>
                     <p class="warning-message">
-                        The latest version of Server (llama.cpp) has a performance issue and the completion speed is significantly reduced. <br>
-                        Please reinstall to get better performance. <br>
-                        Current version: "b${installedVersion}". Stable version: "${StablellamaCppVersion}"
+                        The latest stable version of server (llama.cpp) has a performance issue. <br>
+                        Please update to get better performance. <br>
+                        Current version: "b${installedVersion}". <br>
+                        Stable version: "${stableLlamaCppVersion}"
                     </p>
                     <button class="install-button" onclick="executeCommand('cotab.server.install')">
                         <span class="button-icon">🔧</span>
-                        <span class="button-text">Click to Reinstall Server</span>
+                        <span class="button-text">Click to Update Server</span>
                     </button>
                 </div>
             `;
         }
     }
-    */
-   if (oldVersionNumber === 0) {
+    //*/
+    /*
+    if (oldVersionNumber === 0) {
         const installedVersion = await terminalCommand.getInstalledLocalLlamaCppVersion();
         if (installedVersion !== '') {
             additionalHtml = `
-            <div class="reinstall-warning">
+            <div class="update-warning">
                 <h2 class="warning-title">⚠️ Sorry to those who installed the server!</h2>
                 <p class="warning-message">
                     If you installed the server after November 13, 2025, the performance was poor. <br>
@@ -65,9 +72,10 @@ export async function onUpdatedPlugin(oldVersion: string | undefined, newVersion
             </div>
             `;
         }
-        if (additionalHtml !== '') {
-            await showChangelogView(oldVersion || '', newVersion, additionalHtml);
-        }
+    }
+    */
+    if (additionalHtml !== '') {
+        await showChangelogView(oldVersion || '', newVersion, additionalHtml);
     }
 }
 
@@ -214,7 +222,7 @@ function getWebviewContent(changelogHtml: string, oldVersion: string, newVersion
         a:hover {
             text-decoration: underline;
         }
-        .reinstall-warning {
+        .update-warning {
             background: linear-gradient(135deg, var(--vscode-textBlockQuote-background) 0%, var(--vscode-textBlockQuote-background) 100%);
             border: 2px solid var(--vscode-textLink-foreground);
             border-radius: 12px;

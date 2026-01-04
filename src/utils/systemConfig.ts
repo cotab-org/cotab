@@ -4,19 +4,6 @@ import * as os from 'os';
 import packageJson from '../../package.json';
 import { logDebug, logError } from './logger';
 
-// Callback type for plugin update notification
-//export type OnUpdatedPluginCallback = (oldVersion: string, newVersion: string) => void | Promise<void>;
-
-// Global callback for plugin update
-//let onUpdatedPluginCallback: OnUpdatedPluginCallback | null = null;
-
-/**
- * Set callback function to be called when plugin version is updated
- */
-//export function setOnUpdatedPlugin(callback: OnUpdatedPluginCallback): void {
-//    onUpdatedPluginCallback = callback;
-//}
-
 // Cache interface
 interface SystemConfigCache {
     config: SystemConfig;
@@ -154,16 +141,6 @@ export function checkAndUpdatePluginVersion(): {
     
     const config = getSystemConfig();
     const savedVersion = config.pluginVersion;
-    
-    /*
-    if (! savedVersion || savedVersion !== currentVersion) {
-        // Version changed, call callback
-        if (onUpdatedPluginCallback) {
-            logInfo(`Plugin version changed from ${savedVersion||"0"} to ${currentVersion}`);
-            await onUpdatedPluginCallback(savedVersion||"0", currentVersion);
-        }
-    }
-    */
     
     // Update to current version
     updatePluginVersion(currentVersion);

@@ -160,14 +160,14 @@ Qwen3-4B-Instruct-2507也能提供高质量的翻译，但在此用例中，建�
   但是，当VRAM要求非常严格或用于翻译目的时可以使用。
 
 ## 使用远程服务器
-您可以使用OpenAI兼容的API服务器，但我们强烈建议使用**llama-server**或**llama-swap**。
+您可以使用OpenAI兼容的API服务器，但出于性能原因，我们强烈建议使用**llama-server**或**llama-swap**。
 特别是通过**llama-swap**使用**llama-server**时，可以在使用其他聊天插件时自动切换模型。
 
 - **最重要事项**
 
   **使用llama-server时，请务必指定"-np 1"选项。**
   llama-server在2025年末的更新中，已更改为默认以4个并行进程运行。
-  由于Cotab会高速频繁地重复请求和取消，它们会被误认为是完全不同的请求，导致提示缓存无法正常工作，从而造成显著的性能下降。
+  对于默认的llama-server，由于Cotab会高速频繁地重复请求和取消，它们会被误认为是完全不同的请求，导致提示缓存无法正常工作，从而造成显著的性能下降。
 
 ## 隐私和遥测
 - Cotab仅与默认端点`"http://localhost:8080/v1"`或用户指定的LLM API通信。不联系任何其他外部服务或服务器。这确保了最大程度的隐私和安全性。
@@ -179,6 +179,14 @@ Qwen3-4B-Instruct-2507也能提供高质量的翻译，但在此用例中，建�
 
 - 通过此政策，您可以完全放心地使用Cotab。
 - 注意: 如果您安装本地服务器，它会访问[llama.cpp github存储库](https://github.com/ggml-org/llama.cpp/releases)。
+
+## 社区与反馈
+
+💬 欢迎在  
+[GitHub Discussions](https://github.com/cotab-org/cotab/discussions)  
+提出问题、想法和使用讨论（英语 / 日本語OK）
+
+🐞 如果您发现了错误，请改为创建Issue。
 
 ## 开发 / 贡献
 

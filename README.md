@@ -160,14 +160,14 @@ All text generation models are available, but powerful instruction-following per
   However, it can be used when VRAM requirements are very strict or for translation purposes.
 
 ## Using Remote Servers
-You can use OpenAI compatible API servers, but we strongly recommend using **llama-server** or **llama-swap**.
+You can use OpenAI compatible API servers, but for performance reasons, we strongly recommend using **llama-server** or **llama-swap**.
 In particular, using **llama-server** through **llama-swap** allows automatic model switching when using other chat plugins.
 
 - **Most Important**
 
   **When using llama-server, always specify the "-np 1" option.**
   In the late 2025 update of llama-server, it was changed to run with 4 parallel processes by default.
-  Since Cotab frequently repeats requests and cancellations at high speed, they are mistaken for completely different requests, causing the prompt cache to not function and resulting in significant performance degradation.
+  With the default llama-server, since Cotab frequently repeats requests and cancellations at high speed, they are mistaken for completely different requests, causing the prompt cache to not function and resulting in significant performance degradation.
 
 ## Privacy and Telemetry
 - Cotab only communicates with the default endpoint `"http://localhost:8080/v1"` or the LLM API specified by the user. No other external services or servers are contacted. This ensures maximum privacy and security.
@@ -179,6 +179,14 @@ In particular, using **llama-server** through **llama-swap** allows automatic mo
 
 - With this policy, you can use Cotab with complete confidence.
 - Note: If you install local server, it accesses the [llama.cpp github repository](https://github.com/ggml-org/llama.cpp/releases).
+
+## Community & Feedback
+
+💬 Questions, ideas, and usage discussions are welcome in  
+[GitHub Discussions](https://github.com/cotab-org/cotab/discussions)  
+(English / 日本語OK)
+
+🐞 If you found a bug, please open an Issue instead.
 
 ## Development / Contributions
 

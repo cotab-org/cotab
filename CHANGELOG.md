@@ -1,7 +1,16 @@
-
+## 0.2.2 - 2026/01/04
+- Feature: Added Next Edit Jump feature.
+- Update: Added preset models (LFM2-2.6B, Ministral-3-3B-2512, Qwen3-Coder (quantized)).
+- Update: Enabled context cache for models using Cyclic KV Cache, such as LFM2.
+- Update: Updated llama.cpp to stable version b7601.
+- Fix: Fixed edit error occurring on the last line.
+- Fix: Fixed insert not working at the current line.
+- Fix: Fixed duplicate inline completion requests.
+- Fix: Fixed local server connection prioritization issue.
+- Fix: Changed Ubuntu llama.cpp archive from .zip to .tar.gz.
 ## 0.2.1 - 2025/12/31
-- Support 日本語, 忠文
-- Fix: Server no stopping isue when multi VSCode insntace
+- Support: 日本語, 忠文
+- Fix: Server no stopping isue when multi VSCode insntace.
 - Fix: Erase last line issue again.
 ## 0.2.0 - 2025/12/29
 - Support: Qwen3-30B-A3B-Instruct and preset settings.

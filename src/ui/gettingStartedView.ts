@@ -831,7 +831,7 @@ function getHtml(params: {
                     <a id="aboutAvailableModelsLink" href="javascript:void(0)" style="color: var(--vscode-textLink-foreground); text-decoration: none; font-size: 13px;">${localize('gettingStarted.aboutAvailableModels', 'About Available Models')}</a>
                 </div>
             </div>
-            <div id="context-size-container" class="setting-group" title="${escapeHtml(localize('gettingStarted.contextSizeTooltip', 'Required:\n - set 16k (16384) or more.\n\nRecommended:\n - set 32k (32768) or more.\n\nReason:\n - The system prompt uses about 5k, and 1,000 lines of code use about 12k more.\n - so please set the context window to 20k (20480) or more.\n\nThe default model (Qwen3-4B-Instruct-2507) VRAM usage:\n - 16k: about 4 GB\n - 32k: about 5.5 GB').replace(/\n/g, '&#10;'))}">
+            <div id="context-size-container" class="setting-group" title="${escapeHtml(localize('gettingStarted.contextSizeTooltip', 'Required:\n - set 16k (16384) or more.\n\nRecommended:\n - set 32k (32768) or more.\n\nReason:\n - The system prompt uses about 5k, and 1,000 lines of code use about 12k more.\n - so please set the context window to 20k (20480) or more.\n\nThe default model (Qwen3-4B-Instruct-2507) VRAM usage:\n - 16k: about 4 GB\n - 32k: about 5.5 GB'))}">
                 <label for="localServerContextSlider">${localize('gettingStarted.contextSize', 'Context Size')}</label>
                 <div class="row">
                     <input id="localServerContextSlider" type="range" class="range-input" min="8192" max="131072" step="4096" value="${localServerContextSize}" />
