@@ -113,7 +113,7 @@
         },
         "cotab.basic.nextEditJump": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "%config.basic.nextEditJump%",
           "order": 102
         },
