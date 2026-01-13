@@ -7,7 +7,7 @@ This VS Code extension is an AI-powered multi-line autocomplete plugin designed 
 In addition to the entire file's context, it also considers external symbols, errors, and prior edits, and uses AI to generate multiple lines of code that are presented as autocomplete suggestions. In particular, when using Qwen3-Coder-30B-A3B, you can get high-quality completion comparable to cloud services.
 **Setup can be completed with a single click and is ready to use immediately.** Also, you can switch the model to use with a single click, and Qwen3-Coder-30B-A3B can run on VRAM 4GB or 8GB environments.
 
-[Gettings started](README.md#getting-started) | [Questions / ideas / feedback](https://github.com/cotab-org/cotab/discussions) (English / 日本語OK)
+[Gettings started](#getting-started) | [Questions / ideas / feedback](https://github.com/cotab-org/cotab/discussions) (English / 日本語OK)
 
 ## Autocomplete
 ![Autocomplete Demo](doc/asset/cotab-tutorial-autocomplete1.gif)
@@ -92,8 +92,7 @@ Qwen3-4B-Instruct-2507 also delivers high-quality translations, but in this use 
 ## Details
 - llama-server
 
-  You can also use OpenAI compatible APIs, but we strongly recommend using llama-server. llama-server has low overhead and operates at the fastest speed among servers using llama.cpp as backend.
-  Code completion frequently repeat requests and cancellations, so that overhead directly affects user experience. When using llama-server, always specify "-np 1".
+  You can also use OpenAI compatible APIs, but we strongly recommend using llama-server. llama-server has low overhead and operates at high speed among servers using llama.cpp as backend. [See details](#using-remote-servers)
   
 - Prompt Optimization
 
@@ -165,9 +164,11 @@ In particular, using **llama-server** through **llama-swap** allows automatic mo
 
 - **Most Important**
 
-  **When using llama-server, always specify the "-np 1" option.**
-  In the late 2025 update of llama-server, it was changed to run with 4 parallel processes by default.
-  With the default llama-server, since Cotab frequently repeats requests and cancellations at high speed, they are mistaken for completely different requests, causing the prompt cache to not function and resulting in significant performance degradation.
+  - **When using llama-server, always specify the "-np 1" option.**
+    In the late 2025 update of llama-server, it was changed to run with 4 parallel processes by default. With the default llama-server, since Cotab frequently repeats requests and cancellations at high speed, they are mistaken for completely different requests, causing the prompt cache to not function and resulting in significant performance degradation.
+
+  - **Also specify the "-b 512" option.**
+    For common NVIDIA gaming GPUs like RTX 4070, performance hardly changes even when exceeding 512. Since llama-server's cancel requests are not accepted during batch processing, with the default 2048, it may take several seconds until cancellation is executed, causing unexpected response degradation.
 
 ## Privacy and Telemetry
 - Cotab only communicates with the default endpoint `"http://localhost:8080/v1"` or the LLM API specified by the user. No other external services or servers are contacted. This ensures maximum privacy and security.
@@ -262,14 +263,32 @@ In particular, using **llama-server** through **llama-swap** allows automatic mo
 
 - Create Package
 
-```bash
-npx vsce package
-```
+  ```bash
+  npx vsce package
+  ```
 
 ## FAQ
 
 ### Why does the window flicker briefly when starting to use Cotab?
 The brief window flicker occurs because Cotab calculates font size during initialization. VS Code doesn't provide a direct API to get character size, so Cotab uses a Webview to calculate the font size. This causes the brief flicker when starting to use Cotab.
+
+## What do 4B and 30B in model names mean?
+They represent the number of parameters. B stands for "Billion" (10 billion). For example, 4B means 4 billion parameters, and 30B means 30 billion parameters. Generally, more parameters improve model performance, but also increase memory and computational resource requirements.
+
+## What does A3B in model names mean?
+It indicates that the actual computational load is equivalent to 3B (3 billion parameters). A stands for "Active". For example, Qwen3-Coder-30B-A3B is a 30 billion parameter model, but the actual computational load during inference is optimized to be equivalent to 3B. This allows the model to maintain the high-quality performance of a 30B model while achieving inference speed comparable to a 3B model.
+
+### What do Q4 and Q2 in model names mean?
+They represent quantization bit counts. Quantization is a technique that reduces file size and memory usage by lowering model precision. Q4 means 4-bit quantization, and Q2 means 2-bit quantization. Lower numbers result in smaller file sizes and less memory usage, but also reduce model quality. Generally, Q4 models are said to have the best balance between data size and quality.
+
+### How much quality degradation occurs with Qwen3-Coder-30B-A3B:Q2?
+With Qwen3-Coder-30B-A3B:Q2, significant degradation such as frequent syntax errors does not occur. Given its advantages in performance and accuracy in low VRAM environments, we recommend trying it out in practice.
+
+### Can't the completion extend beyond the view or avoid overlaying existing code?
+VS Code's public API does not allow displaying content that extends beyond the editor view, like Cursor does. It also doesn't allow adding arbitrary blocks between lines. GitHub Copilot uses unpublished internal features to achieve this, so regular plugins cannot implement UX equivalent to GitHub Copilot.
+
+### What is a token?
+A token is the basic unit that LLMs use to process text. For example, "Hello" is approximately 1 token. For code, the number of tokens is roughly one-third of the number of characters.
 
 ## License
 Copyright (c) 2025-2026 cotab
