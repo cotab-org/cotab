@@ -296,9 +296,8 @@ class ContextCheckpoints {
 					if (! isCached)
 					{
 						const res = await http.post(endpoint, newArgs, { 
-							// If cancel signal is sent too early and communication ends, llama-server may miss task cancellation,
-							// so don't pass signal directly
-							signal, // fix b7037
+							// If we cancel, the prompt cache won't be created, so don't cancel.
+							// signal,
 							responseType: 'stream',
 							validateStatus: () => true,	// no exception for status code 400
 						});
@@ -419,8 +418,7 @@ abstract class BaseAiClient implements AiClient {
 			if (0 <= top_p) args.top_p = top_p;
 			if (0 <= top_k) args.top_k = top_k;
 			
-			// const config = getConfig();
-			// if (config.isEnableCheckpoint) // Even if always executed, there is no significant harm.
+			 if (getConfig().isEnableCheckpoint)
 			{
 				await contextCheckpoints.createCheckpoints(
 					http,

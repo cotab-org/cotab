@@ -2,7 +2,7 @@
   "name": "cotab",
   "displayName": "Cotab",
   "description": "%description%",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "publisher": "cotab",
   "license": "Apache-2.0",
   "repository": {
