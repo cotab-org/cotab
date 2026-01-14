@@ -872,7 +872,7 @@ function getHtml(params: {
             <div id="serverStatus" class="muted"></div>
             <a id="serverActionButton" class="server-action-link" style="display:none;" href="javascript:void(0)" title="${escapeHtml(localize('gettingStarted.server.autoStartTooltip', 'If you use auto-start, the "OpenAI compatible Base URL" setting must be blank.'))}"></a>
             <div class="spacer"></div>
-            <div id="local-server-preset-container" class="setting-group">
+            <div id="local-server-preset-container" class="setting-group" title="${escapeHtml(localize('gettingStarted.presetTooltip', 'Presets for llama-server launch arguments. Choose Custom for fine-grained adjustments.'))}">
                 <label for="localServerPresetSelect">${localize('gettingStarted.preset', 'Preset')}</label>
                 <div class="row">
                     <select id="localServerPresetSelect" class="grow">
@@ -914,13 +914,13 @@ function getHtml(params: {
                     <a id="aboutRemoteServersLink" href="javascript:void(0)" style="color: var(--vscode-textLink-foreground); text-decoration: none; font-size: 13px;">${localize('gettingStarted.aboutRemoteServers', 'About Remote Servers')}</a>
                 </div>
             </div>
-            <div class="setting-group">
+            <div class="setting-group" title="${escapeHtml(localize('gettingStarted.modelTooltip', 'Model name available on the server.'))}">
                 <label for="model">${localize('gettingStarted.model', 'Model')}</label>
                 <div class="row">
                     <input id="model" type="text" class="grow" value="${model}" placeholder="qwen3-4b-2507" />
                 </div>
             </div>
-            <div class="setting-group">
+            <div class="setting-group" title="API key for the server.">
                 <label for="apiKey">${localize('gettingStarted.apiKey', 'API Key')}</label>
                 <div class="row">
                     <input id="apiKey" type="password" class="grow" value="${apiKey}" placeholder="sk-... (Optional)" autocomplete="off" spellcheck="false" />
@@ -999,19 +999,18 @@ function getHtml(params: {
         <h3 class="center">${localize('gettingStarted.detailSettings', 'Detail Settings')}</h3>
         <section class="setup-card setup-card--status">
             <div class="spacer"></div>
-            <div class="setting-group">
+            <div class="setting-group" title="${escapeHtml(localize('gettingStarted.commentLanguageTooltip', 'The language of the comments in the code.'))}">
                 <label for="commentLanguage">${localize('gettingStarted.commentLanguage', 'Comment Language')}</label>
                 <div class="row">
                     <input id="commentLanguage" type="text" class="grow" value="${commentLanguage}" placeholder="${defaultCommentLanguage}" />
                 </div>
                 <div class="helper-text">(e.g. 'English', '日本語', '简体中文', 'Français')</div>
             </div>
-            <div class="setting-group">
+            <div class="setting-group" title="${escapeHtml(localize('gettingStarted.showOnSuggestConflictTooltip', 'To comfortably use VS Code inline suggestion feature, this option is disabled by default because the editor settings need to be changed.'))}">
                 <label class="setup-checkbox">
                     <input id="showOnSuggestConflict" type="checkbox" ${isConfigShowOnSuggestConflict}/>
                     <span class="setup-checkbox__label">${localize('gettingStarted.showOnSuggestConflict', 'Use VS Code inline suggestion display')}</span>
                 </label>
-                <div class="helper-text">${localize('gettingStarted.showOnSuggestConflictHelperText', "When enabled,<br>'showOnSuggestConflict' is set to 'always'.")}</div>
                 <div class="inline-suggestion-preview">
                     <div class="inline-suggestion-preview__item">
                         <span class="inline-suggestion-preview__label">${localize('gettingStarted.inlineSuggestionDisplayDefaultLabel', 'Default')}</span>
@@ -1026,6 +1025,7 @@ function getHtml(params: {
                         </div>
                     </div>
                 </div>
+                <div class="helper-text">${localize('gettingStarted.showOnSuggestConflictHelperText', "When enabled, the 'showOnSuggestConflict' setting is set to 'always'.")}</div>
                 <div class="helper-text inline-suggestion-preview__note">${localize('gettingStarted.inlineSuggestionDisplayNote', "When using VS Code's system inline display, it may not appear with the completion list.")}</div>
             </div>
             <div class="spacer"></div>
