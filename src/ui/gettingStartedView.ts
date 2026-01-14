@@ -237,6 +237,8 @@ async function showGettingStartedView(context: vscode.ExtensionContext): Promise
         iconUri: panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'icon.png')),
         tutorialAutocompleteUri: panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'doc', 'asset', 'cotab-tutorial-autocomplete1.gif')),
         tutorialOpenGettingStartedUri: panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'doc', 'asset', 'cotab-tutorial-open-getting-started.gif')),
+        alternateInlineSuggestionUri: panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'doc', 'asset', 'cotab-option-alternate-inline-suggestion.gif')),
+        systemInlineSuggestionUri: panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'doc', 'asset', 'cotab-option-system-inline-suggestion.gif')),
         spinnerAnalyzeUri: panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'dot-spinner-0.svg')).toString(),
         spinnerRedUri: panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'spinner-red-0.svg')).toString(),
         spinnerNormalUri: panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'spinner-0.svg')).toString(),
@@ -371,6 +373,8 @@ function getHtml(params: {
     iconUri: vscode.Uri;
     tutorialAutocompleteUri: vscode.Uri;
     tutorialOpenGettingStartedUri: vscode.Uri;
+    alternateInlineSuggestionUri: vscode.Uri;
+    systemInlineSuggestionUri: vscode.Uri;
     spinnerAnalyzeUri: string;
     spinnerRedUri: string;
     spinnerNormalUri: string;
@@ -619,6 +623,47 @@ function getHtml(params: {
             letter-spacing: 1px;
             text-transform: none;
             color: rgba(255, 255, 255, 0.92);
+        }
+        .inline-suggestion-preview {
+            display: flex;
+            flex-wrap: nowrap;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        .inline-suggestion-preview__item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            flex: 0 1 240px;
+            min-width: 0;
+            max-width: 240px;
+        }
+        .inline-suggestion-preview__label {
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 0.6px;
+            text-transform: none;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        .inline-suggestion-preview__media {
+            width: clamp(160px, 32vw, 240px);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(10, 12, 20, 0.5);
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.32);
+        }
+        .inline-suggestion-preview__image {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+        .inline-suggestion-preview__note {
+            margin-top: 12px;
+            text-align: center;
+            max-width: 720px;
         }
         .setup-checkbox {
             display: flex;
@@ -967,6 +1012,21 @@ function getHtml(params: {
                     <span class="setup-checkbox__label">${localize('gettingStarted.showOnSuggestConflict', 'Use VS Code inline suggestion display')}</span>
                 </label>
                 <div class="helper-text">${localize('gettingStarted.showOnSuggestConflictHelperText', "When enabled,<br>'showOnSuggestConflict' is set to 'always'.")}</div>
+                <div class="inline-suggestion-preview">
+                    <div class="inline-suggestion-preview__item">
+                        <span class="inline-suggestion-preview__label">${localize('gettingStarted.inlineSuggestionDisplayDefaultLabel', 'Default')}</span>
+                        <div class="inline-suggestion-preview__media">
+                            <img src="${params.alternateInlineSuggestionUri}" class="inline-suggestion-preview__image" alt="${escapeHtml(localize('gettingStarted.inlineSuggestionDisplayDefaultLabel', 'Default'))}" />
+                        </div>
+                    </div>
+                    <div class="inline-suggestion-preview__item">
+                        <span class="inline-suggestion-preview__label">${localize('gettingStarted.inlineSuggestionDisplaySystemLabel', 'Use VSCode System')}</span>
+                        <div class="inline-suggestion-preview__media">
+                            <img src="${params.systemInlineSuggestionUri}" class="inline-suggestion-preview__image" alt="${escapeHtml(localize('gettingStarted.inlineSuggestionDisplaySystemLabel', 'Use VSCode System'))}" />
+                        </div>
+                    </div>
+                </div>
+                <div class="helper-text inline-suggestion-preview__note">${localize('gettingStarted.inlineSuggestionDisplayNote', "When using VS Code's system inline display, it may not appear with the completion list.")}</div>
             </div>
             <div class="spacer"></div>
         </section>
