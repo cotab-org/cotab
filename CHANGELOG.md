@@ -1,3 +1,7 @@
+## 0.2.4 - 2026/01/15
+- Fix: Change llama.cpp archive from zip to tar.gz for macOS.
+- Fix: Progress icon not hidden when trace icon is present.
+- Update: Prompt cache checkpoint with LFM2 for performance improvement.
 ## 0.2.3 - 2026/01/05
 - Update: Add using VS Code system inline suggestion display mode.
 - Fix: Not hide inline suggestion bug.
