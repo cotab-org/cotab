@@ -25,6 +25,8 @@ class ProgressGutterIconManager implements vscode.Disposable {
         phase: GutterIconPhase;
         dispDecoration?: vscode.TextEditorDecorationType | null;
     } | null = null;
+    private activeStackFrameLocation: { fsPath: string; line: number } | null = null;
+    private stackFrameLocationRequestId = 0;
 
     constructor() {
         this.disposables.push(vscode.workspace.onDidChangeConfiguration((event) => {
@@ -35,6 +37,10 @@ class ProgressGutterIconManager implements vscode.Disposable {
                 }
             }
         }));
+        this.disposables.push(vscode.debug.onDidChangeActiveStackItem(() => {
+            void this.updateActiveStackFrameLocation();
+        }));
+        void this.updateActiveStackFrameLocation();
     }
 
     dispose(): void {
@@ -202,36 +208,55 @@ class ProgressGutterIconManager implements vscode.Disposable {
     }
 
     private hasTraceIcon(documentFsPath: string, targetLine: number): boolean {
-        const stackItem = vscode.debug.activeStackItem;
-        if (!stackItem) return false;
+        const location = this.activeStackFrameLocation;
+        if (!location) return false;
 
-        const stackFrame = stackItem as any; // eslint-disable-line @typescript-eslint/no-explicit-any
-        const sourcePath = stackFrame?.source?.path as string | undefined;
-        if (!sourcePath) return false;
-
-        const frameFsPath = vscode.Uri.file(sourcePath).fsPath;
-        if (frameFsPath !== documentFsPath) {
-            return false;
-        }
-
-        const frameLine = this.getStackFrameLine(stackFrame);
-        if (frameLine === undefined) return false;
-
-        return frameLine === targetLine;
+        return location.fsPath === documentFsPath && location.line === targetLine;
     }
 
-    private getStackFrameLine(stackFrame: any): number | undefined { // eslint-disable-line @typescript-eslint/no-explicit-any
-        const rangeLine = stackFrame?.range?.start?.line;
-        if (typeof rangeLine === 'number') {
-            return rangeLine;
+    private async updateActiveStackFrameLocation(): Promise<void> {
+        const requestId = ++this.stackFrameLocationRequestId;
+        const stackItem = vscode.debug.activeStackItem;
+
+        if (!(stackItem instanceof vscode.DebugStackFrame)) {
+            this.activeStackFrameLocation = null;
+            return;
         }
 
-        const dapLine = stackFrame?.line;
-        if (typeof dapLine === 'number') {
-            return Math.max(0, dapLine - 1); // DAP uses 1-based lines
-        }
+        try {
+            const response = await stackItem.session.customRequest('stackTrace', {
+                threadId: stackItem.threadId,
+                startFrame: 0,
+                levels: 200,
+            });
 
-        return undefined;
+            if (requestId !== this.stackFrameLocationRequestId) {
+                return;
+            }
+
+            const frames = response?.stackFrames as Array<{ id: number; line?: number; source?: { path?: string } }> | undefined;
+            const targetFrame = frames?.find((frame) => frame.id === stackItem.frameId) ?? frames?.[0];
+
+            if (!targetFrame) {
+                this.activeStackFrameLocation = null;
+                return;
+            }
+
+            const sourcePath = targetFrame.source?.path;
+            const frameLine = typeof targetFrame.line === 'number' ? Math.max(0, targetFrame.line - 1) : undefined; // DAP is 1-based
+
+            if (!sourcePath || frameLine === undefined) {
+                this.activeStackFrameLocation = null;
+                return;
+            }
+
+            this.activeStackFrameLocation = { fsPath: vscode.Uri.file(sourcePath).fsPath, line: frameLine };
+        }
+        catch {
+            if (requestId === this.stackFrameLocationRequestId) {
+                this.activeStackFrameLocation = null;
+            }
+        }
     }
 
     private disposeProgressDecoration() {
