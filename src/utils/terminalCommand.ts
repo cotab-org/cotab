@@ -122,7 +122,7 @@ class TerminalCommand implements vscode.Disposable {
     private async extractTarGz(tarGzPath: string, extractPath: string): Promise<void> {
         try {
             const exec = util.promisify(cp.exec);
-            // Use tar for Unix-like systems (Ubuntu)
+            // Use tar for Unix-like systems (macOS, Ubuntu)
             await exec(`tar -xzf '${tarGzPath}' -C '${extractPath}'`);
         } catch (error) {
             logError(`Failed to extract tar.gz file: ${error}`);
@@ -163,7 +163,7 @@ class TerminalCommand implements vscode.Disposable {
         }
         else if (osInfo.platform === 'macos') {
             if (osInfo.cpu === 'x64' || osInfo.cpu === 'arm64') {
-                return `bin-${osInfo.platform}-${osInfo.cpu}.zip`;
+                return `bin-${osInfo.platform}-${osInfo.cpu}.tar.gz`;
             }
         }
         else if (osInfo.platform === 'ubuntu') {
@@ -184,7 +184,7 @@ class TerminalCommand implements vscode.Disposable {
         // like `b7216/llama-b7216-bin-win-cuda-12.4-x64.zip`
         // like `b7216/llama-b7216-bin-win-vulkan-x64.zip`
         ///// mac
-        // like `b7216/llama-b7216-bin-macos-x64.zip`
+        // like `b7216/llama-b7216-bin-macos-x64.tar.gz`
         ///// ubuntu
         // like `llama-b7216-bin-ubuntu-vulkan-x64.tar.gz`
         
@@ -199,7 +199,7 @@ class TerminalCommand implements vscode.Disposable {
             cudartName = `bin${platform}${gpu}${cpu}${ext}`;
             
         }
-        else if (osInfo.platform === 'ubuntu') {
+        else if (osInfo.platform === 'ubuntu' || osInfo.platform === 'macos') {
             ext = '.tar.gz';
         }
 
@@ -327,7 +327,7 @@ class TerminalCommand implements vscode.Disposable {
 
             // Extract llama.cpp binary
             logTerminal('[Install] Extracting llama.cpp archive...');
-            if (osInfo.platform === 'ubuntu' && mainBinary.name.endsWith('.tar.gz')) {
+            if (mainBinary.name.endsWith('.tar.gz')) {
                 await this.extractTarGz(mainArchivePath, installDir);
             } else {
                 await this.extractZip(mainArchivePath, installDir);
