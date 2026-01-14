@@ -418,7 +418,7 @@ abstract class BaseAiClient implements AiClient {
 			if (0 <= top_p) args.top_p = top_p;
 			if (0 <= top_k) args.top_k = top_k;
 			
-			 if (getConfig().isEnableCheckpoint)
+			if (getConfig().isEnableCheckpoint)
 			{
 				await contextCheckpoints.createCheckpoints(
 					http,
