@@ -9,8 +9,6 @@
 
 [开始使用](#开始使用) | [问题 / 想法 / 反馈](https://github.com/cotab-org/cotab/discussions) (English / 日本語OK)
 
-它还提供专用的仅翻译模式。
-
 ## 自动补全
 ![Autocomplete Demo](doc/asset/cotab-tutorial-autocomplete1.gif)
 支持的编程语言取决于AI模型。尽管体积紧凑，默认模型Qwen3-4B-Instruct-2507支持多种语言。
@@ -41,7 +39,7 @@ Qwen3-4B-Instruct-2507也能提供高质量的翻译，但在此用例中，建�
   
 2. 点击"Install Local Server"按钮或配置您的API。
    ![Getting started - setup](doc/github-asset/cotab-demo-setup.gif)
-   注意:
+   注意：
    - 首次可能需要一些时间，因为它会下载2.5GB的模型。
    - 安装后服务器会自动启动。
    - 安装支持的平台: Windows/MacOS/Ubuntu
@@ -55,7 +53,7 @@ Qwen3-4B-Instruct-2507也能提供高质量的翻译，但在此用例中，建�
    |接受第一行|Shift + Tab|
    |拒绝|Esc|
 
-   注意:
+   注意：
    - 通过拒绝，您可以更改下一个补全候选。
    - 斜体显示覆盖层表示AI仍在输出结果，结果尚未确定。在大多数情况下，它与最终结果相同，但在斜体显示的情况下，合并结果可能存在问题。
 
@@ -115,7 +113,7 @@ Qwen3-4B-Instruct-2507也能提供高质量的翻译，但在此用例中，建�
 
   使用可从VSCode的语言提供程序获得的符号，并在建议中利用它们。这些符号允许LLM理解类结构并提高成员函数建议的准确性。
 
-  注意: 符号按在VS Code中查看文件的顺序输入。
+  注意：符号按在VS Code中查看文件的顺序输入。
 
 - 错误问题
 
@@ -181,7 +179,7 @@ Qwen3-4B-Instruct-2507也能提供高质量的翻译，但在此用例中，建�
   - 此项目是开源的，所有源代码都在GitHub上可用
 
 - 通过此政策，您可以完全放心地使用Cotab。
-- 注意: 如果您安装本地服务器，它会访问[llama.cpp github存储库](https://github.com/ggml-org/llama.cpp/releases)。
+- 注意：如果您安装本地服务器，它会访问[llama.cpp github存储库](https://github.com/ggml-org/llama.cpp/releases)。
 
 ## 社区与反馈
 
@@ -220,7 +218,7 @@ Qwen3-4B-Instruct-2507也能提供高质量的翻译，但在此用例中，建�
     
   例如，通过包管理器安装Node.js v22。
   ```bash
-  url -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+  curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
   sudo apt install -y nodejs
   ```
   
@@ -274,10 +272,10 @@ Qwen3-4B-Instruct-2507也能提供高质量的翻译，但在此用例中，建�
 ### 为什么开始使用Cotab时窗口会短暂闪烁？
 短暂的窗口闪烁是因为Cotab在初始化期间计算字体大小。VS Code不提供直接API来获取字符大小，因此Cotab使用Webview来计算字体大小。这导致开始使用Cotab时出现短暂闪烁。
 
-## 模型名称中的4B和30B是什么意思？
+### 模型名称中的4B和30B是什么意思？
 它们表示参数数量。B代表"Billion"（十亿）。例如，4B表示40亿参数，30B表示300亿参数。一般来说，参数越多，模型性能越好，但所需的内存和计算资源也会增加。
 
-## 模型名称中的A3B是什么意思？
+### 模型名称中的A3B是什么意思？
 它表示实际计算量相当于3B（30亿参数）。A代表"Active"（活跃）。例如，Qwen3-Coder-30B-A3B是一个300亿参数的模型，但实际推理时的计算量被优化为相当于3B。这使得模型能够保持30B模型的高质量性能，同时实现与3B模型相当的高速推理。
 
 ### 模型名称中的Q4和Q2是什么意思？

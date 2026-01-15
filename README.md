@@ -7,7 +7,7 @@ This VS Code extension is an AI-powered multi-line autocomplete plugin designed 
 In addition to the entire file's context, it also considers external symbols, errors, and prior edits, and uses AI to generate multiple lines of code that are presented as autocomplete suggestions. In particular, when using Qwen3-Coder-30B-A3B, you can get high-quality completion comparable to cloud services.
 **Setup can be completed with a single click and is ready to use immediately.** Also, you can switch the model to use with a single click, and Qwen3-Coder-30B-A3B can run on VRAM 4GB or 8GB environments.
 
-[Gettings started](#getting-started) | [Questions / ideas / feedback](https://github.com/cotab-org/cotab/discussions) (English / 日本語OK)
+[Getting started](#getting-started) | [Questions / ideas / feedback](https://github.com/cotab-org/cotab/discussions) (English / 日本語OK)
 
 ## Autocomplete
 ![Autocomplete Demo](doc/asset/cotab-tutorial-autocomplete1.gif)
@@ -98,7 +98,7 @@ Qwen3-4B-Instruct-2507 also delivers high-quality translations, but in this use 
 
   llama-server has a mechanism enabled by default that caches prompts from previous requests. Prompt cache is effective up to the part that matches the previous prompt, allowing prompt processing to be skipped up to that part.
   
-  To make the most of this mechanism, the original source code  in prompt remains unchanged as users type. Instead, a minimal block of modified surrounding code is appended to the bottom of the prompt.
+  To make the most of this mechanism, the original source code in prompt remains unchanged as users type. Instead, a minimal block of modified surrounding code is appended to the bottom of the prompt.
 
   Prompt is fully customizable, and you can switch between prepared modes with a single click.
   This allows you to perform completions with the optimal prompt for each purpose.
@@ -218,7 +218,7 @@ In particular, using **llama-server** through **llama-swap** allows automatic mo
     
   e.g., Install Node.js v22 via package manager.
   ```bash
-  url -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+  curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
   sudo apt install -y nodejs
   ```
   
@@ -272,10 +272,10 @@ In particular, using **llama-server** through **llama-swap** allows automatic mo
 ### Why does the window flicker briefly when starting to use Cotab?
 The brief window flicker occurs because Cotab calculates font size during initialization. VS Code doesn't provide a direct API to get character size, so Cotab uses a Webview to calculate the font size. This causes the brief flicker when starting to use Cotab.
 
-## What do 4B and 30B in model names mean?
+### What do 4B and 30B in model names mean?
 They represent the number of parameters. B stands for "Billion" (10 billion). For example, 4B means 4 billion parameters, and 30B means 30 billion parameters. Generally, more parameters improve model performance, but also increase memory and computational resource requirements.
 
-## What does A3B in model names mean?
+### What does A3B in model names mean?
 It indicates that the actual computational load is equivalent to 3B (3 billion parameters). A stands for "Active". For example, Qwen3-Coder-30B-A3B is a 30 billion parameter model, but the actual computational load during inference is optimized to be equivalent to 3B. This allows the model to maintain the high-quality performance of a 30B model while achieving inference speed comparable to a 3B model.
 
 ### What do Q4 and Q2 in model names mean?
