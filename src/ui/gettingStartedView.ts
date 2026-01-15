@@ -237,6 +237,8 @@ async function showGettingStartedView(context: vscode.ExtensionContext): Promise
         iconUri: panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'icon.png')),
         tutorialAutocompleteUri: panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'doc', 'asset', 'cotab-tutorial-autocomplete1.gif')),
         tutorialOpenGettingStartedUri: panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'doc', 'asset', 'cotab-tutorial-open-getting-started.gif')),
+        alternateInlineSuggestionUri: panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'doc', 'asset', 'cotab-option-alternate-inline-suggestion.gif')),
+        systemInlineSuggestionUri: panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'doc', 'asset', 'cotab-option-system-inline-suggestion.gif')),
         spinnerAnalyzeUri: panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'dot-spinner-0.svg')).toString(),
         spinnerRedUri: panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'spinner-red-0.svg')).toString(),
         spinnerNormalUri: panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'spinner-0.svg')).toString(),
@@ -371,6 +373,8 @@ function getHtml(params: {
     iconUri: vscode.Uri;
     tutorialAutocompleteUri: vscode.Uri;
     tutorialOpenGettingStartedUri: vscode.Uri;
+    alternateInlineSuggestionUri: vscode.Uri;
+    systemInlineSuggestionUri: vscode.Uri;
     spinnerAnalyzeUri: string;
     spinnerRedUri: string;
     spinnerNormalUri: string;
@@ -620,6 +624,47 @@ function getHtml(params: {
             text-transform: none;
             color: rgba(255, 255, 255, 0.92);
         }
+        .inline-suggestion-preview {
+            display: flex;
+            flex-wrap: nowrap;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        .inline-suggestion-preview__item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            flex: 0 1 240px;
+            min-width: 0;
+            max-width: 240px;
+        }
+        .inline-suggestion-preview__label {
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 0.6px;
+            text-transform: none;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        .inline-suggestion-preview__media {
+            width: clamp(160px, 32vw, 240px);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(10, 12, 20, 0.5);
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.32);
+        }
+        .inline-suggestion-preview__image {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+        .inline-suggestion-preview__note {
+            margin-top: 12px;
+            text-align: center;
+            max-width: 720px;
+        }
         .setup-checkbox {
             display: flex;
             align-items: center;
@@ -827,7 +872,7 @@ function getHtml(params: {
             <div id="serverStatus" class="muted"></div>
             <a id="serverActionButton" class="server-action-link" style="display:none;" href="javascript:void(0)" title="${escapeHtml(localize('gettingStarted.server.autoStartTooltip', 'If you use auto-start, the "OpenAI compatible Base URL" setting must be blank.'))}"></a>
             <div class="spacer"></div>
-            <div id="local-server-preset-container" class="setting-group">
+            <div id="local-server-preset-container" class="setting-group" title="${escapeHtml(localize('gettingStarted.presetTooltip', 'Presets for llama-server launch arguments. Choose Custom for fine-grained adjustments.'))}">
                 <label for="localServerPresetSelect">${localize('gettingStarted.preset', 'Preset')}</label>
                 <div class="row">
                     <select id="localServerPresetSelect" class="grow">
@@ -869,13 +914,13 @@ function getHtml(params: {
                     <a id="aboutRemoteServersLink" href="javascript:void(0)" style="color: var(--vscode-textLink-foreground); text-decoration: none; font-size: 13px;">${localize('gettingStarted.aboutRemoteServers', 'About Remote Servers')}</a>
                 </div>
             </div>
-            <div class="setting-group">
+            <div class="setting-group" title="${escapeHtml(localize('gettingStarted.modelTooltip', 'Model name available on the server.'))}">
                 <label for="model">${localize('gettingStarted.model', 'Model')}</label>
                 <div class="row">
                     <input id="model" type="text" class="grow" value="${model}" placeholder="qwen3-4b-2507" />
                 </div>
             </div>
-            <div class="setting-group">
+            <div class="setting-group" title="API key for the server.">
                 <label for="apiKey">${localize('gettingStarted.apiKey', 'API Key')}</label>
                 <div class="row">
                     <input id="apiKey" type="password" class="grow" value="${apiKey}" placeholder="sk-... (Optional)" autocomplete="off" spellcheck="false" />
@@ -954,19 +999,34 @@ function getHtml(params: {
         <h3 class="center">${localize('gettingStarted.detailSettings', 'Detail Settings')}</h3>
         <section class="setup-card setup-card--status">
             <div class="spacer"></div>
-            <div class="setting-group">
+            <div class="setting-group" title="${escapeHtml(localize('gettingStarted.commentLanguageTooltip', 'The language of the comments in the code.'))}">
                 <label for="commentLanguage">${localize('gettingStarted.commentLanguage', 'Comment Language')}</label>
                 <div class="row">
                     <input id="commentLanguage" type="text" class="grow" value="${commentLanguage}" placeholder="${defaultCommentLanguage}" />
                 </div>
                 <div class="helper-text">(e.g. 'English', '日本語', '简体中文', 'Français')</div>
             </div>
-            <div class="setting-group">
+            <div class="setting-group" title="${escapeHtml(localize('gettingStarted.showOnSuggestConflictTooltip', 'To comfortably use VS Code inline suggestion feature, this option is disabled by default because the editor settings need to be changed.'))}">
                 <label class="setup-checkbox">
                     <input id="showOnSuggestConflict" type="checkbox" ${isConfigShowOnSuggestConflict}/>
                     <span class="setup-checkbox__label">${localize('gettingStarted.showOnSuggestConflict', 'Use VS Code inline suggestion display')}</span>
                 </label>
-                <div class="helper-text">${localize('gettingStarted.showOnSuggestConflictHelperText', "When enabled,<br>'showOnSuggestConflict' is set to 'always'.")}</div>
+                <div class="inline-suggestion-preview">
+                    <div class="inline-suggestion-preview__item">
+                        <span class="inline-suggestion-preview__label">${localize('gettingStarted.inlineSuggestionDisplayDefaultLabel', 'Default')}</span>
+                        <div class="inline-suggestion-preview__media">
+                            <img src="${params.alternateInlineSuggestionUri}" class="inline-suggestion-preview__image" alt="${escapeHtml(localize('gettingStarted.inlineSuggestionDisplayDefaultLabel', 'Default'))}" />
+                        </div>
+                    </div>
+                    <div class="inline-suggestion-preview__item">
+                        <span class="inline-suggestion-preview__label">${localize('gettingStarted.inlineSuggestionDisplaySystemLabel', 'Use VSCode System')}</span>
+                        <div class="inline-suggestion-preview__media">
+                            <img src="${params.systemInlineSuggestionUri}" class="inline-suggestion-preview__image" alt="${escapeHtml(localize('gettingStarted.inlineSuggestionDisplaySystemLabel', 'Use VSCode System'))}" />
+                        </div>
+                    </div>
+                </div>
+                <div class="helper-text">${localize('gettingStarted.showOnSuggestConflictHelperText', "When enabled, the 'showOnSuggestConflict' setting is set to 'always'.")}</div>
+                <div class="helper-text inline-suggestion-preview__note">${localize('gettingStarted.inlineSuggestionDisplayNote', "When using VS Code's system inline display, it may not appear with the completion list.")}</div>
             </div>
             <div class="spacer"></div>
         </section>

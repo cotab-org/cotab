@@ -1,3 +1,5 @@
+## 0.2.5 - 2026/01/15
+- Update: getting started view.
 ## 0.2.4 - 2026/01/15
 - Fix: Change llama.cpp archive from zip to tar.gz for macOS.
 - Fix: Progress icon not hidden when trace icon is present.
