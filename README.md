@@ -1,10 +1,11 @@
 # Cotab
 
-[English](README.md) | [日本語](README.ja.md) | [中文](README.zh-cn.md)
+[English](README.md) | [日本語](README.ja.md)
 
-This VS Code extension is an AI-powered multi-line autocomplete plugin designed with maximum privacy and security in mind by running entirely on a local LLM.
+This VS Code extension is an AI-powered multi-line autocomplete plugin designed with maximum privacy and security in mind. It runs entirely on a local LLM and is developed to work on consumer-grade PCs.
 
-In addition to the entire file's context, it also considers external symbols, errors, and prior edits, and uses AI to generate multiple lines of code that are presented as autocomplete suggestions. In particular, when using Qwen3-Coder-30B-A3B, you can get high-quality completion comparable to cloud services.
+Cotab focuses on autocomplete that takes the editing intent into account. In addition to the context of the entire file, it considers external symbols, errors, and prior edits, using AI to generate multi-line code suggestions presented as autocomplete.
+
 **Setup can be completed with a single click and is ready to use immediately.** Also, you can switch the model to use with a single click, and Qwen3-Coder-30B-A3B can run on VRAM 4GB or 8GB environments.
 
 [Getting started](#getting-started) | [Questions / ideas / feedback](https://github.com/cotab-org/cotab/discussions) (English / 日本語OK)
@@ -138,15 +139,15 @@ All text generation models are available, but powerful instruction-following per
 
 - Qwen3-Coder-30B-A3B
 
-  80% of the model is allocated to code learning, providing high-quality completion comparable to cloud services. Furthermore, since the actual computation is equivalent to 3B, it operates at high speed like small models. This model can adjust VRAM usage without significantly degrading performance, so Cotab provides presets that work in 4GB or 8GB environments.
+  80% of the model is allocated to code learning, providing high-quality completion. Since the actual computation is equivalent to 3B, it operates at high speed like small models. This model can adjust VRAM usage without significantly degrading performance, so Cotab provides presets that work in 4GB or 8GB environments.
 
 - Qwen3-4B-Instruct-2507
 
-  Despite its very small size of 4B, it has outstanding instruction-following performance and high performance in fields such as mathematics, providing fast and high-quality completion in Cotab.
+  Despite its very small size of 4B, it has outstanding instruction-following performance and high performance in fields such as mathematics. In Cotab, it provides good completion that makes you forget its small size.
 
 - Ministral-3-3B-Instruct-2512
 
-  Despite its very small size of 3B, it has high performance and operates at high speed with VRAM 5GB usage. In Cotab, it provides fast and good quality completion.
+  Despite its very small size of 3B, it has high performance and operates at high speed with VRAM 5GB usage. Please try it if you have VRAM limitations.
 
 - granite-4.0-micro
 
@@ -159,6 +160,7 @@ All text generation models are available, but powerful instruction-following per
   However, it can be used when VRAM requirements are very strict or for translation purposes.
 
 ## Using Remote Servers
+
 You can use OpenAI compatible API servers, but for performance reasons, we strongly recommend using **llama-server** or **llama-swap**.
 In particular, using **llama-server** through **llama-swap** allows automatic model switching when using other chat plugins.
 
