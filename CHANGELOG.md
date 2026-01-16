@@ -1,3 +1,7 @@
+## 1.0.1 - 2026/01/17
+- Update: Default custom llama.cpp options.
+## 1.0.0 - 2026/01/16
+- Version 1.0.0 Release.
 ## 0.2.5 - 2026/01/15
 - Update: getting started view.
 ## 0.2.4 - 2026/01/15
