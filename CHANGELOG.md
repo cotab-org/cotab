@@ -1,3 +1,7 @@
+## 1.0.2 - 2026/03/08
+- Fix: Progress gutter spinner briefly flashing when stepping in debugger (F10).
+- Fix: Prevent llama-server from starting while llama.cpp is updating.
+- Fix: diff bug.
 ## 1.0.1 - 2026/01/17
 - Update: Default custom llama.cpp options.
 ## 1.0.0 - 2026/01/16
