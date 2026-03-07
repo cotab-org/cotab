@@ -154,11 +154,11 @@ export function processDiffAndApplyEdits(
 
             // Sometimes the current line is ignored and output starts from code below, so correct for this
             // Find a line where the first line matches exactly
-            for(let i = 0; i < Math.max(origLines.length, 5); i++) {
+            for(let i = 0; i < Math.min(origLines.length, 5); i++) {
                 const orgLine = origLines[i];//.replace(/^\s+/, '');
                 if (orgLine === newHead) {
                     // And check same next line
-                    if (i + 1 < Math.max(origLines.length, 6)) {
+                    if (i + 1 < Math.min(origLines.length, 6)) {
                         if (origLines[i + 1] === newLines[newTrimIdx + 1]) {
                             origLines = origLines.slice(i);
                             baseLine += i;
