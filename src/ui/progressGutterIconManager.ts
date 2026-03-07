@@ -27,6 +27,12 @@ class ProgressGutterIconManager implements vscode.Disposable {
     } | null = null;
     private activeStackFrameLocation: { fsPath: string; line: number } | null = null;
     private stackFrameLocationRequestId = 0;
+    /** True while fetching stack frame (e.g. right after debug step). Spinner is not drawn during this time. */
+    private stackFrameUpdatePending = false;
+    /** ID used so that only the latest startUpdate() starts the timer when show() is called repeatedly. */
+    private startUpdateId = 0;
+    /** Cache of whether a line has code actions (lightbulb). Used for synchronous conflict check. */
+    private cachedCodeActionAtLine: { uri: string; line: number; hasActions: boolean } | null = null;
 
     constructor() {
         this.disposables.push(vscode.workspace.onDidChangeConfiguration((event) => {
@@ -38,6 +44,7 @@ class ProgressGutterIconManager implements vscode.Disposable {
             }
         }));
         this.disposables.push(vscode.debug.onDidChangeActiveStackItem(() => {
+            this.stackFrameUpdatePending = true;
             void this.updateActiveStackFrameLocation();
         }));
         void this.updateActiveStackFrameLocation();
@@ -63,11 +70,11 @@ class ProgressGutterIconManager implements vscode.Disposable {
         if (this.state?.timer) {
             this.state.range = range;
             this.state.phase = phase;
-            this.startUpdate();
+            void this.startUpdate();
         }
         else {
             this.state = { editor, frame: 0, range, phase };
-            this.startUpdate();
+            void this.startUpdate();
         }
     }
 
@@ -80,6 +87,16 @@ class ProgressGutterIconManager implements vscode.Disposable {
         }
         
         const editor = this.state.editor;
+
+        // Do not draw while stack frame is being updated (avoids brief flash on F10 step)
+        if (this.stackFrameUpdatePending) {
+            if (this.state.dispDecoration) {
+                editor.setDecorations(this.state.dispDecoration, []);
+                this.state.dispDecoration = null;
+            }
+            return;
+        }
+
         const hasGutterConflict = this.hasGutterIconConflict(editor, this.state.range);
 
         // clear prev decorations
@@ -101,7 +118,7 @@ class ProgressGutterIconManager implements vscode.Disposable {
         this.state.frame = (this.state.frame + 1) % spinnerDecorationTypes.length;
     }
     
-    private startUpdate() {
+    private async startUpdate(): Promise<void> {
         if (!this.state) return;
 
         if (!getConfig().showProgressSpinner) {
@@ -109,7 +126,23 @@ class ProgressGutterIconManager implements vscode.Disposable {
             return;
         }
 
+        const myId = ++this.startUpdateId;
         this.clearTimer();
+
+        // When debugging, fetch stack frame before drawing to avoid brief spinner flash after step
+        if (vscode.debug.activeDebugSession) {
+            await this.updateActiveStackFrameLocation();
+            if (!this.state) return;
+        }
+
+        // Fetch code action (lightbulb) state before drawing so spinner does not overlap it
+        //await this.ensureCodeActionCache(this.state.editor, this.state.range.start.line);
+        //if (!this.state) return;
+
+        // When multiple startUpdate() run in parallel due to rapid show() calls, only the latest one starts the timer
+        // (otherwise onUpdateTimer() is invoked synchronously multiple times and the spinner appears to rotate faster)
+        if (myId !== this.startUpdateId) return;
+
         this.onUpdateTimer();
         this.state.timer = setInterval(() => { this.onUpdateTimer(); }, 120);
     }
@@ -191,7 +224,43 @@ class ProgressGutterIconManager implements vscode.Disposable {
             return true;
         }
 
-        return this.hasTraceIcon(documentFsPath, targetLine);
+        if (this.hasTraceIcon(documentFsPath, targetLine)) {
+            return true;
+        }
+
+        // if (this.hasCodeActionIcon(documentUri, targetLine)) {
+        //     return true;
+        // }
+
+        return false;
+    }
+
+    private hasCodeActionIcon(documentUri: string, targetLine: number): boolean {
+        const c = this.cachedCodeActionAtLine;
+        if (!c || c.uri !== documentUri || c.line !== targetLine) {
+            return false;
+        }
+        return c.hasActions;
+    }
+
+    private async ensureCodeActionCache(editor: vscode.TextEditor, line: number): Promise<void> {
+        const uri = editor.document.uri.toString();
+        if (this.cachedCodeActionAtLine?.uri === uri && this.cachedCodeActionAtLine?.line === line) {
+            return;
+        }
+        try {
+            const lineRange = editor.document.lineAt(line).range;
+            // Only fetch Quick Fix; refactors etc. may not show the lightbulb, so we match actual lightbulb visibility
+            const actions = await vscode.commands.executeCommand<vscode.CodeAction[]>(
+                'vscode.executeCodeActionProvider',
+                editor.document.uri,
+                lineRange,
+                vscode.CodeActionKind.QuickFix
+            );
+            this.cachedCodeActionAtLine = { uri, line, hasActions: Array.isArray(actions) && actions.length > 0 };
+        } catch {
+            this.cachedCodeActionAtLine = { uri, line, hasActions: false };
+        }
     }
 
     private hasBreakpointIcon(documentUri: string, targetLine: number): boolean {
@@ -220,6 +289,7 @@ class ProgressGutterIconManager implements vscode.Disposable {
 
         if (!(stackItem instanceof vscode.DebugStackFrame)) {
             this.activeStackFrameLocation = null;
+            this.stackFrameUpdatePending = false;
             return;
         }
 
@@ -239,6 +309,7 @@ class ProgressGutterIconManager implements vscode.Disposable {
 
             if (!targetFrame) {
                 this.activeStackFrameLocation = null;
+                this.stackFrameUpdatePending = false;
                 return;
             }
 
@@ -247,6 +318,7 @@ class ProgressGutterIconManager implements vscode.Disposable {
 
             if (!sourcePath || frameLine === undefined) {
                 this.activeStackFrameLocation = null;
+                this.stackFrameUpdatePending = false;
                 return;
             }
 
@@ -257,6 +329,7 @@ class ProgressGutterIconManager implements vscode.Disposable {
                 this.activeStackFrameLocation = null;
             }
         }
+        this.stackFrameUpdatePending = false;
     }
 
     private disposeProgressDecoration() {

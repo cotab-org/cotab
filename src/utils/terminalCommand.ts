@@ -6,7 +6,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import axios from 'axios';
-import { getConfig } from '../utils/config';
+import { getConfig, clearConfigCache } from '../utils/config';
 import { localServerPresetArgs } from './localServerPresets';
 import { isCotabLocalhost } from '../llm/llmUtils';
 import { OSInfo, getOsInfo } from '../utils/cotabUtil';
@@ -791,6 +791,8 @@ class TerminalCommand implements vscode.Disposable {
                 });
             }
         } finally {
+            clearConfigCache();
+
             clearContextCheckpoints();
 
             // call check for update cache.

@@ -131,6 +131,10 @@ export function getConfig(): CotabConfig {
     return configCache;
 }
 
+export function clearConfigCache() {
+    configCache = null;
+}
+
 const LINE_HEIGHT_RATIO = 1.28;
 
 function getConfigRaw(): CotabConfig {
