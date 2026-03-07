@@ -302,7 +302,9 @@ class ContextCheckpoints {
 							validateStatus: () => true,	// no exception for status code 400
 						});
 						logDebug(`Checkpoint response reception started ${orgParams.streamCount}th time`);
-						await processStreamingResponse(res, signal, newParams);
+						await processStreamingResponse(res,
+							undefined, // signal,
+							newParams);
 
 						// Update cache
 						this.messages = newArgs.messages;
@@ -409,6 +411,7 @@ abstract class BaseAiClient implements AiClient {
 				max_tokens: params.maxTokens ?? this.maxTokens, // eslint-disable-line @typescript-eslint/naming-convention
 				stream: true,
 				stop: params.stops,
+				chat_template_kwargs: { enable_thinking: false },
 			};
 			// if 0 <= x, make parameter
 			const temperature: number = params.temperature ?? this.temperature;

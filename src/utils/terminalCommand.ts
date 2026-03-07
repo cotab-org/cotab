@@ -38,6 +38,8 @@ class TerminalCommand implements vscode.Disposable {
     private serverProcess!: cp.ChildProcessWithoutNullStreams;
     private serverRunningCache: { result: boolean; timestamp: number } | null = null;
     private isServerEnableCheckpoint: boolean = false;
+    /** Lock: resolves when installLocalLlamaCpp() completes. Server must not start until this is idle. */
+    private installLocalLlamaCppLock: { promise: Promise<void>; resolve: () => void } | null = null;
 
     private getInstallBaseDir(): string {
         if (process.platform === 'win32') {
@@ -493,10 +495,20 @@ class TerminalCommand implements vscode.Disposable {
     }
 
     /**
+     * Wait until installLocalLlamaCpp() is not running. Call this before starting the server.
+     */
+    public waitForInstallLocalLlamaCpp(): Promise<void> {
+        return this.installLocalLlamaCppLock?.promise ?? Promise.resolve();
+    }
+
+    /**
      * Install llama.cpp via integrated terminal
      * not waitable command. because terminal is not visible to user. so user input is required.
      */
     public async installLocalLlamaCpp(): Promise<boolean> {
+        let resolveLock: (() => void) | undefined;
+        const lockPromise = new Promise<void>(r => { resolveLock = r; });
+        this.installLocalLlamaCppLock = { promise: lockPromise, resolve: resolveLock! };
         try {
             await this.killInstallTerminal();
             await this.stopLocalLlamaServer();
@@ -531,6 +543,8 @@ class TerminalCommand implements vscode.Disposable {
                 return false;
             }
         } finally {
+            this.installLocalLlamaCppLock?.resolve();
+            this.installLocalLlamaCppLock = null;
             // Update menu until changed
             requestUpdateCotabMenuUntilChanged();
         }
@@ -677,6 +691,8 @@ class TerminalCommand implements vscode.Disposable {
     }
 
     private async runLocalLlamaServerInternal(args: string[], returnLogs: boolean = false): Promise<string[] | void> {
+        await this.waitForInstallLocalLlamaCpp();
+        
         const logs: string[] = [];
         
         try {

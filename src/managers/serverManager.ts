@@ -313,6 +313,8 @@ class ServerManager implements vscode.Disposable {
         this.serverStartInProgress = true;
         
         try {
+            // Do not start server while installLocalLlamaCpp is in progress
+            await terminalCommand.waitForInstallLocalLlamaCpp();
             if (! await terminalCommand.isRunningLocalLlamaServer()) {
                 const filename = vscode.workspace.asRelativePath(vscode.window.activeTextEditor?.document.uri || '');
                 const yamlConfigMode = getYamlConfigMode(filename);
