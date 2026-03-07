@@ -1,6 +1,9 @@
 
 @echo off
 
+set "EDITOR_NAME=%~1"
+if "%EDITOR_NAME%"=="" set "EDITOR_NAME=code"
+
 ::###################################################################################
 :: activate environment
 ::###################################################################################
@@ -22,7 +25,7 @@ if ERRORLEVEL 1 goto :ERROR
 :: main
 ::###################################################################################
 
-goto :RUN_VSCODE
+goto :LAUNCH_EDITOR "%EDITOR_NAME%"
 if ERRORLEVEL 1 goto :ERROR
 exit /b 0
 
@@ -37,21 +40,15 @@ exit /b 0
 	pause
 exit /b 1
 
-:RUN_VSCODE
-    :: search code command and start vscode
-    for /f "delims=" %%I in ('where code 2^>NUL') do (
-        call :RUN_VSCODE_INTERNAL "%%~fI"
+:LAUNCH_EDITOR
+    set "_LAUNCH_EDITOR_NAME=%~1"
+    if "%_LAUNCH_EDITOR_NAME%"=="" set "_LAUNCH_EDITOR_NAME=code"
+
+    for /f "delims=" %%I in ('where.exe "%_LAUNCH_EDITOR_NAME%.cmd" 2^>NUL') do (
+        powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath '%%~I' -ArgumentList '\"%~dp0\"' -WorkingDirectory '%~dp0' -WindowStyle Hidden"
+        if ERRORLEVEL 1 exit /b 1
         exit /b 0
     )
-    echo 'code' command not found on PATH.
+
 exit /b 1
 
-:RUN_VSCODE_INTERNAL
-    for %%I in ("%~1") do set "CODE_BIN_DIR=%%~dpI"
-    for %%I in ("%CODE_BIN_DIR%..") do set "VSCODE_EXE=%%~fI\Code.exe"
-    if exist "%VSCODE_EXE%" (
-        start "" "%VSCODE_EXE%" "%~dp0"
-    ) else (
-        start code "%~dp0"
-    )
-exit /b 0
